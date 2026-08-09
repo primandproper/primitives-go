@@ -1,4 +1,4 @@
-package indexing
+package aws
 
 import (
 	"testing"
@@ -61,15 +61,6 @@ func TestWithLogger(T *testing.T) {
 		must.NotNil(t, o)
 		test.NotNil(t, o.logger)
 	})
-
-	T.Run("last option wins", func(t *testing.T) {
-		t.Parallel()
-
-		o := newOptions([]Option{WithLogger(loggingnoop.NewLogger()), WithLogger(nil)})
-
-		must.NotNil(t, o)
-		test.Nil(t, o.logger)
-	})
 }
 
 func TestWithTracerProvider(T *testing.T) {
@@ -83,15 +74,6 @@ func TestWithTracerProvider(T *testing.T) {
 		must.NotNil(t, o)
 		test.NotNil(t, o.tracerProvider)
 	})
-
-	T.Run("last option wins", func(t *testing.T) {
-		t.Parallel()
-
-		o := newOptions([]Option{WithTracerProvider(tracingnoop.NewTracerProvider()), WithTracerProvider(nil)})
-
-		must.NotNil(t, o)
-		test.Nil(t, o.tracerProvider)
-	})
 }
 
 func TestWithMetricsProvider(T *testing.T) {
@@ -104,14 +86,5 @@ func TestWithMetricsProvider(T *testing.T) {
 
 		must.NotNil(t, o)
 		test.NotNil(t, o.metricsProvider)
-	})
-
-	T.Run("last option wins", func(t *testing.T) {
-		t.Parallel()
-
-		o := newOptions([]Option{WithMetricsProvider(metricsnoop.NewMetricsProvider()), WithMetricsProvider(nil)})
-
-		must.NotNil(t, o)
-		test.Nil(t, o.metricsProvider)
 	})
 }

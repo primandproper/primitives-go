@@ -1,4 +1,4 @@
-package indexing
+package gcp
 
 import (
 	"github.com/primandproper/platform-go/v10/observability/logging"
@@ -6,7 +6,7 @@ import (
 	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
-// Option configures the IndexScheduler this package constructs. The zero
+// Option configures the key wrapper this package constructs. The zero
 // configuration works: an absent logger logs nowhere, an absent tracer
 // provider traces nowhere, and an absent metrics provider records nothing.
 type Option func(*options)
@@ -18,14 +18,14 @@ type options struct {
 }
 
 func newOptions(opts []Option) *options {
-	cfg := &options{}
+	o := &options{}
 	for _, opt := range opts {
 		if opt != nil {
-			opt(cfg)
+			opt(o)
 		}
 	}
 
-	return cfg
+	return o
 }
 
 // WithLogger attaches a logger.
@@ -33,14 +33,16 @@ func WithLogger(logger logging.Logger) Option {
 	return func(o *options) { o.logger = logger }
 }
 
-// WithTracerProvider attaches a tracer provider, enabling spans on every
-// operation.
+// WithTracerProvider attaches a tracer provider, enabling spans on every wrap
+// and unwrap.
 func WithTracerProvider(tracerProvider tracing.Provider) Option {
 	return func(o *options) { o.tracerProvider = tracerProvider }
 }
 
 // WithMetricsProvider attaches a metrics provider for the package's counters
-// and histograms.
+// and latency histogram. Wrap latency is worth watching: it is a network round
+// trip on a path that is otherwise pure computation, and it is the reason
+// unwrapped data keys get cached.
 func WithMetricsProvider(metricsProvider metrics.Provider) Option {
 	return func(o *options) { o.metricsProvider = metricsProvider }
 }
