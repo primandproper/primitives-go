@@ -1,0 +1,288 @@
+version: "2"
+run:
+  issues-exit-code: 1
+  tests: true
+  allow-parallel-runners: true
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+linters:
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - copyloopvar
+    - decorder
+    - dogsled
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - forbidigo
+    - forcetypeassert
+    - gocheckcompilerdirectives
+    - goconst
+    - gocritic
+    - godot
+    - goheader
+    - gomoddirectives
+    - gomodguard_v2
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - grouper
+    - importas
+    - loggercheck
+    - mirror
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - paralleltest
+    - predeclared
+    - promlinter
+    - reassign
+    - sqlclosecheck
+    - tagalign
+    - testableexamples
+    - thelper
+    - tparallel
+    - unconvert
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - zerologlint
+  disable:
+    - containedctx
+    - cyclop
+    - dupl
+    - dupword
+    - err113
+    - exhaustive
+    - exhaustruct
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocyclo
+    - godox
+    - interfacebloat
+    - ireturn
+    - lll
+    - maintidx
+    - makezero
+    - musttag
+    - nestif
+    - nlreturn
+    - nonamedreturns
+    - prealloc
+    - revive
+    - rowserrcheck
+    - tagliatelle
+    - testpackage
+    # unparam sizes every parameter type, and since golangci-lint v2.13.0 the
+    # copy of it that ships inside asserts its way out of go/types on a struct
+    # field whose type is a type parameter, and the panic takes the whole run
+    # with it rather than one package. There is no
+    # older linter to fall back to: nothing built before Go 1.27 will load a
+    # module that targets it. Re-enable when the panic is fixed upstream.
+    - unparam
+    - varnamelen
+    - wrapcheck
+    - wsl
+  settings:
+    depguard:
+      rules:
+        disallow-banned-packages:
+          deny:
+            - pkg: github.com/stretchr/testify/mock
+              desc: >-
+                Use matryer/moq for mocks. See any existing <pkg>/mock/doc.go
+                for the go:generate pattern (e.g. authentication/tokens/mock).
+                testify/mock is banned; do not reintroduce it.
+            - pkg: github.com/stretchr/testify/assert
+              desc: >-
+                Use github.com/shoenig/test (package name `test`) for
+                non-fatal assertions. See existing tests (e.g.
+                database/errors_test.go) for examples. testify/assert is
+                banned; do not reintroduce it.
+            - pkg: github.com/stretchr/testify/require
+              desc: >-
+                Use github.com/shoenig/test/must (package name `must`) for
+                fatal assertions. testify/require is banned; do not
+                reintroduce it.
+            - pkg: github.com/pkg/errors
+              desc: >-
+                Use github.com/cockroachdb/errors for rich error context.
+                Platform-level sentinels live in errors/.
+            - pkg: io/ioutil
+              desc: >-
+                Deprecated since Go 1.16. Use io and os (e.g. io.ReadAll,
+                os.ReadFile, os.WriteFile) instead.
+            - pkg: math/rand
+              desc: >-
+                Use math/rand/v2. The v1 package has a globally-shared
+                Source and is race-prone; this repo standardized on v2.
+            - pkg: github.com/dgrijalva/jwt-go
+              desc: >-
+                Abandoned upstream with known CVEs. Use
+                github.com/golang-jwt/jwt/v5 (already a direct dep).
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      # AsType returns the target it matched, not an error to handle, and the
+      # bool beside it is the check. check-blank reads the discarded target as
+      # an unchecked error because the target is itself an error type, which it
+      # always is.
+      exclude-functions:
+        - errors.AsType
+        - github.com/cockroachdb/errors.AsType
+    forbidigo:
+      forbid:
+        - pattern: ^t\.SkipNow\(\)$
+        # database.NewTxForTesting presents any executor as a database.Tx, which
+        # is the one hole in the guarantee Tx exists to make: it would let
+        # production code hand Client.Writer() to an entry point that documents
+        # itself as transactional. Tests need it — fifteen hand-written Client
+        # doubles invoke a callback with an executor they made up — so the rule
+        # is relaxed for _test.go below and nowhere else.
+        - pattern: ^database\.NewTxForTesting$
+          msg: >-
+            NewTxForTesting is a test-only escape hatch. Production code that
+            needs a database.Tx gets one from Client.WithTransaction.
+      exclude-godoc-examples: false
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    gocritic:
+      disabled-checks:
+        - captLocal
+        - singleCaseSwitch
+        - sloppyReassign
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+        - opinionated
+      settings:
+        rangeValCopy:
+          sizeThreshold: 32
+    govet:
+      enable-all: true
+      settings:
+        shadow:
+          strict: true
+    misspell:
+      locale: US
+      ignore-rules:
+        - cancelled
+        - cancelling
+    nakedret:
+      max-func-lines: 4
+    unparam:
+      check-exported: false
+    unused:
+      field-writes-are-uses: false
+      post-statements-are-reads: true
+      exported-fields-are-used: false
+      parameters-are-used: true
+      local-variables-are-used: true
+      generated-is-used: true
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - bodyclose
+          - errcheck
+          - forcetypeassert
+          - goconst
+          - gosec
+          - nilnil
+          - unparam
+          - unused
+          - contextcheck
+        path: (.+)_test\.go
+      # The Tx escape hatch is relaxed for tests and nothing else. Scoped by
+      # message rather than by linter, so forbidigo's other rule — t.SkipNow,
+      # which only ever appears in a test — keeps applying here.
+      - linters:
+          - forbidigo
+        path: (.+)_test\.go
+        text: NewTxForTesting
+      - linters:
+          - errcheck
+          - forcetypeassert
+          - mnd
+        path: mock_?.*\.go
+      - linters:
+          - forcetypeassert
+        path: encoding/mock
+      - linters:
+          - forcetypeassert
+        path: messagequeue/mock
+      - linters:
+          - forcetypeassert
+        path: routing/mock
+      - linters:
+          - forcetypeassert
+        path: uploads/mock
+      - linters:
+          - forcetypeassert
+        path: uploads/images/mock.go
+      - linters:
+          - gocritic
+        text: 'captLocal: `T'' should not be capitalized'
+      - linters:
+          - gosec
+        text: 'G304:'
+      - linters:
+          - gosec
+        text: 'G118:'
+      - linters:
+          - gosec
+        text: 'G115:'
+      - linters:
+          - gosec
+        text: 'G117:'
+      # G602 reads an index it cannot bound, and reports `s[i]` under
+      # `for i := range s` as out of range.
+      - linters:
+          - gosec
+        text: 'G602:'
+      # G124 wants Secure, HttpOnly and SameSite set as literals in the composite
+      # literal it is looking at. It reports the cookie package, which sets all
+      # three from its configuration, and any function taking an *http.Cookie
+      # somebody else built.
+      - linters:
+          - gosec
+        text: 'G124:'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+formatters:
+  enable:
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - prefix(github.com/primandproper/primitives-go)
+        - prefix(github.com/primandproper)
+        - default
+      custom-order: true
+    gofmt:
+      simplify: true
