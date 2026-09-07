@@ -4,14 +4,14 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/primandproper/platform-go/v14/circuitbreaking"
-	"github.com/primandproper/platform-go/v14/cryptography/requestsigning"
-	"github.com/primandproper/platform-go/v14/database"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/idempotency"
-	"github.com/primandproper/platform-go/v14/ratelimiting"
-	textsearch "github.com/primandproper/platform-go/v14/search/text"
-	vectorsearch "github.com/primandproper/platform-go/v14/search/vector"
+	"github.com/primandproper/primitives-go/circuitbreaking"
+	"github.com/primandproper/primitives-go/cryptography/requestsigning"
+	"github.com/primandproper/primitives-go/database"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/idempotency"
+	"github.com/primandproper/primitives-go/ratelimiting"
+	textsearch "github.com/primandproper/primitives-go/search/text"
+	vectorsearch "github.com/primandproper/primitives-go/search/vector"
 
 	"google.golang.org/grpc/codes"
 )

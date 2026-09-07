@@ -1,7 +1,7 @@
 package oauth2server
 
 import (
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 )
 
 // Store sentinels. Every Store implementation reports these and nothing else

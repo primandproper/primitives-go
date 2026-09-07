@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Go library (`github.com/primandproper/primitives-go`) providing the infrastructure primitives cloud-native services are built from: database, caching, messaging, observability, secrets, uploads, email, and more. Single module, v1, Go 1.27.
 
-**The module is empty today.** Its packages arrive in one move from `platform-go`, with history preserved, in primandproper/primitives-go#2. What is here now is the toolchain, CI and the rules below.
+The packages arrived in one move from `platform-go`, history preserved, in primandproper/primitives-go#2 — `git log` and `git blame` reach back through the years they spent there. Five packages that were `internal/` in platform-go are exported here, because platform-go imports them and cannot reach `internal`: `database/sqlguard`, `database/postgres/pgretry`, `charset/plainname`, `config/injection` and `config/cfgnorm`.
 
 ## What belongs here, and what does not
 

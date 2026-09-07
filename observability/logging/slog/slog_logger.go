@@ -26,8 +26,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/observability/keys"
-	"github.com/primandproper/platform-go/v14/observability/logging"
+	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/observability/logging"
 
 	"go.opentelemetry.io/otel/trace"
 )

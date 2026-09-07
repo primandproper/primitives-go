@@ -1,10 +1,10 @@
 package redis
 
 import (
-	"github.com/primandproper/platform-go/v14/cache"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	"github.com/primandproper/platform-go/v14/observability/tracing"
+	"github.com/primandproper/primitives-go/cache"
+	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/observability/tracing"
 )
 
 // Option configures a redis cache at construction.

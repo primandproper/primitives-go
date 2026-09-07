@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/primandproper/platform-go/v14/authorization"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	httpx "github.com/primandproper/platform-go/v14/errors/http"
-	"github.com/primandproper/platform-go/v14/observability/keys"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	"github.com/primandproper/platform-go/v14/observability/tracing"
-	"github.com/primandproper/platform-go/v14/routing"
+	"github.com/primandproper/primitives-go/authorization"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	httpx "github.com/primandproper/primitives-go/errors/http"
+	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/observability/tracing"
+	"github.com/primandproper/primitives-go/routing"
 
 	oteltrace "go.opentelemetry.io/otel/trace"
 )

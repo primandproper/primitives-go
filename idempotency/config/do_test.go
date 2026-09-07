@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	cachecfg "github.com/primandproper/platform-go/v14/cache/config"
-	"github.com/primandproper/platform-go/v14/database"
-	databasecfg "github.com/primandproper/platform-go/v14/database/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v14/distributedlock/config"
-	"github.com/primandproper/platform-go/v14/idempotency"
+	cachecfg "github.com/primandproper/primitives-go/cache/config"
+	"github.com/primandproper/primitives-go/database"
+	databasecfg "github.com/primandproper/primitives-go/database/config"
+	distributedlockcfg "github.com/primandproper/primitives-go/distributedlock/config"
+	"github.com/primandproper/primitives-go/idempotency"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

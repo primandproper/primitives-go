@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability/metrics/otelgrpc"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability/metrics/otelgrpc"
 
 	"github.com/shoenig/test"
 )

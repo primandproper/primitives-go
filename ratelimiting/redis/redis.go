@@ -6,12 +6,12 @@ import (
 	"math"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/identifiers"
-	"github.com/primandproper/platform-go/v14/internal/redisclient"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	"github.com/primandproper/platform-go/v14/ratelimiting"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/identifiers"
+	"github.com/primandproper/primitives-go/internal/redisclient"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/ratelimiting"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/redis/go-redis/v9"

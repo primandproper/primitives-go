@@ -5,14 +5,14 @@ import (
 	stderrors "errors"
 	"fmt"
 
-	"github.com/primandproper/platform-go/v14/circuitbreaking"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v14/circuitbreaking/config"
-	"github.com/primandproper/platform-go/v14/database"
-	"github.com/primandproper/platform-go/v14/distributedlock"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/keys"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
+	"github.com/primandproper/primitives-go/circuitbreaking"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/database"
+	"github.com/primandproper/primitives-go/distributedlock"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/observability/metrics"
 )
 
 const scopedServiceName = "postgres_scoped_lock"

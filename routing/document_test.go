@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	httpx "github.com/primandproper/platform-go/v14/errors/http"
-	"github.com/primandproper/platform-go/v14/routing"
+	httpx "github.com/primandproper/primitives-go/errors/http"
+	"github.com/primandproper/primitives-go/routing"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
@@ -198,8 +198,8 @@ func TestSchema_DocumentStructure(T *testing.T) {
 			"FilteringPagination",
 			"FilteringQueryFilter",
 			"HttpAPIError",
-			"HttpAPIResponseGithubComPrimandproperPlatformGoV14RoutingTestReferenceUser",
-			"HttpAPIResponseGithubComPrimandproperPlatformGoV14RoutingTestStressAllTypes",
+			"HttpAPIResponseGithubComPrimandproperPrimitivesGoRoutingTestReferenceUser",
+			"HttpAPIResponseGithubComPrimandproperPrimitivesGoRoutingTestStressAllTypes",
 			"HttpResponseDetails",
 			"RoutingTestCreateReferenceUserInput",
 			"RoutingTestReferenceStatus",

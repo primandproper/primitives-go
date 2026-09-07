@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/encoding"
-	"github.com/primandproper/platform-go/v14/files"
+	"github.com/primandproper/primitives-go/encoding"
+	"github.com/primandproper/primitives-go/files"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

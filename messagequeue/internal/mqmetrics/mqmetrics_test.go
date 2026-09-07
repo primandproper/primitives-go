@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability/keys"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	metricsmock "github.com/primandproper/platform-go/v14/observability/metrics/mock"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	metricsmock "github.com/primandproper/primitives-go/observability/metrics/mock"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

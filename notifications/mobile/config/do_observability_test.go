@@ -3,9 +3,9 @@ package mobilecfg
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/notifications/mobile"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/notifications/mobile"
+	"github.com/primandproper/primitives-go/observability/metrics"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

@@ -30,6 +30,7 @@ fi
 # resolve to the same manifest.
 IMAGES=(
 	"postgres:17-alpine"
+	"mysql:8.0"
 	"mariadb:11"
 	"redis:7-bullseye"
 	"pgvector/pgvector:pg17"

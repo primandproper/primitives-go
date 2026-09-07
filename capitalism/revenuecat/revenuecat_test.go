@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/capitalism"
-	"github.com/primandproper/platform-go/v14/cryptography/hashing"
-	"github.com/primandproper/platform-go/v14/cryptography/hashing/hmac"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/webhooks/inbound"
+	"github.com/primandproper/primitives-go/capitalism"
+	"github.com/primandproper/primitives-go/cryptography/hashing"
+	"github.com/primandproper/primitives-go/cryptography/hashing/hmac"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/webhooks/inbound"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

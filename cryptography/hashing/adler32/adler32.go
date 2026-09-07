@@ -15,7 +15,7 @@ import (
 	"encoding/binary"
 	"hash/adler32"
 
-	"github.com/primandproper/platform-go/v14/cryptography/hashing"
+	"github.com/primandproper/primitives-go/cryptography/hashing"
 )
 
 var _ hashing.Hasher = (*Hasher)(nil)

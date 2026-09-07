@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/authentication/oauth2server"
 
 	"github.com/shoenig/test"
 )

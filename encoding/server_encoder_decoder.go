@@ -8,11 +8,11 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/internal/cbormode"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/keys"
-	"github.com/primandproper/platform-go/v14/panicking"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/internal/cbormode"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/panicking"
 
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v3"

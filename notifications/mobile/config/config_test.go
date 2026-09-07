@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/notifications/mobile"
-	"github.com/primandproper/platform-go/v14/notifications/mobile/apns"
-	"github.com/primandproper/platform-go/v14/notifications/mobile/fcm"
-	loggingnoop "github.com/primandproper/platform-go/v14/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v14/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/notifications/mobile"
+	"github.com/primandproper/primitives-go/notifications/mobile/apns"
+	"github.com/primandproper/primitives-go/notifications/mobile/fcm"
+	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/observability/tracing/noop"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

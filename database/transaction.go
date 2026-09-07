@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 )
 
 // RunInTransaction begins a transaction on writeDB, invokes fn with that transaction as

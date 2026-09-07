@@ -4,16 +4,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/cache"
-	"github.com/primandproper/platform-go/v14/circuitbreaking"
-	"github.com/primandproper/platform-go/v14/circuitbreaking/partitioned"
-	"github.com/primandproper/platform-go/v14/cryptography/requestsigning"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	"github.com/primandproper/platform-go/v14/observability/tracing"
-	"github.com/primandproper/platform-go/v14/ratelimiting"
-	"github.com/primandproper/platform-go/v14/retry"
+	"github.com/primandproper/primitives-go/cache"
+	"github.com/primandproper/primitives-go/circuitbreaking"
+	"github.com/primandproper/primitives-go/circuitbreaking/partitioned"
+	"github.com/primandproper/primitives-go/cryptography/requestsigning"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/observability/tracing"
+	"github.com/primandproper/primitives-go/ratelimiting"
+	"github.com/primandproper/primitives-go/retry"
 )
 
 // Option customizes the HTTP client returned by NewHTTPClient. Options are

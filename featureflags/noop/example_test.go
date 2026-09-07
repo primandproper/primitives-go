@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/platform-go/v14/featureflags"
-	"github.com/primandproper/platform-go/v14/featureflags/noop"
+	"github.com/primandproper/primitives-go/featureflags"
+	"github.com/primandproper/primitives-go/featureflags/noop"
 )
 
 func ExampleNewFeatureFlagManager() {

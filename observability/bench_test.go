@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/observability/logging"
+	"github.com/primandproper/primitives-go/observability/logging"
 
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )

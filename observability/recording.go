@@ -9,11 +9,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/primandproper/platform-go/v14/clock"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v14/observability/logging/noop"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	"github.com/primandproper/platform-go/v14/observability/tracing"
+	"github.com/primandproper/primitives-go/clock"
+	"github.com/primandproper/primitives-go/observability/logging"
+	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/observability/tracing"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"

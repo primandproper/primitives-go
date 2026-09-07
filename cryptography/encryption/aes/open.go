@@ -3,9 +3,9 @@ package aes
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/cryptography/encryption"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/keys"
+	"github.com/primandproper/primitives-go/cryptography/encryption"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/keys"
 )
 
 // Open reverses Seal.

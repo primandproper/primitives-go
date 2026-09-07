@@ -3,9 +3,9 @@ package tokenscfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/authentication/tokens"
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability"
+	"github.com/primandproper/primitives-go/authentication/tokens"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability"
 
 	"github.com/samber/do/v2"
 )

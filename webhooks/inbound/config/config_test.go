@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/cryptography/hashing"
-	"github.com/primandproper/platform-go/v14/cryptography/hashing/hmac"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/messagequeue"
-	mqmock "github.com/primandproper/platform-go/v14/messagequeue/mock"
-	"github.com/primandproper/platform-go/v14/webhooks/inbound"
+	"github.com/primandproper/primitives-go/cryptography/hashing"
+	"github.com/primandproper/primitives-go/cryptography/hashing/hmac"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/messagequeue"
+	mqmock "github.com/primandproper/primitives-go/messagequeue/mock"
+	"github.com/primandproper/primitives-go/webhooks/inbound"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

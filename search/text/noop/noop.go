@@ -15,7 +15,7 @@ package noop
 import (
 	"context"
 
-	textsearch "github.com/primandproper/platform-go/v14/search/text"
+	textsearch "github.com/primandproper/primitives-go/search/text"
 )
 
 var _ textsearch.Index[any] = (*indexManager[any])(nil)

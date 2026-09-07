@@ -13,7 +13,7 @@ const (
 )
 
 var (
-	PackagePrefix = "github.com/primandproper/platform-go/v14/"
+	PackagePrefix = "github.com/primandproper/primitives-go/"
 
 	// callerNameCache memoizes resolved names by program counter. A call site's PC
 	// is stable, the set of instrumented sites is small and fixed, and

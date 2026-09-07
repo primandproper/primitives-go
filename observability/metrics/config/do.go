@@ -3,9 +3,9 @@ package metricscfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/internal/injection"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
+	"github.com/primandproper/primitives-go/config/injection"
+	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/observability/metrics"
 
 	"github.com/samber/do/v2"
 )

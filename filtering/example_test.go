@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/primandproper/platform-go/v14/filtering"
-	"github.com/primandproper/platform-go/v14/llm"
+	"github.com/primandproper/primitives-go/filtering"
+	"github.com/primandproper/primitives-go/llm"
 )
 
 // A tool that lists something takes a page of a collection as its input, which

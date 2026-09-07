@@ -7,10 +7,10 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/authentication/oauth2server"
-	oauth2memory "github.com/primandproper/platform-go/v14/authentication/oauth2server/memory"
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/pointer"
+	"github.com/primandproper/primitives-go/authentication/oauth2server"
+	oauth2memory "github.com/primandproper/primitives-go/authentication/oauth2server/memory"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/pointer"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

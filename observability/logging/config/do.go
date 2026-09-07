@@ -3,7 +3,7 @@ package loggingcfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/observability/logging"
+	"github.com/primandproper/primitives-go/observability/logging"
 
 	"github.com/samber/do/v2"
 )

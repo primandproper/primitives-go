@@ -3,7 +3,7 @@ package compression_test
 import (
 	"fmt"
 
-	"github.com/primandproper/platform-go/v14/compression"
+	"github.com/primandproper/primitives-go/compression"
 )
 
 func Example_roundTrip() {

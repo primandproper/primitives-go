@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/routing"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/routing"
 )
 
 // ErrEmptyResource indicates a ResourceMetadata built without a resource

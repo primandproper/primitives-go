@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"strconv"
 
-	"github.com/primandproper/platform-go/v14/idempotency"
+	"github.com/primandproper/primitives-go/idempotency"
 
 	"google.golang.org/protobuf/proto"
 )

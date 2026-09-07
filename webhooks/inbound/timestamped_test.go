@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	clockmock "github.com/primandproper/platform-go/v14/clock/mock"
-	"github.com/primandproper/platform-go/v14/cryptography/hashing"
-	"github.com/primandproper/platform-go/v14/cryptography/hashing/hmac"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	clockmock "github.com/primandproper/primitives-go/clock/mock"
+	"github.com/primandproper/primitives-go/cryptography/hashing"
+	"github.com/primandproper/primitives-go/cryptography/hashing/hmac"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

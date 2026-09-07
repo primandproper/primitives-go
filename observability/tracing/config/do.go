@@ -3,9 +3,9 @@ package tracingcfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/internal/injection"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	"github.com/primandproper/platform-go/v14/observability/tracing"
+	"github.com/primandproper/primitives-go/config/injection"
+	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

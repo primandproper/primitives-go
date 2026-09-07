@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/analytics/posthog"
-	"github.com/primandproper/platform-go/v14/analytics/segment"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v14/circuitbreaking/config"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	metricsmock "github.com/primandproper/platform-go/v14/observability/metrics/mock"
+	"github.com/primandproper/primitives-go/analytics/posthog"
+	"github.com/primandproper/primitives-go/analytics/segment"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	metricsmock "github.com/primandproper/primitives-go/observability/metrics/mock"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

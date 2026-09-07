@@ -3,7 +3,7 @@ package noop
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/llm"
+	"github.com/primandproper/primitives-go/llm"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

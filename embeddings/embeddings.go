@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/errors"
+	"github.com/primandproper/primitives-go/errors"
 )
 
 // ErrNilInput indicates a nil *Input was passed to GenerateEmbedding.

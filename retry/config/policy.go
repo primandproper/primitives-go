@@ -5,11 +5,11 @@ import (
 	"math"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/clock"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	"github.com/primandproper/platform-go/v14/retry"
+	"github.com/primandproper/primitives-go/clock"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/retry"
 
 	"go.opentelemetry.io/otel/metric"
 )

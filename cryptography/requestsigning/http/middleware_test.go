@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/cryptography/requestsigning"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	httperrors "github.com/primandproper/platform-go/v14/errors/http"
+	"github.com/primandproper/primitives-go/cryptography/requestsigning"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	httperrors "github.com/primandproper/primitives-go/errors/http"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

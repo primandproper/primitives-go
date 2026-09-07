@@ -8,8 +8,8 @@ import (
 	"hash/fnv"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/database"
-	"github.com/primandproper/platform-go/v14/testutils/containers/mysqltest"
+	"github.com/primandproper/primitives-go/database"
+	"github.com/primandproper/primitives-go/testutils/containers/mysqltest"
 
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/shoenig/test"

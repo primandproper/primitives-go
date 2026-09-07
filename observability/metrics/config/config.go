@@ -15,12 +15,12 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/internal/cfgnorm"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
-	metricsnoop "github.com/primandproper/platform-go/v14/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v14/observability/metrics/otelgrpc"
+	"github.com/primandproper/primitives-go/config/cfgnorm"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/observability/metrics"
+	metricsnoop "github.com/primandproper/primitives-go/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/observability/metrics/otelgrpc"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

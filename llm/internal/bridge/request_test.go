@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/llm"
-	"github.com/primandproper/platform-go/v14/pointer"
+	"github.com/primandproper/primitives-go/llm"
+	"github.com/primandproper/primitives-go/pointer"
 
 	anyllm "github.com/mozilla-ai/any-llm-go"
 	"github.com/shoenig/test"

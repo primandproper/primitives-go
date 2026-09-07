@@ -7,7 +7,7 @@ import (
 	"net"
 	"strings"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"

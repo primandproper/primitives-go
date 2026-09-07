@@ -19,14 +19,14 @@ import (
 	"slices"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/internal/cfgnorm"
-	"github.com/primandproper/platform-go/v14/secrets"
-	"github.com/primandproper/platform-go/v14/secrets/env"
-	"github.com/primandproper/platform-go/v14/secrets/gcp"
-	"github.com/primandproper/platform-go/v14/secrets/kubernetes"
-	"github.com/primandproper/platform-go/v14/secrets/noop"
-	"github.com/primandproper/platform-go/v14/secrets/ssm"
+	"github.com/primandproper/primitives-go/config/cfgnorm"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/secrets"
+	"github.com/primandproper/primitives-go/secrets/env"
+	"github.com/primandproper/primitives-go/secrets/gcp"
+	"github.com/primandproper/primitives-go/secrets/kubernetes"
+	"github.com/primandproper/primitives-go/secrets/noop"
+	"github.com/primandproper/primitives-go/secrets/ssm"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

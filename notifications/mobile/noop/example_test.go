@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/platform-go/v14/notifications/mobile"
-	"github.com/primandproper/platform-go/v14/notifications/mobile/noop"
+	"github.com/primandproper/primitives-go/notifications/mobile"
+	"github.com/primandproper/primitives-go/notifications/mobile/noop"
 )
 
 func Example_pushNotificationSender() {

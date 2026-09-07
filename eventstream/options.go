@@ -1,8 +1,8 @@
 package eventstream
 
 import (
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	"github.com/primandproper/platform-go/v14/observability/tracing"
+	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/observability/tracing"
 )
 
 // Option configures the StreamManager this package constructs. The zero

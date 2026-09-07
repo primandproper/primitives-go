@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/healthcheck"
-	"github.com/primandproper/platform-go/v14/routing"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/healthcheck"
+	"github.com/primandproper/primitives-go/routing"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

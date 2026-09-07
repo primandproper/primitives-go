@@ -7,7 +7,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/primandproper/platform-go/v14/analytics"
+	"github.com/primandproper/primitives-go/analytics"
 )
 
 // Ensure, that EventReporterMock does implement analytics.EventReporter.

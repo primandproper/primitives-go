@@ -6,8 +6,8 @@ package partitionedmock
 import (
 	"sync"
 
-	"github.com/primandproper/platform-go/v14/circuitbreaking"
-	"github.com/primandproper/platform-go/v14/circuitbreaking/partitioned"
+	"github.com/primandproper/primitives-go/circuitbreaking"
+	"github.com/primandproper/primitives-go/circuitbreaking/partitioned"
 )
 
 // Ensure, that KeyedCircuitBreakerMock does implement partitioned.KeyedCircuitBreaker.

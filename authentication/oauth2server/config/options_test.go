@@ -3,12 +3,12 @@ package oauth2servercfg
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/authentication/oauth2server"
-	oauth2memory "github.com/primandproper/platform-go/v14/authentication/oauth2server/memory"
-	"github.com/primandproper/platform-go/v14/observability"
-	loggingnoop "github.com/primandproper/platform-go/v14/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v14/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v14/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/authentication/oauth2server"
+	oauth2memory "github.com/primandproper/primitives-go/authentication/oauth2server/memory"
+	"github.com/primandproper/primitives-go/observability"
+	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/observability/tracing/noop"
 
 	"github.com/shoenig/test"
 )

@@ -3,12 +3,12 @@ package routingcfg
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/encoding"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/routing/backends/chi"
-	"github.com/primandproper/platform-go/v14/routing/backends/gin"
-	"github.com/primandproper/platform-go/v14/routing/backends/httprouter"
-	"github.com/primandproper/platform-go/v14/routing/backends/stdlib"
+	"github.com/primandproper/primitives-go/encoding"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/routing/backends/chi"
+	"github.com/primandproper/primitives-go/routing/backends/gin"
+	"github.com/primandproper/primitives-go/routing/backends/httprouter"
+	"github.com/primandproper/primitives-go/routing/backends/stdlib"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

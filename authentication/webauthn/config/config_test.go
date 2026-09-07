@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/authentication/webauthn"
-	webauthncache "github.com/primandproper/platform-go/v14/authentication/webauthn/cache"
-	cachecfg "github.com/primandproper/platform-go/v14/cache/config"
-	"github.com/primandproper/platform-go/v14/errors"
+	"github.com/primandproper/primitives-go/authentication/webauthn"
+	webauthncache "github.com/primandproper/primitives-go/authentication/webauthn/cache"
+	cachecfg "github.com/primandproper/primitives-go/cache/config"
+	"github.com/primandproper/primitives-go/errors"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

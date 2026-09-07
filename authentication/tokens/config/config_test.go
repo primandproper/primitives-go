@@ -4,9 +4,9 @@ import (
 	"encoding/base64"
 	"testing"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	loggingnoop "github.com/primandproper/platform-go/v14/observability/logging/noop"
-	"github.com/primandproper/platform-go/v14/random"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
+	"github.com/primandproper/primitives-go/random"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

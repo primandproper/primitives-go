@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 )
 
 // ErrDegenerateInsert indicates an insert that is not one, in either of the two

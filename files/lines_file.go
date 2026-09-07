@@ -4,9 +4,9 @@ import (
 	"context"
 	"iter"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/keys"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/keys"
 )
 
 // LinesFile opens name and yields each of its lines. The open error is returned up front; any read

@@ -1,7 +1,7 @@
 package tracingcfg
 
 import (
-	"github.com/primandproper/platform-go/v14/observability/logging"
+	"github.com/primandproper/primitives-go/observability/logging"
 )
 
 // Option configures how NewTracerProvider assembles its provider.

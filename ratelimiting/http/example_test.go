@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/primandproper/platform-go/v14/ratelimiting"
-	ratelimitinghttp "github.com/primandproper/platform-go/v14/ratelimiting/http"
+	"github.com/primandproper/primitives-go/ratelimiting"
+	ratelimitinghttp "github.com/primandproper/primitives-go/ratelimiting/http"
 )
 
 func ExampleNewMiddleware() {

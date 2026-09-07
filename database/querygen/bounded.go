@@ -3,8 +3,8 @@ package querygen
 import (
 	"fmt"
 
-	"github.com/primandproper/platform-go/v14/database/dialect"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	"github.com/primandproper/primitives-go/database/dialect"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 )
 
 // ErrUnorderedBoundedStatement indicates a bounded statement that names no

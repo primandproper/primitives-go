@@ -7,7 +7,7 @@ The tier every service is built from: providers behind interfaces, the transport
 **Module:** `github.com/primandproper/primitives-go`
 **Go:** 1.27
 
-The module is empty today. Its packages arrive in one move from `platform-go`, with history, in primandproper/primitives-go#2; the catalog below is the shape they land in.
+The packages arrived in one move from `platform-go` (primandproper/primitives-go#2), with history preserved: `git log` and `git blame` reach back through the years they spent there.
 
 ## What belongs here
 
@@ -42,23 +42,83 @@ Because breaking changes ride the major-version import path, upgrading across ma
 
 ## Package Catalog
 
-Empty until the move (primandproper/primitives-go#2) fills it. The headings are the ones the packages sort into; each row will name a package, what it is for, and the implementations it ships, with a `noop` for most concerns.
+Implementations are listed in parentheses; most concerns also ship a `noop`. Two packages sit under a parent this module does not ship — `notifications/mobile` and `webhooks/inbound` — because the parent owns a table and stayed in platform-go. They kept their import paths rather than being renamed on the way out.
 
 ### Data & storage
+| Package    | Purpose                              | Implementations                       |
+|------------|--------------------------------------|---------------------------------------|
+| `database` | SQL access + instrumentation, and the schema/query tooling stores are built with | postgres, mysql, sqlite; `querygen`, `migrate`, `ddl`, `dialect`, `sqlguard` |
+| `cache`    | Generic key/value cache (`Cache[T]`) | redis, memory                         |
+| `uploads`  | Blob/object storage & image handling | objectstorage (S3-compatible), images |
+| `files`    | Filesystem & streaming helpers       | —                                     |
+| `secrets`  | Secret sourcing (+ caching/rotation) | env, gcp, ssm, kubernetes             |
 
 ### Messaging & events
+| Package               | Purpose                    | Implementations                                   |
+|-----------------------|----------------------------|---------------------------------------------------|
+| `messagequeue`        | Publish/subscribe & queues | kafka, pubsub, redis, sqs                         |
+| `eventstream`         | Server push to clients     | sse, websocket                                    |
+| `notifications/mobile`| Mobile push                | apns, fcm                                         |
+| `email`               | Transactional email        | mailgun, mailjet, postmark, resend, sendgrid, ses |
 
 ### Web & transport
+| Package            | Purpose                                       | Implementations                       |
+|--------------------|-----------------------------------------------|---------------------------------------|
+| `server`           | Service servers                               | grpc, http                            |
+| `routing`          | HTTP router abstraction                       | chi, stdlib, httprouter, gin          |
+| `httpclient`       | Instrumented HTTP client                      | —                                     |
+| `cookies`          | Cookie management                             | —                                     |
+| `encoding`         | Content encoding/decoding                     | —                                     |
+| `compression`      | Payload compression                           | —                                     |
+| `ratelimiting`     | Request rate limiting                         | redis (+ http, grpc middleware)       |
+| `circuitbreaking`  | Circuit breaker                               | partitioned                           |
+| `retry`            | Retry with backoff                            | —                                     |
+| `idempotency`      | At-most-once effect for retried requests      | http, grpc (server + client)          |
+| `webhooks/inbound` | Inbound webhook receipt: verify, publish, ack | stripe, github, generic HMAC          |
 
 ### Observability & operations
+| Package         | Purpose                              | Implementations                                    |
+|-----------------|--------------------------------------|----------------------------------------------------|
+| `observability` | Logging, tracing, metrics, profiling | logging (slog, zap, zerolog); OTel tracing/metrics; pprof, pyroscope |
+| `healthcheck`   | Health/readiness checks              | —                                                  |
+| `version`       | Build/version metadata               | —                                                  |
+| `clock`         | Injectable time                      | —                                                  |
+| `config`        | Config loading & env parsing         | `envvars`, `injection`, `cfgnorm`                  |
 
 ### Auth & security
+| Package                             | Purpose                                                                     | Implementations                |
+|-------------------------------------|-----------------------------------------------------------------------------|--------------------------------|
+| `authentication`                    | Password hashing, TOTP, tokens                                              | argon2, totp, tokens (jwt, paseto) |
+| `authentication/webauthn`           | Passkey registration & login, with ceremony state that outlives one replica | cache                          |
+| `authentication/oauth2server`       | The OAuth2 / OIDC protocol surface: authorize, token, revoke, registration  | memory                         |
+| `authorization`                     | Role/permission policy, enforcement                                         | static (default), cached (+ http, grpc) |
+| `cryptography`                      | Cryptographic primitives                                                    | encryption (aes, kms), hashing |
+| `cryptography/requestsigning`       | HMAC request signing & verification                                         | v1                             |
+| `random`                            | Secure randomness                                                           | —                              |
+| `identifiers`                       | ID generation                                                               | —                              |
 
 ### AI, ML & product
+| Package          | Purpose                      | Implementations               |
+|------------------|------------------------------|-------------------------------|
+| `llm`            | Large language model clients | anthropic, openai             |
+| `embeddings`     | Embedding generation         | cohere, ollama, openai        |
+| `search/text`    | Text search                  | algolia, elasticsearch        |
+| `search/vector`  | Vector search                | pgvector, qdrant              |
+| `analytics`      | Product analytics            | posthog, segment, multisource |
+| `featureflags`   | Feature flagging             | launchdarkly, posthog         |
+| `capitalism`     | Payment provider adapters    | stripe, revenuecat            |
 
 ### Coordination
+| Package           | Purpose                                  | Implementations         |
+|-------------------|------------------------------------------|-------------------------|
+| `distributedlock` | Distributed locking                      | memory, postgres, redis |
+| `jobs`            | Queue workers & periodic jobs            | —                       |
+| `filtering`       | Query filters / pagination, and the proto both tiers generate from | `filteringpb`, grpc converters |
+| `eventcapture`    | Recording domain events                  | jsonl                   |
+| `batching`        | Batched work with size and time triggers | —                       |
 
 ### Utilities
+`errors` (and `errors/http`, `errors/grpc`), `tenancy`, `pointer`, `numbers`, `bitmask`, `charset`, `reflection`, `panicking`, `qrcodes`, `testutils`, `fake`.
 
 ## Development
 

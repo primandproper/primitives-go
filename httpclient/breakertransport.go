@@ -3,10 +3,10 @@ package httpclient
 import (
 	"net/http"
 
-	"github.com/primandproper/platform-go/v14/circuitbreaking"
-	"github.com/primandproper/platform-go/v14/circuitbreaking/partitioned"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability/keys"
+	"github.com/primandproper/primitives-go/circuitbreaking"
+	"github.com/primandproper/primitives-go/circuitbreaking/partitioned"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability/keys"
 
 	"go.opentelemetry.io/otel/attribute"
 )

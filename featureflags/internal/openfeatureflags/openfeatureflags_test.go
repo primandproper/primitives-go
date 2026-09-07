@@ -3,12 +3,12 @@ package openfeatureflags
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/circuitbreaking"
-	circuitbreakingnoop "github.com/primandproper/platform-go/v14/circuitbreaking/noop"
-	"github.com/primandproper/platform-go/v14/featureflags"
-	"github.com/primandproper/platform-go/v14/identifiers"
-	"github.com/primandproper/platform-go/v14/observability"
-	"github.com/primandproper/platform-go/v14/observability/metrics"
+	"github.com/primandproper/primitives-go/circuitbreaking"
+	circuitbreakingnoop "github.com/primandproper/primitives-go/circuitbreaking/noop"
+	"github.com/primandproper/primitives-go/featureflags"
+	"github.com/primandproper/primitives-go/identifiers"
+	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/observability/metrics"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/shoenig/test"

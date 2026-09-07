@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

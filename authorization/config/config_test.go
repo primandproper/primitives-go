@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/authorization"
-	"github.com/primandproper/platform-go/v14/authorization/cached"
-	"github.com/primandproper/platform-go/v14/cache"
-	"github.com/primandproper/platform-go/v14/cache/memory"
+	"github.com/primandproper/primitives-go/authorization"
+	"github.com/primandproper/primitives-go/authorization/cached"
+	"github.com/primandproper/primitives-go/cache"
+	"github.com/primandproper/primitives-go/cache/memory"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

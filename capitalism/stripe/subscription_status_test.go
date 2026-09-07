@@ -3,7 +3,7 @@ package stripe
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/capitalism"
+	"github.com/primandproper/primitives-go/capitalism"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

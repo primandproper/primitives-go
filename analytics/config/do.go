@@ -3,8 +3,8 @@ package analyticscfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/analytics"
-	"github.com/primandproper/platform-go/v14/observability"
+	"github.com/primandproper/primitives-go/analytics"
+	"github.com/primandproper/primitives-go/observability"
 
 	"github.com/samber/do/v2"
 )

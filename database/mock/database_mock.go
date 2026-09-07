@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/database"
-	"github.com/primandproper/platform-go/v14/database/dialect"
+	"github.com/primandproper/primitives-go/database"
+	"github.com/primandproper/primitives-go/database/dialect"
 )
 
 // Ensure, that ClientMock does implement database.Client.

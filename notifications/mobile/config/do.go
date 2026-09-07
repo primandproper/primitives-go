@@ -3,9 +3,9 @@ package mobilecfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/internal/injection"
-	"github.com/primandproper/platform-go/v14/notifications/mobile"
-	"github.com/primandproper/platform-go/v14/observability"
+	"github.com/primandproper/primitives-go/config/injection"
+	"github.com/primandproper/primitives-go/notifications/mobile"
+	"github.com/primandproper/primitives-go/observability"
 
 	"github.com/samber/do/v2"
 )

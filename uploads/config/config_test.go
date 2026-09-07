@@ -3,7 +3,7 @@ package uploadscfg
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/uploads/objectstorage"
+	"github.com/primandproper/primitives-go/uploads/objectstorage"
 
 	"github.com/shoenig/test"
 )

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing/fstest"
 
-	"github.com/primandproper/platform-go/v14/encoding"
-	"github.com/primandproper/platform-go/v14/files"
+	"github.com/primandproper/primitives-go/encoding"
+	"github.com/primandproper/primitives-go/files"
 )
 
 func ExampleLines() {

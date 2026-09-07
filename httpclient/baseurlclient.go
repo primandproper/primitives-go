@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 )
 
 // BaseURLClient binds a Doer to one service's root, so a call site names a path

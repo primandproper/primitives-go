@@ -15,7 +15,7 @@ package noop
 import (
 	"context"
 
-	vectorsearch "github.com/primandproper/platform-go/v14/search/vector"
+	vectorsearch "github.com/primandproper/primitives-go/search/vector"
 )
 
 var _ vectorsearch.Index[any] = (*indexManager[any])(nil)

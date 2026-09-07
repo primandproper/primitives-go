@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/testutils/containers/mysqltest"
+	"github.com/primandproper/primitives-go/testutils/containers/mysqltest"
 
 	"github.com/XSAM/otelsql"
 	mysqldriver "github.com/go-sql-driver/mysql"

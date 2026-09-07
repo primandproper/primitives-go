@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/distributedlock"
-	"github.com/primandproper/platform-go/v14/identifiers"
+	"github.com/primandproper/primitives-go/distributedlock"
+	"github.com/primandproper/primitives-go/identifiers"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

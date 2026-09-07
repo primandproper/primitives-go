@@ -3,8 +3,8 @@ package mobilecfg
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/notifications/mobile/apns"
-	"github.com/primandproper/platform-go/v14/notifications/mobile/fcm"
+	"github.com/primandproper/primitives-go/notifications/mobile/apns"
+	"github.com/primandproper/primitives-go/notifications/mobile/fcm"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/shoenig/test"

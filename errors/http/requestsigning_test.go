@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/cryptography/requestsigning"
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	"github.com/primandproper/primitives-go/cryptography/requestsigning"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
-	loggingnoop "github.com/primandproper/platform-go/v14/observability/logging/noop"
+	platformerrors "github.com/primandproper/primitives-go/errors"
+	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
 
 	"github.com/shoenig/test"
 )

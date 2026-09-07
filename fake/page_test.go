@@ -3,7 +3,7 @@ package fake
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/filtering"
+	"github.com/primandproper/primitives-go/filtering"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

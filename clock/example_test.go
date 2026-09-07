@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/clock"
+	"github.com/primandproper/primitives-go/clock"
 )
 
 // expiringToken is the shape components take: it stamps and checks against an

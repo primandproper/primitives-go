@@ -12,13 +12,13 @@ import (
 	"context"
 	"strings"
 
-	circuitbreakingcfg "github.com/primandproper/platform-go/v14/circuitbreaking/config"
-	"github.com/primandproper/platform-go/v14/database"
-	"github.com/primandproper/platform-go/v14/errors"
-	vectorsearch "github.com/primandproper/platform-go/v14/search/vector"
-	"github.com/primandproper/platform-go/v14/search/vector/noop"
-	"github.com/primandproper/platform-go/v14/search/vector/pgvector"
-	"github.com/primandproper/platform-go/v14/search/vector/qdrant"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/database"
+	"github.com/primandproper/primitives-go/errors"
+	vectorsearch "github.com/primandproper/primitives-go/search/vector"
+	"github.com/primandproper/primitives-go/search/vector/noop"
+	"github.com/primandproper/primitives-go/search/vector/pgvector"
+	"github.com/primandproper/primitives-go/search/vector/qdrant"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

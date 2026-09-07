@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/secrets"
+	"github.com/primandproper/primitives-go/secrets"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

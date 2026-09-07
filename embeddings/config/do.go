@@ -3,8 +3,8 @@ package embeddingscfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/embeddings"
-	"github.com/primandproper/platform-go/v14/observability"
+	"github.com/primandproper/primitives-go/embeddings"
+	"github.com/primandproper/primitives-go/observability"
 
 	"github.com/samber/do/v2"
 )

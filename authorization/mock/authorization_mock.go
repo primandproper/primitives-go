@@ -7,7 +7,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/primandproper/platform-go/v14/authorization"
+	"github.com/primandproper/primitives-go/authorization"
 )
 
 // Ensure, that PolicyResolverMock does implement authorization.PolicyResolver.

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/primandproper/platform-go/v14/idempotency"
+	"github.com/primandproper/primitives-go/idempotency"
 )
 
 // fingerprint identifies the request a key is being used for.

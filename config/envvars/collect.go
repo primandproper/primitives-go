@@ -7,8 +7,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	reflast "github.com/primandproper/platform-go/v14/reflection/ast"
+	"github.com/primandproper/primitives-go/errors"
+	reflast "github.com/primandproper/primitives-go/reflection/ast"
 
 	"github.com/codemodus/kace"
 )

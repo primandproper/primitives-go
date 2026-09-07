@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v14/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v14/observability/metrics/config"
-	profilingcfg "github.com/primandproper/platform-go/v14/observability/profiling/config"
-	tracingcfg "github.com/primandproper/platform-go/v14/observability/tracing/config"
+	"github.com/primandproper/primitives-go/observability/logging"
+	loggingcfg "github.com/primandproper/primitives-go/observability/logging/config"
+	metricscfg "github.com/primandproper/primitives-go/observability/metrics/config"
+	profilingcfg "github.com/primandproper/primitives-go/observability/profiling/config"
+	tracingcfg "github.com/primandproper/primitives-go/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

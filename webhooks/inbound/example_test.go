@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/primandproper/platform-go/v14/messagequeue"
-	"github.com/primandproper/platform-go/v14/webhooks/inbound"
+	"github.com/primandproper/primitives-go/messagequeue"
+	"github.com/primandproper/primitives-go/webhooks/inbound"
 )
 
 // printingPublisher stands in for a real broker so the example has something to publish to.

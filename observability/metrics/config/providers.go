@@ -3,7 +3,7 @@ package metricscfg
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/observability/metrics"
+	"github.com/primandproper/primitives-go/observability/metrics"
 )
 
 // NewMetricsProvider provides a metrics.Provider from a config.

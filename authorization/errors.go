@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	platformerrors "github.com/primandproper/platform-go/v14/errors"
+	platformerrors "github.com/primandproper/primitives-go/errors"
 )
 
 // ErrPermissionDenied indicates the requester lacks the authority to perform the

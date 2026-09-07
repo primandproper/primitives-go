@@ -1,9 +1,13 @@
 // Package primitives is the root of the module and holds no code. It exists so
-// that the module documents itself at its own import path, and so that a tree
-// with no packages in it yet is still one `go build ./...` and `go test ./...`
-// can be pointed at.
+// that the module documents itself at its own import path, and so that
+// `go build ./...` and `go test ./...` have one thing to be pointed at.
 //
 // The packages live one directory down, each named for the concern it covers.
+// Two sit one level deeper than that — notifications/mobile and
+// webhooks/inbound — because the package they are nested under owns a table and
+// stayed in platform-go. They kept the import paths they arrived with, so this
+// module has a notifications directory and a webhooks directory that are not
+// themselves packages.
 //
 // # What belongs here
 //

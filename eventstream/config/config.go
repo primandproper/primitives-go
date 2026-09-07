@@ -16,11 +16,11 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/eventstream"
-	"github.com/primandproper/platform-go/v14/eventstream/sse"
-	"github.com/primandproper/platform-go/v14/eventstream/websocket"
-	"github.com/primandproper/platform-go/v14/internal/cfgnorm"
+	"github.com/primandproper/primitives-go/config/cfgnorm"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/eventstream"
+	"github.com/primandproper/primitives-go/eventstream/sse"
+	"github.com/primandproper/primitives-go/eventstream/websocket"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

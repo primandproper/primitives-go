@@ -12,11 +12,11 @@ import (
 	"encoding/base64"
 	"slices"
 
-	"github.com/primandproper/platform-go/v14/authentication/tokens"
-	"github.com/primandproper/platform-go/v14/authentication/tokens/jwt"
-	"github.com/primandproper/platform-go/v14/authentication/tokens/paseto"
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/internal/cfgnorm"
+	"github.com/primandproper/primitives-go/authentication/tokens"
+	"github.com/primandproper/primitives-go/authentication/tokens/jwt"
+	"github.com/primandproper/primitives-go/authentication/tokens/paseto"
+	"github.com/primandproper/primitives-go/config/cfgnorm"
+	"github.com/primandproper/primitives-go/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

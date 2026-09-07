@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/primandproper/platform-go/v14/database/dialect"
-	"github.com/primandproper/platform-go/v14/database/querygen"
+	"github.com/primandproper/primitives-go/database/dialect"
+	"github.com/primandproper/primitives-go/database/querygen"
 )
 
 // A table's generator names the dialect, the table and its columns, and the

@@ -3,7 +3,7 @@ package adler32
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/cryptography/hashing"
+	"github.com/primandproper/primitives-go/cryptography/hashing"
 
 	"github.com/shoenig/test"
 )

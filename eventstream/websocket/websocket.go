@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/eventstream"
-	"github.com/primandproper/platform-go/v14/observability"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/eventstream"
+	"github.com/primandproper/primitives-go/observability"
 
 	gorillawebsocket "github.com/gorilla/websocket"
 )

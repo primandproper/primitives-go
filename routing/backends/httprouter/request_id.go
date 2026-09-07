@@ -3,7 +3,7 @@ package httprouter
 import (
 	"net/http"
 
-	"github.com/primandproper/platform-go/v14/routing/backends/internal/httpmw"
+	"github.com/primandproper/primitives-go/routing/backends/internal/httpmw"
 )
 
 // RequestIDFunc returns the request ID assigned to a request by the backend's

@@ -6,7 +6,7 @@ package circuitbreakingmock
 import (
 	"sync"
 
-	"github.com/primandproper/platform-go/v14/circuitbreaking"
+	"github.com/primandproper/primitives-go/circuitbreaking"
 )
 
 // Ensure, that CircuitBreakerMock does implement circuitbreaking.CircuitBreaker.

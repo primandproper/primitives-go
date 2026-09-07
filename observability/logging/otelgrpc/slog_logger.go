@@ -42,11 +42,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/errors"
-	"github.com/primandproper/platform-go/v14/observability/keys"
-	"github.com/primandproper/platform-go/v14/observability/logging"
-	o11yutils "github.com/primandproper/platform-go/v14/observability/utils"
-	"github.com/primandproper/platform-go/v14/version"
+	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/observability/logging"
+	o11yutils "github.com/primandproper/primitives-go/observability/utils"
+	"github.com/primandproper/primitives-go/version"
 
 	slogmulti "github.com/samber/slog-multi"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
