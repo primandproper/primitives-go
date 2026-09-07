@@ -61,9 +61,9 @@ func TestNoFileImportsPlatformGo(t *testing.T) {
 		}
 
 		for _, imported := range parsed.Imports {
-			unquoted, err := strconv.Unquote(imported.Path.Value)
-			if err != nil {
-				return err
+			unquoted, unquoteErr := strconv.Unquote(imported.Path.Value)
+			if unquoteErr != nil {
+				return unquoteErr
 			}
 
 			if unquoted == forbidden || strings.HasPrefix(unquoted, forbidden+"/") {
