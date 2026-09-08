@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/primandproper/primitives-go/observability"
@@ -37,11 +38,41 @@ func RegisterGRPCErrorMapper(m GRPCErrorMapper) {
 	domainMappers = append(domainMappers, m)
 }
 
-// PrepareAndLogGRPCStatus derives the gRPC code via MapToGRPC, then logs, traces, and returns
-// a status error. Use defaultCode as the fallback for unknown errors.
+// PrepareAndLogGRPCStatus derives the gRPC code via MapToGRPC, then logs, traces,
+// and returns a status error. defaultCode is the fallback for an error no mapper
+// claims.
+//
+// This is the spelling a handler holding an observability.Operation wants:
+// observability's function of the same name takes the code it is handed and
+// cannot map, because this package imports it and the reverse edge is a cycle.
+// Logger and Span are on Operation so that reaching this one costs nothing:
+//
+//	grpcerrors.PrepareAndLogGRPCStatus(err, op.Logger(), op.Span(), codes.Internal, "doing the thing")
+//
+// What comes back is still the error that went in. The chain is intact under a
+// status, not rendered into one, so UnaryErrorEncodingInterceptor has a chain to
+// encode and a client's errors.Is matches the sentinel a handler returned. See
+// observability.GRPCStatusError for what that costs and why the message is the
+// description rather than the chain.
+//
+// The code is a default in a second sense too: the interceptor re-runs MapToGRPC
+// over the chain this preserves, so a mapper registered after a handler guessed
+// still wins. The message follows ClientSafeMessage — a registered client-safe
+// sentinel's own words outrank the description, since the sentinel is more
+// specific and was registered precisely to be quoted.
 func PrepareAndLogGRPCStatus(err error, logger logging.Logger, span tracing.Span, defaultCode codes.Code, descriptionFmt string, descriptionArgs ...any) error {
+	if err == nil {
+		return nil
+	}
+
 	code := MapToGRPC(err, defaultCode)
-	return observability.PrepareAndLogGRPCStatus(err, logger, span, code, descriptionFmt, descriptionArgs...)
+	description := fmt.Sprintf(descriptionFmt, descriptionArgs...)
+
+	return observability.GRPCStatusError(
+		observability.PrepareAndLogError(err, logger, span, "%s", description),
+		code,
+		clientMessage(code, err, description),
+	)
 }
 
 // MapToGRPC returns the appropriate gRPC code for known sentinel errors.
