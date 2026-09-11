@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	metricsmock "github.com/primandproper/primitives-go/observability/metrics/mock"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	metricsmock "github.com/primandproper/primitives-go/v2/observability/metrics/mock"
 
 	"github.com/shoenig/test"
 	"go.opentelemetry.io/otel/metric"

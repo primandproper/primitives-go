@@ -5,12 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/llm/anthropic"
-	"github.com/primandproper/primitives-go/llm/openai"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	"github.com/primandproper/primitives-go/observability/metrics/metricstest"
-	metricsmock "github.com/primandproper/primitives-go/observability/metrics/mock"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/llm/anthropic"
+	"github.com/primandproper/primitives-go/v2/llm/openai"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/metrics/metricstest"
+	metricsmock "github.com/primandproper/primitives-go/v2/observability/metrics/mock"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

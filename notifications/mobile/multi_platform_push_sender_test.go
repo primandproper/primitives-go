@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/primandproper/primitives-go/notifications/mobile/apns"
-	"github.com/primandproper/primitives-go/notifications/mobile/fcm"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/apns"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/fcm"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

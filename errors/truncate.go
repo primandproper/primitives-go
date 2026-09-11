@@ -1,7 +1,7 @@
 package errors
 
 import (
-	"github.com/primandproper/primitives-go/charset"
+	"github.com/primandproper/primitives-go/v2/charset"
 )
 
 // TruncateError renders err for storage in a bounded column — a last_error, a

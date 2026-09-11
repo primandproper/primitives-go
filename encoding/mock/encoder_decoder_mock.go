@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/primandproper/primitives-go/encoding"
+	"github.com/primandproper/primitives-go/v2/encoding"
 )
 
 // Ensure, that ServerEncoderDecoderMock does implement encoding.ServerEncoderDecoder.

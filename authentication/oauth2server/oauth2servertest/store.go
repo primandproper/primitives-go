@@ -1,14 +1,16 @@
 package oauth2servertest
 
 import (
+	"context"
 	stderrors "errors"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/identifiers"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
@@ -30,15 +32,16 @@ const (
 	past   = -time.Minute
 	future = time.Minute
 
-	// longPast is the deadline the sweep cases write, and sweepHorizon is the
-	// instant they sweep at — so a sweep reaches only records this suite wrote
-	// for it and never the merely-expired ones the cases above depend on.
+	// longPast is the deadline the sweep cases write, and sweepHorizon is how
+	// far back the clock their store is stopped at reads — so a sweep reaches
+	// only records this suite wrote for it and never the merely-expired ones
+	// the cases above depend on.
 	//
 	// That separation is necessary rather than tidy. One database serves every
-	// subtest at once, and Sweep has no scope: a sweep at "now" would delete
-	// another parallel subtest's expired code out from under the assertion that
-	// consuming it reports ErrExpired, which would then report ErrNotFound
-	// instead — a failure with nothing wrong behind it.
+	// subtest at once, and Sweep has no scope: a store on the wall clock would
+	// delete another parallel subtest's expired code out from under the
+	// assertion that consuming it reports ErrExpired, which would then report
+	// ErrNotFound instead — a failure with nothing wrong behind it.
 	longPast     = -2 * time.Hour
 	sweepHorizon = -time.Hour
 
@@ -47,14 +50,20 @@ const (
 	contenders = 8
 )
 
-// Factory builds one Store for one subtest. It must hand back a usable
-// instance and register whatever teardown that instance needs on tb — the
-// suite never closes what a factory returns.
+// Factory builds one Store for one subtest, reading every deadline against c.
+// It must hand back a usable instance and register whatever teardown that
+// instance needs on tb — the suite never closes what a factory returns.
+//
+// The clock is a parameter rather than the implementation's default because
+// Sweep has no horizon argument: it reclaims what its own clock says is dead,
+// so the only way a test can say "sweep as of an hour ago" is to build a store
+// that thinks it is an hour ago. Every case but the sweep ones is handed the
+// wall clock and behaves as it always did.
 //
 // A backend whose state outlives the Store value needs no cleaning between
 // subtests: every identifier the suite writes carries a unique suffix, so one
 // database serves every subtest, every parallel run, and every rerun.
-type Factory func(tb testing.TB) oauth2server.Store
+type Factory func(tb testing.TB, c clock.Clock) oauth2server.Store
 
 // Option declares where an implementation stops honoring the full Store
 // contract. Each one removes cases, so an implementation that declares nothing
@@ -78,8 +87,8 @@ func WithInstanceLocalState() Option {
 }
 
 // Run asserts every behavior an oauth2server.Store owes its callers against
-// the implementation newStore builds, as one parallel subtest per behavior.
-func Run(t *testing.T, newStore Factory, opts ...Option) {
+// the implementation build produces, as one parallel subtest per behavior.
+func Run(t *testing.T, build Factory, opts ...Option) {
 	t.Helper()
 
 	var d deviations
@@ -89,16 +98,28 @@ func Run(t *testing.T, newStore Factory, opts ...Option) {
 		}
 	}
 
+	// Every case but the sweep ones wants the implementation's ordinary
+	// behavior, so they are handed the wall clock and never see the seam.
+	newStore := func(tb testing.TB) oauth2server.Store {
+		tb.Helper()
+
+		return build(tb, clock.NewClock())
+	}
+
 	runClientCases(t, newStore, d)
 	runAuthorizationCodeCases(t, newStore)
 	runAccessTokenCases(t, newStore)
 	runRefreshTokenCases(t, newStore)
 	runFamilyCases(t, newStore)
-	runSweepCases(t, newStore)
+	runSweepCases(t, build)
 }
 
+// wallFactory is the shape the five non-sweep groups take: a Factory with its
+// clock already chosen.
+type wallFactory func(tb testing.TB) oauth2server.Store
+
 //nolint:gocognit // one subtest per behavior; splitting further would separate a case from its name.
-func runClientCases(t *testing.T, newStore Factory, d deviations) {
+func runClientCases(t *testing.T, newStore wallFactory, d deviations) {
 	t.Helper()
 
 	t.Run("a registered client round-trips every field", func(t *testing.T) {
@@ -264,7 +285,7 @@ func runClientCases(t *testing.T, newStore Factory, d deviations) {
 }
 
 //nolint:gocognit // one subtest per behavior; splitting further would separate a case from its name.
-func runAuthorizationCodeCases(t *testing.T, newStore Factory) {
+func runAuthorizationCodeCases(t *testing.T, newStore wallFactory) {
 	t.Helper()
 
 	t.Run("an issued code round-trips through a redemption", func(t *testing.T) {
@@ -441,7 +462,7 @@ func runAuthorizationCodeCases(t *testing.T, newStore Factory) {
 	})
 }
 
-func runAccessTokenCases(t *testing.T, newStore Factory) {
+func runAccessTokenCases(t *testing.T, newStore wallFactory) {
 	t.Helper()
 
 	t.Run("an issued access token round-trips", func(t *testing.T) {
@@ -557,7 +578,7 @@ func runAccessTokenCases(t *testing.T, newStore Factory) {
 }
 
 //nolint:gocognit // one subtest per behavior; splitting further would separate a case from its name.
-func runRefreshTokenCases(t *testing.T, newStore Factory) {
+func runRefreshTokenCases(t *testing.T, newStore wallFactory) {
 	t.Helper()
 
 	t.Run("an issued refresh token round-trips through a rotation", func(t *testing.T) {
@@ -792,7 +813,7 @@ func runRefreshTokenCases(t *testing.T, newStore Factory) {
 	})
 }
 
-func runFamilyCases(t *testing.T, newStore Factory) {
+func runFamilyCases(t *testing.T, newStore wallFactory) {
 	t.Helper()
 
 	t.Run("revoking a family reaches both kinds of token and stops at its edge", func(t *testing.T) {
@@ -866,13 +887,13 @@ func runFamilyCases(t *testing.T, newStore Factory) {
 	})
 }
 
-func runSweepCases(t *testing.T, newStore Factory) {
+func runSweepCases(t *testing.T, build Factory) {
 	t.Helper()
 
 	t.Run("a sweep removes what is past its deadline and nothing else", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, store := t.Context(), newStore(t)
+		ctx, store := t.Context(), build(t, stoppedAt(sweepAt()))
 
 		deadCode, liveCode := newCode(longPast), newCode(future)
 		deadAccess, liveAccess := newAccessToken(longPast, unique("f")), newAccessToken(future, unique("f"))
@@ -895,7 +916,7 @@ func runSweepCases(t *testing.T, newStore Factory) {
 		// asserted by what is left, which is the thing a caller can observe.
 		// The exact count belongs in a per-implementation test with a database
 		// to itself.
-		_, err := store.Sweep(ctx, sweepAt())
+		_, err := store.Sweep(ctx)
 		must.NoError(t, err)
 
 		_, err = store.ConsumeAuthorizationCode(ctx, deadCode.Hash)
@@ -917,13 +938,13 @@ func runSweepCases(t *testing.T, newStore Factory) {
 	t.Run("a sweep keeps a revoked token that has not expired", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, store := t.Context(), newStore(t)
+		ctx, store := t.Context(), build(t, stoppedAt(sweepAt()))
 		token := newAccessToken(future, unique("family"))
 
 		must.NoError(t, store.CreateAccessToken(ctx, token))
 		must.NoError(t, store.RevokeAccessToken(ctx, token.Hash))
 
-		_, err := store.Sweep(ctx, sweepAt())
+		_, err := store.Sweep(ctx)
 		must.NoError(t, err)
 
 		// Deleting it would turn "you signed out" into "no such token", which
@@ -937,9 +958,10 @@ func runSweepCases(t *testing.T, newStore Factory) {
 	t.Run("a sweep with nothing to remove is not an error", func(t *testing.T) {
 		t.Parallel()
 
-		// The far past, so nothing any subtest wrote is inside the predicate
-		// and the count is this sweep's alone even on a shared database.
-		swept, err := newStore(t).Sweep(t.Context(), time.Unix(0, 0).UTC())
+		// A store stopped in the far past, so nothing any subtest wrote is
+		// inside the predicate and the count is this sweep's alone even on a
+		// shared database.
+		swept, err := build(t, stoppedAt(time.Unix(0, 0).UTC())).Sweep(t.Context())
 		must.NoError(t, err)
 		test.EqOp(t, int64(0), swept)
 	})
@@ -954,9 +976,41 @@ func isReplay(err error) bool {
 
 // sweepAt is the instant the sweep cases sweep at: far enough back to reach
 // what they wrote and not what any other case did. See sweepHorizon.
+//
+// It is now the instant their store is stopped at rather than an argument to
+// Sweep, which is the same separation reached through the one lever the method
+// still has.
 func sweepAt() time.Time {
 	return time.Now().UTC().Add(sweepHorizon)
 }
+
+// stoppedAt is a Clock that always reads at, so a store built against it
+// reclaims and refuses exactly what was dead then.
+func stoppedAt(at time.Time) clock.Clock { return stoppedClock{at: at} }
+
+// stoppedClock is the Clock stoppedAt hands out.
+type stoppedClock struct {
+	at time.Time
+}
+
+var _ clock.Clock = stoppedClock{}
+
+func (c stoppedClock) Now() time.Time                                   { return c.at }
+func (c stoppedClock) Since(t time.Time) time.Duration                  { return c.at.Sub(t) }
+func (c stoppedClock) Sleep(ctx context.Context, _ time.Duration) error { return ctx.Err() }
+
+// NewTicker hands back a ticker that never fires rather than panicking: a
+// factory is free to start the implementation's own sweep goroutine, and on a
+// stopped clock the honest answer is that its next tick never comes.
+func (c stoppedClock) NewTicker(time.Duration) clock.Ticker { return stoppedTicker{} }
+
+// stoppedTicker is the never-firing ticker stoppedClock hands out.
+type stoppedTicker struct{}
+
+var _ clock.Ticker = stoppedTicker{}
+
+func (stoppedTicker) Chan() <-chan time.Time { return nil }
+func (stoppedTicker) Stop()                  {}
 
 // unique returns an identifier no other subtest, parallel run, or rerun will
 // produce, so one shared database can serve all of them.

@@ -1,10 +1,10 @@
 package pgnotify
 
 import (
-	"github.com/primandproper/primitives-go/observability/logging"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	"github.com/primandproper/primitives-go/observability/tracing"
-	"github.com/primandproper/primitives-go/retry"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/retry"
 )
 
 // Option configures a Listener. The zero configuration works: an absent logger

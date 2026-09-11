@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	encodingmock "github.com/primandproper/primitives-go/encoding/mock"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/random"
-	"github.com/primandproper/primitives-go/webhooks/inbound"
+	encodingmock "github.com/primandproper/primitives-go/v2/encoding/mock"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/webhooks/inbound"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

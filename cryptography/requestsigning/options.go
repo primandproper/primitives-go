@@ -3,7 +3,7 @@ package requestsigning
 import (
 	"time"
 
-	"github.com/primandproper/primitives-go/clock"
+	"github.com/primandproper/primitives-go/v2/clock"
 )
 
 // Option configures signing and verification. One type serves Sign's

@@ -7,8 +7,8 @@ import (
 	"maps"
 	"net/http"
 
-	"github.com/primandproper/primitives-go/encoding"
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // codecs is every encoding an exchange can speak, one client-side codec per

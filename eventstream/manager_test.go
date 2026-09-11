@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

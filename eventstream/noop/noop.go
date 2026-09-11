@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/primandproper/primitives-go/eventstream"
+	"github.com/primandproper/primitives-go/v2/eventstream"
 )
 
 var (

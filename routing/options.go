@@ -1,7 +1,7 @@
 package routing
 
 import (
-	"github.com/primandproper/primitives-go/encoding"
+	"github.com/primandproper/primitives-go/v2/encoding"
 )
 
 type (

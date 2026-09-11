@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/idempotency"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/idempotency"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

@@ -5,7 +5,7 @@ import (
 	"math/bits"
 	"strconv"
 
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // Unsigned is a constraint for fixed-width unsigned integer types that can be used as bitmask values.

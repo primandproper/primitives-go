@@ -3,11 +3,11 @@ package messagequeuecfg
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/messagequeue/kafka"
-	"github.com/primandproper/primitives-go/messagequeue/pubsub"
-	"github.com/primandproper/primitives-go/messagequeue/redis"
-	"github.com/primandproper/primitives-go/messagequeue/sqs"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/messagequeue/kafka"
+	"github.com/primandproper/primitives-go/v2/messagequeue/pubsub"
+	"github.com/primandproper/primitives-go/v2/messagequeue/redis"
+	"github.com/primandproper/primitives-go/v2/messagequeue/sqs"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

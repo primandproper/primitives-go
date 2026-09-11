@@ -22,9 +22,9 @@ package zap
 import (
 	"net/http"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/keys"
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"

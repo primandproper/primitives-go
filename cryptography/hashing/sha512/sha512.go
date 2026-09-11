@@ -16,7 +16,7 @@ package sha512
 import (
 	"crypto/sha512"
 
-	"github.com/primandproper/primitives-go/cryptography/hashing"
+	"github.com/primandproper/primitives-go/v2/cryptography/hashing"
 )
 
 var _ hashing.Hasher = (*Hasher)(nil)

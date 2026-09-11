@@ -12,11 +12,11 @@ package partitionedcfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/circuitbreaking"
-	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
-	"github.com/primandproper/primitives-go/circuitbreaking/partitioned"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking/partitioned"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"go.opentelemetry.io/otel/attribute"

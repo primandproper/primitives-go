@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/primandproper/primitives-go/eventcapture"
+	"github.com/primandproper/primitives-go/v2/eventcapture"
 )
 
 // servedRequest is the caller's event type. eventcapture prescribes nothing

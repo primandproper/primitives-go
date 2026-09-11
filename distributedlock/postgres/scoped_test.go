@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"testing"
 
-	circuitbreakingmock "github.com/primandproper/primitives-go/circuitbreaking/mock"
-	cbnoop "github.com/primandproper/primitives-go/circuitbreaking/noop"
-	"github.com/primandproper/primitives-go/distributedlock"
-	"github.com/primandproper/primitives-go/distributedlock/distributedlocktest"
+	circuitbreakingmock "github.com/primandproper/primitives-go/v2/circuitbreaking/mock"
+	cbnoop "github.com/primandproper/primitives-go/v2/circuitbreaking/noop"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	"github.com/primandproper/primitives-go/v2/distributedlock/distributedlocktest"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shoenig/test"

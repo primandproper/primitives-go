@@ -4,10 +4,10 @@ import (
 	"context"
 	"os"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/notifications/mobile/internal/pushfeedback"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/internal/pushfeedback"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"

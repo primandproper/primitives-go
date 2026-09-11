@@ -3,10 +3,10 @@ PWD := $(shell pwd)
 
 # PATHS
 #
-# No major-version suffix, and there will not be one until v2: at v1 Go reads
-# the bare module path. format_imports.sh strips a suffix before taking the
-# org prefix, so this is the same fact spelled one way rather than two.
-THIS          := github.com/primandproper/primitives-go
+# The full module path, major-version suffix included. format_imports.sh
+# strips the suffix before taking the org prefix, so this is the same fact
+# spelled one way rather than two.
+THIS          := github.com/primandproper/primitives-go/v2
 ARTIFACTS_DIR := artifacts
 SCRIPTS_DIR   := .scripts
 

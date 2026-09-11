@@ -9,11 +9,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/primandproper/primitives-go/clock"
-	"github.com/primandproper/primitives-go/observability/logging"
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	"github.com/primandproper/primitives-go/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"

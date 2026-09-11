@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/primandproper/primitives-go/llm"
-	llmnoop "github.com/primandproper/primitives-go/llm/noop"
+	"github.com/primandproper/primitives-go/v2/llm"
+	llmnoop "github.com/primandproper/primitives-go/v2/llm/noop"
 )
 
 func Example() {

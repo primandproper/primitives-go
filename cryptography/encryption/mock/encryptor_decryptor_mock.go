@@ -7,7 +7,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/primandproper/primitives-go/cryptography/encryption"
+	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
 )
 
 // Ensure, that EncryptorDecryptorMock does implement encryption.EncryptorDecryptor.

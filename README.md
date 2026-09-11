@@ -1,10 +1,10 @@
 # primitives-go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/primandproper/primitives-go.svg)](https://pkg.go.dev/github.com/primandproper/primitives-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/primandproper/primitives-go/v2.svg)](https://pkg.go.dev/github.com/primandproper/primitives-go/v2)
 
 The tier every service is built from: providers behind interfaces, the transports whose shape somebody else decided, the database and schema tooling stores are built with, and the handful of values both tiers have to agree on. Layers that touch the network — HTTP, gRPC, database, messaging — instrument with OpenTelemetry.
 
-**Module:** `github.com/primandproper/primitives-go`
+**Module:** `github.com/primandproper/primitives-go/v2`
 **Go:** 1.27
 
 The packages arrived in one move from `platform-go` (primandproper/primitives-go#2), with history preserved: `git log` and `git blame` reach back through the years they spent there.
@@ -30,12 +30,12 @@ This repository follows a deliberately conservative release model:
 
 If you depend on this library, pin to a released tag — and note that `@latest` against a major that has no tag yet resolves to a commit on `main` rather than to a release. If you want to track upcoming work, `main` is fair game — just don't expect it to hold still.
 
-This module is v1, and being the slow tier it intends to stay there. That is an intention rather than a promise: the model above is the promise, and a v2 would arrive the same way any major does.
+This module is v2, and being the slow tier it intends to stay there for a long while. That is an intention rather than a promise: the model above is the promise, and the next major would arrive the same way this one did.
 
 ## Installation
 
 ```bash
-go get github.com/primandproper/primitives-go@latest
+go get github.com/primandproper/primitives-go/v2@latest
 ```
 
 Because breaking changes ride the major-version import path, upgrading across majors is an explicit, opt-in edit to your import paths — never a surprise from `go get -u`.

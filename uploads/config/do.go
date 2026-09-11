@@ -1,7 +1,7 @@
 package uploadscfg
 
 import (
-	"github.com/primandproper/primitives-go/uploads/objectstorage"
+	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )

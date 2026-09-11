@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/distributedlock"
-	"github.com/primandproper/primitives-go/distributedlock/memory"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	"github.com/primandproper/primitives-go/v2/distributedlock/memory"
 
 	"github.com/shoenig/test/must"
 )

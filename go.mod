@@ -1,4 +1,4 @@
-module github.com/primandproper/primitives-go
+module github.com/primandproper/primitives-go/v2
 
 go 1.27
 

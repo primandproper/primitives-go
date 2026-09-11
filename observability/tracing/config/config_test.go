@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/primandproper/primitives-go/observability/tracing/cloudtrace"
-	"github.com/primandproper/primitives-go/observability/tracing/oteltrace"
+	"github.com/primandproper/primitives-go/v2/observability/tracing/cloudtrace"
+	"github.com/primandproper/primitives-go/v2/observability/tracing/oteltrace"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

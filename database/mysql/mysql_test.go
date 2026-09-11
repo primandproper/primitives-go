@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/database"
-	"github.com/primandproper/primitives-go/observability"
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
-	metricsnoop "github.com/primandproper/primitives-go/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/primitives-go/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shoenig/test"

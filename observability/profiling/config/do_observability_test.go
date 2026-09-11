@@ -3,9 +3,9 @@ package profilingcfg
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
-	"github.com/primandproper/primitives-go/observability/profiling"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/profiling"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

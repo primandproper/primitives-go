@@ -3,7 +3,7 @@ package noop
 import (
 	"testing"
 
-	vectorsearch "github.com/primandproper/primitives-go/search/vector"
+	vectorsearch "github.com/primandproper/primitives-go/v2/search/vector"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

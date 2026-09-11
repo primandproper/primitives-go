@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/primitives-go/circuitbreaking"
-	"github.com/primandproper/primitives-go/database"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/idempotency"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/idempotency"
 
 	"github.com/shoenig/test"
 	"google.golang.org/grpc/codes"

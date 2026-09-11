@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // Bounds the default registration policy enforces.

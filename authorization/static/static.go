@@ -18,9 +18,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/primandproper/primitives-go/authorization"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/authorization"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 var _ authorization.PolicyResolver = (*Resolver)(nil)

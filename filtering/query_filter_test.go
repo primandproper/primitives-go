@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/keys"
-	"github.com/primandproper/primitives-go/observability/logging"
-	textsearch "github.com/primandproper/primitives-go/search/text"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

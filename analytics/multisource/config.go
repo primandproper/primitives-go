@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/primandproper/primitives-go/analytics"
-	analyticscfg "github.com/primandproper/primitives-go/analytics/config"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/analytics"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 // NewMultiSourceEventReporterFromConfig builds a MultiSourceEventReporter from proxy sources config.

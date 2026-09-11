@@ -3,8 +3,8 @@ package secretscfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/secrets"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/secrets"
 
 	"github.com/samber/do/v2"
 )

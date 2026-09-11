@@ -1,7 +1,7 @@
 package encryption
 
 import (
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 var (

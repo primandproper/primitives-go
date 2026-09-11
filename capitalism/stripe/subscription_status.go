@@ -1,7 +1,7 @@
 package stripe
 
 import (
-	"github.com/primandproper/primitives-go/capitalism"
+	"github.com/primandproper/primitives-go/v2/capitalism"
 
 	"github.com/stripe/stripe-go/v81"
 )

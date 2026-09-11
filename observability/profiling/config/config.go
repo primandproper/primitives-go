@@ -17,13 +17,13 @@ import (
 	"slices"
 	"time"
 
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
-	"github.com/primandproper/primitives-go/observability/profiling"
-	profilingnoop "github.com/primandproper/primitives-go/observability/profiling/noop"
-	"github.com/primandproper/primitives-go/observability/profiling/pprof"
-	"github.com/primandproper/primitives-go/observability/profiling/pyroscope"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/profiling"
+	profilingnoop "github.com/primandproper/primitives-go/v2/observability/profiling/noop"
+	"github.com/primandproper/primitives-go/v2/observability/profiling/pprof"
+	"github.com/primandproper/primitives-go/v2/observability/profiling/pyroscope"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

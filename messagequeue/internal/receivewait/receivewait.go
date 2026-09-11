@@ -19,9 +19,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/primitives-go/clock"
-	"github.com/primandproper/primitives-go/retry"
-	retrycfg "github.com/primandproper/primitives-go/retry/config"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/retry"
+	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
 )
 
 // The schedule every consumer in this module backs off on: a tenth of a second

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	httpx "github.com/primandproper/primitives-go/errors/http"
+	httpx "github.com/primandproper/primitives-go/v2/errors/http"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

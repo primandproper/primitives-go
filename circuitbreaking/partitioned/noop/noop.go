@@ -12,9 +12,9 @@
 package noop
 
 import (
-	"github.com/primandproper/primitives-go/circuitbreaking"
-	cbnoop "github.com/primandproper/primitives-go/circuitbreaking/noop"
-	"github.com/primandproper/primitives-go/circuitbreaking/partitioned"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
+	cbnoop "github.com/primandproper/primitives-go/v2/circuitbreaking/noop"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking/partitioned"
 )
 
 var _ partitioned.KeyedCircuitBreaker = (*keyedCircuitBreaker)(nil)

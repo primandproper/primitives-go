@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/primitives-go/encoding"
-	httpx "github.com/primandproper/primitives-go/errors/http"
-	"github.com/primandproper/primitives-go/routing"
-	"github.com/primandproper/primitives-go/routing/backends/chi"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	httpx "github.com/primandproper/primitives-go/v2/errors/http"
+	"github.com/primandproper/primitives-go/v2/routing"
+	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/shoenig/test"

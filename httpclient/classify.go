@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/ratelimiting"
-	"github.com/primandproper/primitives-go/retry"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	"github.com/primandproper/primitives-go/v2/retry"
 )
 
 // Outcome is what one completed exchange taught us about the host it was sent

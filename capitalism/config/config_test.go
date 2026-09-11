@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/primitives-go/capitalism/revenuecat"
-	"github.com/primandproper/primitives-go/capitalism/stripe"
+	"github.com/primandproper/primitives-go/v2/capitalism/revenuecat"
+	"github.com/primandproper/primitives-go/v2/capitalism/stripe"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

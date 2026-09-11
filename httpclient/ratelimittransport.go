@@ -3,8 +3,8 @@ package httpclient
 import (
 	"net/http"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/ratelimiting"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
 )
 
 // rateLimitTransport spends a token from a per-host bucket before each request.

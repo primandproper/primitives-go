@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/primitives-go/healthcheck"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
 )
 
 // simpleChecker is a Checker that always reports healthy.

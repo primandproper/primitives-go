@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/primandproper/primitives-go/cache"
+	"github.com/primandproper/primitives-go/v2/cache"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

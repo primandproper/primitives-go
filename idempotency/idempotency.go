@@ -3,12 +3,12 @@ package idempotency
 import (
 	"time"
 
-	"github.com/primandproper/primitives-go/cache"
-	"github.com/primandproper/primitives-go/clock"
-	"github.com/primandproper/primitives-go/distributedlock"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	"github.com/primandproper/primitives-go/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/cache"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (

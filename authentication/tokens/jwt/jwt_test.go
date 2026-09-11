@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/authentication/tokens"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/shoenig/test"

@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/primandproper/primitives-go/authorization"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	httpx "github.com/primandproper/primitives-go/errors/http"
+	"github.com/primandproper/primitives-go/v2/authorization"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	httpx "github.com/primandproper/primitives-go/v2/errors/http"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

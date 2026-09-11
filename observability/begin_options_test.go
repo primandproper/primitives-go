@@ -3,7 +3,7 @@ package observability
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

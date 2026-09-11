@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	metricsmock "github.com/primandproper/primitives-go/observability/metrics/mock"
-	metricsnoop "github.com/primandproper/primitives-go/observability/metrics/noop"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	metricsmock "github.com/primandproper/primitives-go/v2/observability/metrics/mock"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

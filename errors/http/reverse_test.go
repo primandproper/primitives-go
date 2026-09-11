@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/ratelimiting"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

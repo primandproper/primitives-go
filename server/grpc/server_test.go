@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

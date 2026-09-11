@@ -3,7 +3,7 @@ package llmcfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/llm"
+	"github.com/primandproper/primitives-go/v2/llm"
 )
 
 // NewLLMProvider provides an LLM provider from config.

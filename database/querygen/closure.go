@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // A closure read is the one statement in this module that is recursive: a set

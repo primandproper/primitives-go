@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/primitives-go/cache/memory"
-	"github.com/primandproper/primitives-go/distributedlock"
-	dlmemory "github.com/primandproper/primitives-go/distributedlock/memory"
-	"github.com/primandproper/primitives-go/idempotency"
+	"github.com/primandproper/primitives-go/v2/cache/memory"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	dlmemory "github.com/primandproper/primitives-go/v2/distributedlock/memory"
+	"github.com/primandproper/primitives-go/v2/idempotency"
 )
 
 // charge is the recorded result: a concrete struct with exported fields, which

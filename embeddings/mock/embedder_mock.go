@@ -7,7 +7,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/primandproper/primitives-go/embeddings"
+	"github.com/primandproper/primitives-go/v2/embeddings"
 )
 
 // Ensure, that EmbedderMock does implement embeddings.Embedder.

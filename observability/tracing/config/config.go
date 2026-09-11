@@ -15,13 +15,13 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
-	"github.com/primandproper/primitives-go/observability/tracing"
-	"github.com/primandproper/primitives-go/observability/tracing/cloudtrace"
-	tracingnoop "github.com/primandproper/primitives-go/observability/tracing/noop"
-	"github.com/primandproper/primitives-go/observability/tracing/oteltrace"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/observability/tracing/cloudtrace"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing/oteltrace"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

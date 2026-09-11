@@ -20,12 +20,12 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/primitives-go/capitalism"
-	"github.com/primandproper/primitives-go/capitalism/noop"
-	"github.com/primandproper/primitives-go/capitalism/revenuecat"
-	"github.com/primandproper/primitives-go/capitalism/stripe"
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/capitalism/noop"
+	"github.com/primandproper/primitives-go/v2/capitalism/revenuecat"
+	"github.com/primandproper/primitives-go/v2/capitalism/stripe"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

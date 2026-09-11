@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/primandproper/primitives-go/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	"github.com/shoenig/test/must"
 )

@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/primandproper/primitives-go/cryptography/requestsigning"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/ratelimiting"
+	"github.com/primandproper/primitives-go/v2/cryptography/requestsigning"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
 
 	"github.com/cockroachdb/errors/errorspb"
 	"github.com/cockroachdb/errors/markers"

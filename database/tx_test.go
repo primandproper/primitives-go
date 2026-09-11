@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/primandproper/primitives-go/database"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shoenig/test"

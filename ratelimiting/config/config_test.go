@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/primitives-go/errors"
-	redisrl "github.com/primandproper/primitives-go/ratelimiting/redis"
+	"github.com/primandproper/primitives-go/v2/errors"
+	redisrl "github.com/primandproper/primitives-go/v2/ratelimiting/redis"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

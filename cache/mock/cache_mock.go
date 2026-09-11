@@ -7,7 +7,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/primandproper/primitives-go/cache"
+	"github.com/primandproper/primitives-go/v2/cache"
 )
 
 // Ensure, that CacheMock does implement cache.Cache.

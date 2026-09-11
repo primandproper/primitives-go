@@ -5,8 +5,8 @@ import (
 	stderrors "errors"
 	"sync"
 
-	"github.com/primandproper/primitives-go/cache"
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/cache"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	"golang.org/x/sync/errgroup"
 )

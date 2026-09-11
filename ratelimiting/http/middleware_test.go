@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	httperrors "github.com/primandproper/primitives-go/errors/http"
-	"github.com/primandproper/primitives-go/ratelimiting"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	httperrors "github.com/primandproper/primitives-go/v2/errors/http"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

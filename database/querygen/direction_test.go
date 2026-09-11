@@ -3,7 +3,7 @@ package querygen
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	"github.com/shoenig/test"
 )

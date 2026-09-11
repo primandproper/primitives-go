@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/cache"
-	cachememory "github.com/primandproper/primitives-go/cache/memory"
-	cachemock "github.com/primandproper/primitives-go/cache/mock"
-	"github.com/primandproper/primitives-go/distributedlock"
-	dlmemory "github.com/primandproper/primitives-go/distributedlock/memory"
-	distributedlockmock "github.com/primandproper/primitives-go/distributedlock/mock"
+	"github.com/primandproper/primitives-go/v2/cache"
+	cachememory "github.com/primandproper/primitives-go/v2/cache/memory"
+	cachemock "github.com/primandproper/primitives-go/v2/cache/mock"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	dlmemory "github.com/primandproper/primitives-go/v2/distributedlock/memory"
+	distributedlockmock "github.com/primandproper/primitives-go/v2/distributedlock/mock"
 
 	"github.com/shoenig/test/must"
 	"go.opentelemetry.io/otel/metric"

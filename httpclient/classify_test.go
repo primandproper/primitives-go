@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/primandproper/primitives-go/circuitbreaking/partitioned"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/ratelimiting"
-	"github.com/primandproper/primitives-go/retry"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking/partitioned"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	"github.com/primandproper/primitives-go/v2/retry"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

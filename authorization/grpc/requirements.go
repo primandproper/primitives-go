@@ -4,8 +4,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/primandproper/primitives-go/authorization"
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 var (

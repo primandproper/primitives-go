@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Go library (`github.com/primandproper/primitives-go`) providing the infrastructure primitives cloud-native services are built from: database, caching, messaging, observability, secrets, uploads, email, and more. Single module, v1, Go 1.27.
+Go library (`github.com/primandproper/primitives-go/v2`) providing the infrastructure primitives cloud-native services are built from: database, caching, messaging, observability, secrets, uploads, email, and more. Single module, v2, Go 1.27.
 
 The packages arrived in one move from `platform-go`, history preserved, in primandproper/primitives-go#2 — `git log` and `git blame` reach back through the years they spent there. Five packages that were `internal/` in platform-go are exported here, because platform-go imports them and cannot reach `internal`: `database/sqlguard`, `database/postgres/pgretry`, `charset/plainname`, `config/injection` and `config/cfgnorm`.
 
@@ -63,11 +63,11 @@ That is a feature of the library and unrelated to how this repo builds itself.)
 Import ordering uses `gci` with four sections, separated by blank lines:
 
 1. Standard library
-2. `github.com/primandproper/primitives-go` (this module)
+2. `github.com/primandproper/primitives-go/v2` (this module)
 3. `github.com/primandproper` (org-level packages)
 4. Everything else (third-party)
 
-The Makefile `THIS` variable must be the full module path (`github.com/primandproper/primitives-go`). `format_imports.sh` derives the org prefix from it by stripping any trailing major-version suffix (e.g. `/v2`) and then taking `dirname`, yielding `github.com/primandproper`. At v1 there is no suffix to strip, so the two sections differ by one path segment; the `.golangci.yml` `gci` section list spells the same two prefixes and has to be edited with `THIS` or the formatter and the linter will disagree forever. If `THIS` is too short, the org prefix collapses toward `github.com`, creating a spurious `prefix(github.com)` gci section.
+The Makefile `THIS` variable must be the full module path (`github.com/primandproper/primitives-go/v2`). `format_imports.sh` derives the org prefix from it by stripping the trailing major-version suffix and then taking `dirname`, yielding `github.com/primandproper`. The `.golangci.yml` `gci` section list spells the same two prefixes and has to be edited with `THIS` or the formatter and the linter will disagree forever. If `THIS` is too short, the org prefix collapses toward `github.com`, creating a spurious `prefix(github.com)` gci section.
 
 ## Architecture Patterns
 

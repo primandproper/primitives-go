@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/primitives-go/ratelimiting"
-	ratelimitinggrpc "github.com/primandproper/primitives-go/ratelimiting/grpc"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	ratelimitinggrpc "github.com/primandproper/primitives-go/v2/ratelimiting/grpc"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"

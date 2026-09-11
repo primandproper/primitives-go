@@ -1,7 +1,7 @@
 package fake
 
 import (
-	"github.com/primandproper/primitives-go/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
 // DefaultPageSize is how many elements BuildFakePage puts in a page.

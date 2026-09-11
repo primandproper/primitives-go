@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	cbnoop "github.com/primandproper/primitives-go/circuitbreaking/noop"
+	cbnoop "github.com/primandproper/primitives-go/v2/circuitbreaking/noop"
 
 	"github.com/shoenig/test"
 )

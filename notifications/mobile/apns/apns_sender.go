@@ -3,12 +3,12 @@ package apns
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/charset"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/notifications/mobile/internal/pushfeedback"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/keys"
-	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/charset"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/internal/pushfeedback"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/sideshow/apns2"

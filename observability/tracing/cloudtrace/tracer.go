@@ -3,9 +3,9 @@ package cloudtrace
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/tracing"
-	o11yutils "github.com/primandproper/primitives-go/observability/utils"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	o11yutils "github.com/primandproper/primitives-go/v2/observability/utils"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	"go.opentelemetry.io/otel"

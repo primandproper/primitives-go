@@ -16,9 +16,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/primitives-go/cryptography/encryption"
-	"github.com/primandproper/primitives-go/cryptography/encryption/aes"
-	perrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
+	"github.com/primandproper/primitives-go/v2/cryptography/encryption/aes"
+	perrors "github.com/primandproper/primitives-go/v2/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

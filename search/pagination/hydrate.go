@@ -3,9 +3,9 @@ package searchpagination
 import (
 	"context"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/filtering"
-	textsearch "github.com/primandproper/primitives-go/search/text"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 )
 
 // ErrIndexReturnedNothing indicates a backend answered a search with neither

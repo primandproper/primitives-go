@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/caarlos0/env/v11"
 )

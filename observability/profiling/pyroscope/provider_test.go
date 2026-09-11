@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
-	"github.com/primandproper/primitives-go/observability/profiling"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/profiling"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

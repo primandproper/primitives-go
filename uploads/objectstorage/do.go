@@ -3,8 +3,8 @@ package objectstorage
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/uploads"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/uploads"
 
 	"github.com/samber/do/v2"
 )

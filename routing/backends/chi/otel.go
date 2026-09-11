@@ -3,8 +3,8 @@ package chi
 import (
 	"net/http"
 
-	"github.com/primandproper/primitives-go/observability/metrics"
-	"github.com/primandproper/primitives-go/routing/backends/internal/httpmw"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/routing/backends/internal/httpmw"
 
 	"github.com/riandyrn/otelchi"
 	otelchimetric "github.com/riandyrn/otelchi/metric"

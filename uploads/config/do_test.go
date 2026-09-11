@@ -3,7 +3,7 @@ package uploadscfg
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/uploads/objectstorage"
+	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	"github.com/primandproper/primitives-go/encoding"
-	"github.com/primandproper/primitives-go/routing"
-	"github.com/primandproper/primitives-go/routing/backends/chi"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/routing"
+	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 )
 
 // The input for creating a user. Tags decide where each field is bound:

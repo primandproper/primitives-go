@@ -1,9 +1,9 @@
 package grpc
 
 import (
-	"github.com/primandproper/primitives-go/cache"
-	"github.com/primandproper/primitives-go/distributedlock"
-	"github.com/primandproper/primitives-go/idempotency"
+	"github.com/primandproper/primitives-go/v2/cache"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	"github.com/primandproper/primitives-go/v2/idempotency"
 
 	"google.golang.org/grpc/codes"
 )

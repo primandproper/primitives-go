@@ -8,13 +8,13 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/primandproper/primitives-go/cryptography/requestsigning"
-	"github.com/primandproper/primitives-go/encoding"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/keys"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	"github.com/primandproper/primitives-go/routing"
+	"github.com/primandproper/primitives-go/v2/cryptography/requestsigning"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/routing"
 )
 
 // serviceName names this component's logger, tracer, and metrics.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/primandproper/primitives-go/featureflags"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/featureflags"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )

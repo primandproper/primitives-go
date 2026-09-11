@@ -8,10 +8,10 @@ import (
 	"encoding/xml"
 	"io"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/internal/cbormode"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/internal/cbormode"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
 
 	"github.com/BurntSushi/toml"
 	"github.com/keith-turner/ecoji/v2"

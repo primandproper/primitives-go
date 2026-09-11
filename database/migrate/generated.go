@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing/fstest"
 
-	"github.com/primandproper/primitives-go/charset"
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/charset"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // generatedMigration is a migration supplied as text rather than as a file on

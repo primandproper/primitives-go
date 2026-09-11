@@ -5,10 +5,10 @@ import (
 	stderrors "errors"
 	"testing"
 
-	"github.com/primandproper/primitives-go/featureflags"
-	"github.com/primandproper/primitives-go/identifiers"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/featureflags"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/shoenig/test"

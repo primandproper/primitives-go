@@ -108,8 +108,8 @@ import (
 	"testing"
 	"time"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/testutils/containers"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/testutils/containers"
 
 	// The pgx stdlib driver is registered here so that callers get a working
 	// "pgx" driver from importing pgtest alone.

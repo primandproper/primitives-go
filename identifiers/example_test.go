@@ -3,7 +3,7 @@ package identifiers_test
 import (
 	"fmt"
 
-	"github.com/primandproper/primitives-go/identifiers"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 )
 
 func ExampleNew() {

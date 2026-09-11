@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/primitives-go/testutils/containers"
+	"github.com/primandproper/primitives-go/v2/testutils/containers"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

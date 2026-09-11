@@ -3,8 +3,8 @@ package partitionedcfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/circuitbreaking/partitioned"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking/partitioned"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )

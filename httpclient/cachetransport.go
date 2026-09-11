@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/primandproper/primitives-go/cache"
-	"github.com/primandproper/primitives-go/clock"
-	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/v2/cache"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
 
 	"go.opentelemetry.io/otel/attribute"
 )

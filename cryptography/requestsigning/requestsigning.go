@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 const (

@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/featureflags"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/featureflags"
 )
 
 // NewFeatureFlagManager provides a FeatureFlagManager from config.

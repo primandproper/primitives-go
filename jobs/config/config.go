@@ -12,11 +12,11 @@ package jobscfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/database"
-	distributedlockcfg "github.com/primandproper/primitives-go/distributedlock/config"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/jobs"
-	messagequeuecfg "github.com/primandproper/primitives-go/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/jobs"
+	messagequeuecfg "github.com/primandproper/primitives-go/v2/messagequeue/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

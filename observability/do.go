@@ -1,16 +1,16 @@
 package observability
 
 import (
-	"github.com/primandproper/primitives-go/config/injection"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
-	loggingcfg "github.com/primandproper/primitives-go/observability/logging/config"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	metricscfg "github.com/primandproper/primitives-go/observability/metrics/config"
-	"github.com/primandproper/primitives-go/observability/profiling"
-	profilingcfg "github.com/primandproper/primitives-go/observability/profiling/config"
-	"github.com/primandproper/primitives-go/observability/tracing"
-	tracingcfg "github.com/primandproper/primitives-go/observability/tracing/config"
+	"github.com/primandproper/primitives-go/v2/config/injection"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	"github.com/primandproper/primitives-go/v2/observability/profiling"
+	profilingcfg "github.com/primandproper/primitives-go/v2/observability/profiling/config"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )

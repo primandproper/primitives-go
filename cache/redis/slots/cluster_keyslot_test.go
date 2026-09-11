@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/primandproper/primitives-go/cache/redis/slots"
-	"github.com/primandproper/primitives-go/testutils/containers/redistest"
+	"github.com/primandproper/primitives-go/v2/cache/redis/slots"
+	"github.com/primandproper/primitives-go/v2/testutils/containers/redistest"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/shoenig/test/must"

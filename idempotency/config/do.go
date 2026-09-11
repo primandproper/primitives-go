@@ -3,9 +3,9 @@ package idempotencycfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/database"
-	"github.com/primandproper/primitives-go/idempotency"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/idempotency"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )

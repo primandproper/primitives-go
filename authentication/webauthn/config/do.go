@@ -3,8 +3,8 @@ package webauthncfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/authentication/webauthn"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/authentication/webauthn"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )

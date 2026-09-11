@@ -5,9 +5,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/primandproper/primitives-go/cryptography/requestsigning"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/v2/cryptography/requestsigning"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
 )
 
 // signingTransport stamps a request's signature headers immediately before it

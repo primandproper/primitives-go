@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/primandproper/primitives-go/circuitbreaking"
-	"github.com/primandproper/primitives-go/email"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/keys"
-	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
+	"github.com/primandproper/primitives-go/v2/email"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	"github.com/keighl/postmark"
 )

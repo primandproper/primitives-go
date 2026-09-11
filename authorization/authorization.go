@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // Permission names an action a principal may be authorized to perform. It is a

@@ -1,7 +1,7 @@
 package webauthn
 
 import (
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // Sentinels. errors/http maps platform sentinels onto status codes and imports

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/primitives-go/cryptography/encryption"
-	"github.com/primandproper/primitives-go/cryptography/encryption/aes"
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
+	"github.com/primandproper/primitives-go/v2/cryptography/encryption/aes"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

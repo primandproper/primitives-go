@@ -3,7 +3,7 @@ package profilingcfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/observability/profiling"
+	"github.com/primandproper/primitives-go/v2/observability/profiling"
 )
 
 // NewProfilingProvider provides a profiling.Provider from a config.

@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // GetTagNameByValue searches struct strukt (or *strukt) for a field whose value

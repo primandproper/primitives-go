@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
 )
 
 // Seal encrypts plaintext, authenticating associatedData alongside it.

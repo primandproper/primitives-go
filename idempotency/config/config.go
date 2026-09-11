@@ -13,11 +13,11 @@ import (
 	"context"
 	"time"
 
-	cachecfg "github.com/primandproper/primitives-go/cache/config"
-	"github.com/primandproper/primitives-go/database"
-	distributedlockcfg "github.com/primandproper/primitives-go/distributedlock/config"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/idempotency"
+	cachecfg "github.com/primandproper/primitives-go/v2/cache/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/idempotency"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

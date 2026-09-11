@@ -3,8 +3,8 @@ package capitalismcfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/capitalism"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )

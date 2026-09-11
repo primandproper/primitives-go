@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/authentication/oauth2server/memory"
-	"github.com/primandproper/primitives-go/ratelimiting"
-	ratelimitinghttp "github.com/primandproper/primitives-go/ratelimiting/http"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	ratelimitinghttp "github.com/primandproper/primitives-go/v2/ratelimiting/http"
 )
 
 // The two seams a deployment supplies: who the human is, and what a token

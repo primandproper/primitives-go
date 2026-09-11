@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/primitives-go/filtering"
-	"github.com/primandproper/primitives-go/filtering/filteringpb"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

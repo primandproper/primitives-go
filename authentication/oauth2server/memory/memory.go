@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/clock"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/observability"
 )
 
 // serviceName names the loggers and spans this store emits.
@@ -397,14 +397,21 @@ func (s *Store) RevokeFamily(ctx context.Context, familyID string) (int64, error
 // carrying a token nobody ever issued, and the difference shows up in whichever
 // log line an operator reads when a user complains that signing out did not
 // work.
-func (s *Store) Sweep(ctx context.Context, now time.Time) (int64, error) {
+//
+// The horizon is this store's own clock — the same one every read above
+// refuses against, so this reclaims exactly the records this store has already
+// stopped answering with. WithClock moves it.
+func (s *Store) Sweep(ctx context.Context) (int64, error) {
 	_, op := s.o11y.Begin(ctx)
 	defer op.End()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var swept int64
+	var (
+		now   = s.now()
+		swept int64
+	)
 
 	maps.DeleteFunc(s.codes, func(_ string, c *oauth2server.AuthorizationCode) bool {
 		dead := !now.Before(c.ExpiresAt)
@@ -470,7 +477,7 @@ func (s *Store) sweepEvery(ctx context.Context, interval time.Duration) {
 			// — the error is in the signature because the interface has a
 			// backend that can.
 			//nolint:errcheck // this Sweep cannot fail; the error is in the signature because the interface has a backend that can.
-			_, _ = s.Sweep(ctx, s.now())
+			_, _ = s.Sweep(ctx)
 		}
 	}
 }

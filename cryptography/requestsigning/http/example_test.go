@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/primandproper/primitives-go/cryptography/requestsigning"
-	requestsigninghttp "github.com/primandproper/primitives-go/cryptography/requestsigning/http"
+	"github.com/primandproper/primitives-go/v2/cryptography/requestsigning"
+	requestsigninghttp "github.com/primandproper/primitives-go/v2/cryptography/requestsigning/http"
 )
 
 // The middleware is the inbound half of httpclient.WithRequestSigning: one

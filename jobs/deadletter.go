@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/messagequeue"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
 )
 
 // DeadLetter is the envelope a Pool hands to its DeadLetterFunc once a message

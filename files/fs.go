@@ -6,9 +6,9 @@ import (
 	"iter"
 	"os"
 
-	"github.com/primandproper/primitives-go/errors"
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
-	tracingnoop "github.com/primandproper/primitives-go/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/errors"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 )
 
 // osFS opens files on the OS filesystem via os.Open. Unlike a general fs.FS it deliberately does not

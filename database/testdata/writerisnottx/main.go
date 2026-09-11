@@ -37,7 +37,7 @@ package main
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/database"
+	"github.com/primandproper/primitives-go/v2/database"
 )
 
 // message is the shape an outbox write carries: a topic and a payload, whose

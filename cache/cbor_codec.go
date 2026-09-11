@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/internal/cbormode"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/internal/cbormode"
 )
 
 // CBORCodec is the default Codec, using CBOR (RFC 8949). It is exported, and

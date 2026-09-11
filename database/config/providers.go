@@ -1,7 +1,7 @@
 package databasecfg
 
 import (
-	"github.com/primandproper/primitives-go/database"
+	"github.com/primandproper/primitives-go/v2/database"
 )
 
 // NewClientConfig converts Config to database.ClientConfig.

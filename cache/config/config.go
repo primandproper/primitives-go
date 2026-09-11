@@ -14,12 +14,12 @@ import (
 	"slices"
 	"time"
 
-	"github.com/primandproper/primitives-go/cache"
-	"github.com/primandproper/primitives-go/cache/memory"
-	"github.com/primandproper/primitives-go/cache/redis"
-	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/cache"
+	"github.com/primandproper/primitives-go/v2/cache/memory"
+	"github.com/primandproper/primitives-go/v2/cache/redis"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

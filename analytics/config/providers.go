@@ -3,7 +3,7 @@ package analyticscfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/analytics"
+	"github.com/primandproper/primitives-go/v2/analytics"
 )
 
 // NewEventReporter provides an analytics.EventReporter from a config.

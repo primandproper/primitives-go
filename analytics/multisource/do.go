@@ -3,8 +3,8 @@ package multisource
 import (
 	"context"
 
-	analyticscfg "github.com/primandproper/primitives-go/analytics/config"
-	"github.com/primandproper/primitives-go/observability"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )

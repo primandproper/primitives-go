@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/primitives-go/random"
+	"github.com/primandproper/primitives-go/v2/random"
 )
 
 func ExampleGenerateHexEncodedString() {

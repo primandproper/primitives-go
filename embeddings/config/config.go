@@ -11,12 +11,12 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/embeddings"
-	"github.com/primandproper/primitives-go/embeddings/cohere"
-	"github.com/primandproper/primitives-go/embeddings/ollama"
-	"github.com/primandproper/primitives-go/embeddings/openai"
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/embeddings"
+	"github.com/primandproper/primitives-go/v2/embeddings/cohere"
+	"github.com/primandproper/primitives-go/v2/embeddings/ollama"
+	"github.com/primandproper/primitives-go/v2/embeddings/openai"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

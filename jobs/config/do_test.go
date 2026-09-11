@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/primandproper/primitives-go/database"
-	databasecfg "github.com/primandproper/primitives-go/database/config"
-	distributedlockcfg "github.com/primandproper/primitives-go/distributedlock/config"
-	"github.com/primandproper/primitives-go/jobs"
-	messagequeuecfg "github.com/primandproper/primitives-go/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
+	"github.com/primandproper/primitives-go/v2/jobs"
+	messagequeuecfg "github.com/primandproper/primitives-go/v2/messagequeue/config"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"
