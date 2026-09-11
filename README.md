@@ -42,7 +42,7 @@ Because breaking changes ride the major-version import path, upgrading across ma
 
 ## Package Catalog
 
-Implementations are listed in parentheses; most concerns also ship a `noop`. Two packages sit under a parent this module does not ship — `notifications/mobile` and `webhooks/inbound` — because the parent owns a table and stayed in platform-go. They kept their import paths rather than being renamed on the way out.
+Implementations are listed in parentheses; most concerns also ship a `noop`. Three packages sit under a parent this module does not ship — `notifications/async`, `notifications/mobile` and `webhooks/inbound` — because the parent owns a table and stayed in platform-go. They kept their import paths rather than being renamed on the way out, which is also why `notifications/` is a grouping directory here rather than a package: it now holds two children that are siblings in fact and not only in name.
 
 ### Data & storage
 | Package    | Purpose                              | Implementations                       |
@@ -58,6 +58,7 @@ Implementations are listed in parentheses; most concerns also ship a `noop`. Two
 |-----------------------|----------------------------|---------------------------------------------------|
 | `messagequeue`        | Publish/subscribe & queues | kafka, pubsub, redis, sqs                         |
 | `eventstream`         | Server push to clients     | sse, websocket                                    |
+| `notifications/async` | Channel push to clients    | ably, pusher, sse, websocket                      |
 | `notifications/mobile`| Mobile push                | apns, fcm                                         |
 | `email`               | Transactional email        | mailgun, mailjet, postmark, resend, sendgrid, ses |
 
