@@ -143,7 +143,7 @@ func TestConfig_NewEmailer(T *testing.T) {
 				Postmark: &postmark.Config{ServerToken: t.Name()},
 			}
 
-			actual, err := cfg.NewEmailer(t.Context(), &http.Client{}, cbnoop.NewCircuitBreaker(), nil, WithLogger(logger))
+			actual, err := NewEmailer(t.Context(), cfg, &http.Client{}, WithCircuitBreaker(cbnoop.NewCircuitBreaker()), nil, WithLogger(logger))
 			test.NotNil(t, actual)
 			test.NoError(t, err)
 		})
@@ -158,7 +158,7 @@ func TestConfig_NewEmailer(T *testing.T) {
 			SES:      &ses.Config{Region: "us-east-1"},
 		}
 
-		actual, err := cfg.NewEmailer(t.Context(), &http.Client{}, cbnoop.NewCircuitBreaker(), nil, WithLogger(logger))
+		actual, err := NewEmailer(t.Context(), cfg, &http.Client{}, WithCircuitBreaker(cbnoop.NewCircuitBreaker()), nil, WithLogger(logger))
 		test.NotNil(t, actual)
 		test.NoError(t, err)
 	})
@@ -171,7 +171,7 @@ func TestConfig_NewEmailer(T *testing.T) {
 		logger := loggingnoop.NewLogger()
 		cfg := &Config{Provider: ""}
 
-		actual, err := cfg.NewEmailer(t.Context(), &http.Client{}, cbnoop.NewCircuitBreaker(), nil, WithLogger(logger))
+		actual, err := NewEmailer(t.Context(), cfg, &http.Client{}, WithCircuitBreaker(cbnoop.NewCircuitBreaker()), nil, WithLogger(logger))
 		test.Error(t, err)
 		test.Nil(t, actual)
 	})
@@ -182,7 +182,7 @@ func TestConfig_NewEmailer(T *testing.T) {
 		logger := loggingnoop.NewLogger()
 		cfg := &Config{Provider: "smtp"}
 
-		actual, err := cfg.NewEmailer(t.Context(), &http.Client{}, cbnoop.NewCircuitBreaker(), nil, WithLogger(logger))
+		actual, err := NewEmailer(t.Context(), cfg, &http.Client{}, WithCircuitBreaker(cbnoop.NewCircuitBreaker()), nil, WithLogger(logger))
 		test.ErrorIs(t, err, errors.ErrUnknownProvider)
 		test.Nil(t, actual)
 	})
@@ -193,7 +193,7 @@ func TestConfig_NewEmailer(T *testing.T) {
 		logger := loggingnoop.NewLogger()
 		cfg := &Config{Provider: ProviderNoop}
 
-		actual, err := cfg.NewEmailer(t.Context(), &http.Client{}, cbnoop.NewCircuitBreaker(), nil, WithLogger(logger))
+		actual, err := NewEmailer(t.Context(), cfg, &http.Client{}, WithCircuitBreaker(cbnoop.NewCircuitBreaker()), nil, WithLogger(logger))
 		test.NoError(t, err)
 		test.NotNil(t, actual)
 	})

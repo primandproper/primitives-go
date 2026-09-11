@@ -119,7 +119,11 @@ func validateLevel(value any) error {
 // types, so assigning one straight into the logging.Logger result would leave a
 // nil *zap.Logger as a non-nil logging.Logger alongside the error — a value a
 // caller's != nil check accepts and the first Info panics on.
-func (cfg *Config) NewLogger(ctx context.Context) (logging.Logger, error) {
+//
+// It is a free function and not also a method on Config. Two exported names
+// for one behavior is two places for a caller to read a different contract,
+// and this is the spelling every sibling seam's constructor uses.
+func NewLogger(ctx context.Context, cfg *Config) (logging.Logger, error) {
 	if cfg == nil {
 		return nil, errors.ErrNilInputParameter
 	}

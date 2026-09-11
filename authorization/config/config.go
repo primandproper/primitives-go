@@ -158,7 +158,7 @@ func NewPolicyResolver(
 		return nil, err
 	}
 
-	return NewCachedResolver(cfg, resolver, c, opts...)
+	return NewCachedResolver(ctx, cfg, resolver, c, opts...)
 }
 
 // NewCachedResolver wraps resolver in authorization/cached when c is non-nil,
@@ -169,7 +169,15 @@ func NewPolicyResolver(
 // CacheTTL read and the cached.NewResolver call in one place is the point: a
 // second copy on the database branch could drift from this one, and nothing
 // would say so.
+//
+// It takes a context so the config it is handed goes through the same
+// ValidateWithContext its sibling runs. It was the one config constructor here
+// that took none, and so the one that could not validate: an out-of-range
+// CacheTTL reached cached.NewResolver from this door and was refused at the
+// other, which is a config that loads or does not depending on which
+// constructor a wiring site happened to call.
 func NewCachedResolver(
+	ctx context.Context,
 	cfg *Config,
 	resolver authorization.PolicyResolver,
 	c cache.Cache[authorization.PermissionSet],
@@ -177,6 +185,10 @@ func NewCachedResolver(
 ) (authorization.PolicyResolver, error) {
 	if cfg == nil {
 		cfg = &Config{}
+	}
+
+	if err := cfg.ValidateWithContext(ctx); err != nil {
+		return nil, errors.Wrap(err, "validating authorization config")
 	}
 
 	if c == nil {

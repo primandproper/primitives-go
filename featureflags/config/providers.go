@@ -13,7 +13,7 @@ import (
 func NewFeatureFlagManager(ctx context.Context, c *Config, httpClient *http.Client, opts ...Option) (featureflags.FeatureFlagManager, error) {
 	o := newOptions(opts)
 
-	circuitBreaker, err := c.CircuitBreaker.NewCircuitBreaker(ctx,
+	circuitBreaker, err := circuitbreakingcfg.NewCircuitBreaker(ctx, &c.CircuitBreaker,
 		circuitbreakingcfg.WithLogger(o.logger),
 		circuitbreakingcfg.WithMetricsProvider(o.metricsProvider))
 	if err != nil {

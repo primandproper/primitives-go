@@ -90,7 +90,7 @@ func NewUploadManager(ctx context.Context, cfg *Config, opts ...Option) (*Upload
 
 	o := newOptions(opts)
 
-	cb, err := cfg.CircuitBreaker.NewCircuitBreaker(ctx, circuitbreakingcfg.WithLogger(o.logger), circuitbreakingcfg.WithMetricsProvider(o.metricsProvider))
+	cb, err := circuitbreakingcfg.NewCircuitBreaker(ctx, &cfg.CircuitBreaker, circuitbreakingcfg.WithLogger(o.logger), circuitbreakingcfg.WithMetricsProvider(o.metricsProvider))
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "initializing upload manager circuit breaker")
 	}

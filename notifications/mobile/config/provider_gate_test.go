@@ -100,7 +100,7 @@ func TestProviderGatesPlatforms(T *testing.T) {
 		must.NoError(t, env.Parse(cfg))
 		must.NoError(t, cfg.ValidateWithContext(t.Context()))
 
-		sender, err := cfg.NewPushSender(t.Context())
+		sender, err := NewPushSender(t.Context(), cfg)
 		must.NoError(t, err)
 		test.NotNil(t, sender)
 	})
@@ -109,7 +109,7 @@ func TestProviderGatesPlatforms(T *testing.T) {
 		t.Parallel()
 
 		cfg := &Config{Provider: ProviderAPNs}
-		_, err := cfg.NewPushSender(t.Context())
+		_, err := NewPushSender(t.Context(), cfg)
 		must.Error(t, err)
 	})
 }

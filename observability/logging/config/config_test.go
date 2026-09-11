@@ -100,7 +100,7 @@ func TestConfig_NewLogger(T *testing.T) {
 			Provider: ProviderZerolog,
 		}
 
-		l, err := cfg.NewLogger(ctx)
+		l, err := NewLogger(ctx, cfg)
 		test.NoError(t, err)
 		test.NotNil(t, l)
 	})
@@ -113,7 +113,7 @@ func TestConfig_NewLogger(T *testing.T) {
 			Provider: ProviderZap,
 		}
 
-		l, err := cfg.NewLogger(ctx)
+		l, err := NewLogger(ctx, cfg)
 		test.NoError(t, err)
 		test.NotNil(t, l)
 	})
@@ -126,7 +126,7 @@ func TestConfig_NewLogger(T *testing.T) {
 			Provider: ProviderSlog,
 		}
 
-		l, err := cfg.NewLogger(ctx)
+		l, err := NewLogger(ctx, cfg)
 		test.NoError(t, err)
 		test.NotNil(t, l)
 	})
@@ -141,7 +141,7 @@ func TestConfig_NewLogger(T *testing.T) {
 			OtelSlog:    &otelgrpc.Config{CollectorEndpoint: "0.0.0.0"},
 		}
 
-		l, err := cfg.NewLogger(ctx)
+		l, err := NewLogger(ctx, cfg)
 		test.NoError(t, err)
 		test.NotNil(t, l)
 	})
@@ -155,7 +155,7 @@ func TestConfig_NewLogger(T *testing.T) {
 			ServiceName: t.Name(),
 		}
 
-		l, err := cfg.NewLogger(ctx)
+		l, err := NewLogger(ctx, cfg)
 		test.Error(t, err)
 		test.Nil(t, l)
 	})
@@ -166,7 +166,7 @@ func TestConfig_NewLogger(T *testing.T) {
 		ctx := t.Context()
 		cfg := &Config{}
 
-		l, err := cfg.NewLogger(ctx)
+		l, err := NewLogger(ctx, cfg)
 		test.NoError(t, err)
 		test.NotNil(t, l)
 	})

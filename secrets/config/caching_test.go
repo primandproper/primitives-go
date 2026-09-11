@@ -78,7 +78,7 @@ func TestConfig_NewSecretSource_caching(T *testing.T) {
 
 		cfg := &Config{Provider: ProviderEnv}
 
-		source, err := cfg.NewSecretSource(t.Context())
+		source, err := NewSecretSource(t.Context(), cfg)
 		must.NoError(t, err)
 		must.NotNil(t, source)
 		t.Cleanup(func() { _ = source.Close() })
@@ -92,7 +92,7 @@ func TestConfig_NewSecretSource_caching(T *testing.T) {
 
 		cfg := &Config{Provider: ProviderEnv, CacheTTL: time.Minute, RefreshInterval: 30 * time.Second}
 
-		source, err := cfg.NewSecretSource(t.Context())
+		source, err := NewSecretSource(t.Context(), cfg)
 		must.NoError(t, err)
 		must.NotNil(t, source)
 		t.Cleanup(func() { _ = source.Close() })

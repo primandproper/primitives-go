@@ -174,7 +174,7 @@ func NewCache[T any](ctx context.Context, cfg *Config, opts ...Option) (cache.Ca
 
 		return c, nil
 	case ProviderRedis:
-		cb, breakerErr := cfg.CircuitBreaker.NewCircuitBreaker(ctx,
+		cb, breakerErr := circuitbreakingcfg.NewCircuitBreaker(ctx, &cfg.CircuitBreaker,
 			circuitbreakingcfg.WithLogger(o.logger),
 			circuitbreakingcfg.WithMetricsProvider(o.metricsProvider))
 		if breakerErr != nil {

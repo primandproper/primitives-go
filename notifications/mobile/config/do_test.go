@@ -27,7 +27,7 @@ func TestRegisterPushSender(T *testing.T) {
 		do.ProvideValue(i, loggingnoop.NewLogger())
 		do.ProvideValue(i, tracingnoop.NewTracerProvider())
 		do.ProvideValue[metrics.Provider](i, nil)
-		do.ProvideValue(i, Config{Provider: ProviderNoop})
+		do.ProvideValue(i, &Config{Provider: ProviderNoop})
 
 		RegisterPushSender(i)
 
@@ -54,7 +54,7 @@ func TestRegisterPushSender(T *testing.T) {
 		i := do.New()
 		do.ProvideValue[context.Context](i, t.Context())
 		do.ProvideValue[mobile.TokenInvalidator](i, registry)
-		do.ProvideValue(i, Config{Provider: ProviderAPNs, APNs: apnsConfigForTest(t)})
+		do.ProvideValue(i, &Config{Provider: ProviderAPNs, APNs: apnsConfigForTest(t)})
 
 		RegisterPushSender(i)
 
@@ -71,7 +71,7 @@ func TestRegisterPushSender(T *testing.T) {
 
 		i := do.New()
 		do.ProvideValue[context.Context](i, t.Context())
-		do.ProvideValue(i, Config{Provider: ProviderAPNs, APNs: apnsConfigForTest(t)})
+		do.ProvideValue(i, &Config{Provider: ProviderAPNs, APNs: apnsConfigForTest(t)})
 
 		RegisterPushSender(i)
 
@@ -94,7 +94,7 @@ func TestRegisterPushSender(T *testing.T) {
 		i := do.New()
 		do.ProvideValue[context.Context](i, t.Context())
 		do.Provide(i, func(do.Injector) (mobile.TokenInvalidator, error) { return nil, errBuild })
-		do.ProvideValue(i, Config{Provider: ProviderNoop})
+		do.ProvideValue(i, &Config{Provider: ProviderNoop})
 
 		RegisterPushSender(i)
 
@@ -112,7 +112,7 @@ func TestNewPushSender(T *testing.T) {
 
 		sender, err := NewPushSender(
 			t.Context(),
-			Config{Provider: ProviderNoop},
+			&Config{Provider: ProviderNoop},
 			nil,
 		)
 		must.NoError(t, err)

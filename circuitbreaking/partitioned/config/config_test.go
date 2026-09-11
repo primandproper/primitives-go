@@ -155,7 +155,7 @@ func TestConfig_NewKeyedCircuitBreaker(T *testing.T) {
 		ctx := t.Context()
 
 		var cfg *Config
-		cb, err := cfg.NewKeyedCircuitBreaker(ctx)
+		cb, err := NewKeyedCircuitBreaker(ctx, cfg)
 		test.Nil(t, cb)
 		test.Error(t, err)
 	})
@@ -170,7 +170,7 @@ func TestConfig_NewKeyedCircuitBreaker(T *testing.T) {
 			},
 		}
 
-		cb, err := cfg.NewKeyedCircuitBreaker(ctx)
+		cb, err := NewKeyedCircuitBreaker(ctx, cfg)
 		test.Error(t, err)
 		test.Nil(t, cb)
 	})
@@ -183,7 +183,7 @@ func TestConfig_NewKeyedCircuitBreaker(T *testing.T) {
 
 		cfg := &Config{Keys: []string{"a"}}
 
-		cb, err := cfg.NewKeyedCircuitBreaker(ctx)
+		cb, err := NewKeyedCircuitBreaker(ctx, cfg)
 		test.NoError(t, err)
 		test.NotNil(t, cb)
 	})

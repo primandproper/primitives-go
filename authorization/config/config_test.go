@@ -215,7 +215,7 @@ func TestNewCachedResolver(T *testing.T) {
 		bare, err := build(t, &Config{})
 		must.NoError(t, err)
 
-		wrapped, err := NewCachedResolver(&Config{}, bare, nil)
+		wrapped, err := NewCachedResolver(t.Context(), &Config{}, bare, nil)
 		must.NoError(t, err)
 
 		test.True(t, wrapped == bare)
@@ -229,7 +229,7 @@ func TestNewCachedResolver(T *testing.T) {
 		}})
 		must.NoError(t, err)
 
-		wrapped, err := NewCachedResolver(&Config{CacheTTL: time.Minute}, bare, newCache(t))
+		wrapped, err := NewCachedResolver(t.Context(), &Config{CacheTTL: time.Minute}, bare, newCache(t))
 		must.NoError(t, err)
 
 		_, isCached := wrapped.(*cached.Resolver)
@@ -246,7 +246,7 @@ func TestNewCachedResolver(T *testing.T) {
 		bare, err := build(t, &Config{})
 		must.NoError(t, err)
 
-		wrapped, err := NewCachedResolver(nil, bare, newCache(t))
+		wrapped, err := NewCachedResolver(t.Context(), nil, bare, newCache(t))
 
 		must.NoError(t, err)
 		test.NotNil(t, wrapped)
@@ -282,5 +282,39 @@ func TestConfig_ValidateWithContext(T *testing.T) {
 		_, err := build(t, &Config{CacheTTL: -time.Second})
 
 		test.Error(t, err)
+	})
+}
+
+// The door used to take no context, so it was the one config constructor here
+// that could not run its own validation — a negative CacheTTL was refused by
+// NewPolicyResolver and accepted by this one, which made a config load or not
+// depending on which constructor a wiring site happened to call.
+func TestNewCachedResolver_Validation(T *testing.T) {
+	T.Parallel()
+
+	T.Run("a config that fails validation is refused", func(t *testing.T) {
+		t.Parallel()
+
+		bare, err := build(t, &Config{})
+		must.NoError(t, err)
+
+		wrapped, err := NewCachedResolver(t.Context(),
+			&Config{CacheTTL: -time.Minute}, bare, newCache(t))
+		test.Error(t, err)
+		test.Nil(t, wrapped)
+	})
+
+	T.Run("and it is refused before the nil-cache shortcut, not after", func(t *testing.T) {
+		t.Parallel()
+
+		// A nil cache returns the resolver untouched, which is the path that
+		// would otherwise hand back a working resolver built from a config
+		// nothing had checked.
+		bare, err := build(t, &Config{})
+		must.NoError(t, err)
+
+		wrapped, err := NewCachedResolver(t.Context(), &Config{CacheTTL: -time.Minute}, bare, nil)
+		test.Error(t, err)
+		test.Nil(t, wrapped)
 	})
 }

@@ -1,6 +1,7 @@
 package emailcfg
 
 import (
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -18,6 +19,7 @@ type Option func(*options)
 
 // options collects what the options set.
 type options struct {
+	circuitBreaker  circuitbreaking.CircuitBreaker
 	logger          logging.Logger
 	tracerProvider  tracing.Provider
 	metricsProvider metrics.Provider
@@ -33,6 +35,19 @@ func newOptions(opts []Option) *options {
 	}
 
 	return o
+}
+
+// WithCircuitBreaker supplies the breaker the emailer trips, instead of the one
+// NewEmailer builds from Config.CircuitBreaker.
+//
+// It is an option rather than a parameter because supplying one is the rare
+// case: a deployment configures the breaker where it configures the rest of
+// email, and only a caller sharing one breaker across several clients has
+// anything else to pass. That case used to be served by a second exported
+// constructor taking it positionally, which made every other caller name a
+// dependency it did not have.
+func WithCircuitBreaker(circuitBreaker circuitbreaking.CircuitBreaker) Option {
+	return func(o *options) { o.circuitBreaker = circuitBreaker }
 }
 
 // WithLogger attaches a logger. An absent logger logs nowhere.

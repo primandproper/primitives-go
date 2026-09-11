@@ -140,7 +140,11 @@ func (b *baseImplementation) CannotProceed() bool {
 // every line it logs, and an unnamed one gets a numbered placeholder — enough to
 // keep two of them from adding into the same series, and no help at all to
 // whoever is looking at the series later.
-func (cfg *Config) NewCircuitBreaker(ctx context.Context, opts ...Option) (circuitbreaking.CircuitBreaker, error) {
+//
+// It is a free function and not also a method on Config. Two exported names
+// for one behavior is two places for a caller to read a different contract,
+// and this is the spelling every sibling seam's constructor uses.
+func NewCircuitBreaker(ctx context.Context, cfg *Config, opts ...Option) (circuitbreaking.CircuitBreaker, error) {
 	if cfg == nil {
 		return nil, errors.ErrNilInputParameter
 	}
@@ -195,11 +199,6 @@ func (cfg *Config) NewCircuitBreaker(ctx context.Context, opts ...Option) (circu
 	return &baseImplementation{
 		circuitBreaker: cb,
 	}, nil
-}
-
-// NewCircuitBreaker provides a CircuitBreaker from config.
-func NewCircuitBreaker(ctx context.Context, cfg *Config, opts ...Option) (circuitbreaking.CircuitBreaker, error) {
-	return cfg.NewCircuitBreaker(ctx, opts...)
 }
 
 func handleCircuitBreakerEvents(
