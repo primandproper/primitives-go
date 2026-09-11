@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/primandproper/primitives-go/eventcapture/jsonl"
+	"github.com/primandproper/primitives-go/v2/eventcapture/jsonl"
 )
 
 // captured is one record's wire shape. The sink prescribes nothing about

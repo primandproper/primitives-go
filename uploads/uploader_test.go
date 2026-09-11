@@ -7,9 +7,9 @@ import (
 	"iter"
 	"testing"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/uploads"
-	uploadsmock "github.com/primandproper/primitives-go/uploads/mock"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/uploads"
+	uploadsmock "github.com/primandproper/primitives-go/v2/uploads/mock"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/primitives-go/database/dialect"
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

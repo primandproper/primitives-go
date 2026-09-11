@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	perrors "github.com/primandproper/primitives-go/errors"
+	perrors "github.com/primandproper/primitives-go/v2/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

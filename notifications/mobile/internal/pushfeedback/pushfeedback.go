@@ -17,7 +17,7 @@ decided by a cycle.
 package pushfeedback
 
 import (
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // ErrTokenInvalid marks a send that failed because the device token will never

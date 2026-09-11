@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"

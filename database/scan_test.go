@@ -5,7 +5,7 @@ import (
 	stderrors "errors"
 	"testing"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shoenig/test"

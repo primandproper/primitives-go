@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // V1Signer mints v1 signatures over a keyring it re-reads per request. It is

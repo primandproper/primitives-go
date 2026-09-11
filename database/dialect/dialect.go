@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/primandproper/primitives-go/charset"
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/charset"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // Dialect selects the SQL a package emits. It must match the database provider

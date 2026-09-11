@@ -12,11 +12,11 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/ratelimiting"
-	"github.com/primandproper/primitives-go/ratelimiting/noop"
-	redisrl "github.com/primandproper/primitives-go/ratelimiting/redis"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	"github.com/primandproper/primitives-go/v2/ratelimiting/noop"
+	redisrl "github.com/primandproper/primitives-go/v2/ratelimiting/redis"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

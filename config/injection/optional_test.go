@@ -3,7 +3,7 @@ package injection
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

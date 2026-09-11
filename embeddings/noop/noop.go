@@ -23,7 +23,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/primitives-go/embeddings"
+	"github.com/primandproper/primitives-go/v2/embeddings"
 )
 
 var _ embeddings.Embedder = (*Embedder)(nil)

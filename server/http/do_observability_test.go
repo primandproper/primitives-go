@@ -3,8 +3,8 @@ package http
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

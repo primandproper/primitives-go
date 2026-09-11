@@ -3,7 +3,7 @@ package mobilecfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile"
 )
 
 // NewPushSender provides a PushNotificationSender from config.

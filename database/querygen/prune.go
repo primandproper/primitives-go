@@ -3,7 +3,7 @@ package querygen
 import (
 	"strings"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // ErrDegeneratePrune indicates a prune that is not one, in either of the two

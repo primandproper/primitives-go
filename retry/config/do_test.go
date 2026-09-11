@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/retry"
+	"github.com/primandproper/primitives-go/v2/retry"
 
 	"github.com/samber/do/v2"
 	"github.com/shoenig/test"

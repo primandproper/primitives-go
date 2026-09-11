@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/authentication/oauth2server/oauth2servertest"
-	"github.com/primandproper/primitives-go/clock"
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
-	tracingnoop "github.com/primandproper/primitives-go/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server/oauth2servertest"
+	"github.com/primandproper/primitives-go/v2/clock"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
@@ -23,10 +23,10 @@ import (
 func TestStore_Conformance(T *testing.T) {
 	T.Parallel()
 
-	oauth2servertest.Run(T, func(tb testing.TB) oauth2server.Store {
+	oauth2servertest.Run(T, func(tb testing.TB, c clock.Clock) oauth2server.Store {
 		tb.Helper()
 
-		s := NewStore()
+		s := NewStore(WithClock(c))
 		tb.Cleanup(func() { must.NoError(tb, s.Close()) })
 
 		return s
@@ -195,6 +195,43 @@ func TestStore_Sweeper(T *testing.T) {
 			wait.Timeout(5*time.Second),
 			wait.Gap(time.Millisecond),
 		))
+	})
+
+	T.Run("the horizon is the injected clock and not the wall clock", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		c := newFakeClock()
+		store := NewStore(WithClock(c))
+
+		// Dead by the wall clock and alive by this store's, which is the only
+		// arrangement that can tell the two apart. Sweep takes no horizon, so
+		// a Sweep reading the wall clock would take this row.
+		code := &oauth2server.AuthorizationCode{
+			IssuedAt:  c.Now(),
+			ExpiresAt: c.Now().Add(time.Minute),
+			Hash:      oauth2server.Hash("clocked"),
+			ClientID:  "client",
+			Subject:   oauth2server.Subject{ID: "user"},
+		}
+
+		must.NoError(t, store.CreateAuthorizationCode(ctx, code))
+
+		swept, err := store.Sweep(ctx)
+		must.NoError(t, err)
+		test.EqOp(t, int64(0), swept)
+
+		got, err := store.ConsumeAuthorizationCode(ctx, code.Hash)
+		must.NoError(t, err)
+		must.NotNil(t, got)
+
+		// And moving that clock past the deadline is what reclaims it — the
+		// same lever, in the other direction.
+		c.advance(2 * time.Minute)
+
+		swept, err = store.Sweep(ctx)
+		must.NoError(t, err)
+		test.EqOp(t, int64(1), swept)
 	})
 
 	T.Run("no sweeper is started without a context or an interval", func(t *testing.T) {

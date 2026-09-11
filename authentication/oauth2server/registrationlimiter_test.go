@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/authentication/oauth2server/memory"
-	"github.com/primandproper/primitives-go/ratelimiting"
-	ratelimitinghttp "github.com/primandproper/primitives-go/ratelimiting/http"
-	"github.com/primandproper/primitives-go/routing"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	ratelimitinghttp "github.com/primandproper/primitives-go/v2/ratelimiting/http"
+	"github.com/primandproper/primitives-go/v2/routing"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

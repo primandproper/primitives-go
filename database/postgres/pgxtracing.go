@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/primandproper/primitives-go/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/jackc/pgx/v5"
 	"go.opentelemetry.io/otel/attribute"

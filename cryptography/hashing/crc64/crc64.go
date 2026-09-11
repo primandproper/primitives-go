@@ -13,7 +13,7 @@ import (
 	"encoding/binary"
 	"hash/crc64"
 
-	"github.com/primandproper/primitives-go/cryptography/hashing"
+	"github.com/primandproper/primitives-go/v2/cryptography/hashing"
 )
 
 // isoTable is built once at package load. Building a CRC table is not free,

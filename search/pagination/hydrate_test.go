@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/filtering"
-	textsearch "github.com/primandproper/primitives-go/search/text"
-	textsearchmock "github.com/primandproper/primitives-go/search/text/mock"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
+	textsearchmock "github.com/primandproper/primitives-go/v2/search/text/mock"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

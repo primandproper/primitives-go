@@ -6,8 +6,8 @@ package totp
 import (
 	"context"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/pquerna/otp/totp"
 )

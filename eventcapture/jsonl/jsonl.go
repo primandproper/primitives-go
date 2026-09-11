@@ -16,10 +16,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/primandproper/primitives-go/clock"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/eventcapture"
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/eventcapture"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

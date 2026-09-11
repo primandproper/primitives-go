@@ -21,7 +21,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/primandproper/primitives-go/capitalism"
+	"github.com/primandproper/primitives-go/v2/capitalism"
 )
 
 var _ capitalism.PaymentManager = (*PaymentManager)(nil)

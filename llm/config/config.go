@@ -11,12 +11,12 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/llm"
-	"github.com/primandproper/primitives-go/llm/anthropic"
-	llmnoop "github.com/primandproper/primitives-go/llm/noop"
-	"github.com/primandproper/primitives-go/llm/openai"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/llm"
+	"github.com/primandproper/primitives-go/v2/llm/anthropic"
+	llmnoop "github.com/primandproper/primitives-go/v2/llm/noop"
+	"github.com/primandproper/primitives-go/v2/llm/openai"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

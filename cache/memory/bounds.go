@@ -5,7 +5,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // ErrUnknownEvictionPolicy indicates WithMaxEntries was given a policy that is

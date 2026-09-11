@@ -3,8 +3,8 @@ package apns
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/notifications/mobile/internal/pushfeedback"
-	"github.com/primandproper/primitives-go/observability"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/internal/pushfeedback"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/shoenig/test"
 	"github.com/sideshow/apns2"

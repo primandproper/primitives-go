@@ -17,14 +17,14 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability/logging"
-	loggingnoop "github.com/primandproper/primitives-go/observability/logging/noop"
-	"github.com/primandproper/primitives-go/observability/logging/otelgrpc"
-	"github.com/primandproper/primitives-go/observability/logging/slog"
-	"github.com/primandproper/primitives-go/observability/logging/zap"
-	"github.com/primandproper/primitives-go/observability/logging/zerolog"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/logging/otelgrpc"
+	"github.com/primandproper/primitives-go/v2/observability/logging/slog"
+	"github.com/primandproper/primitives-go/v2/observability/logging/zap"
+	"github.com/primandproper/primitives-go/v2/observability/logging/zerolog"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

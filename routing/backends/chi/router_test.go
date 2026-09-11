@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/primandproper/primitives-go/observability"
-	metricsnoop "github.com/primandproper/primitives-go/observability/metrics/noop"
-	"github.com/primandproper/primitives-go/routing"
+	"github.com/primandproper/primitives-go/v2/observability"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/routing"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

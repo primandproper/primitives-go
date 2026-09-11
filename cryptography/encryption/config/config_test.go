@@ -3,8 +3,8 @@ package encryptioncfg
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/cryptography/encryption"
-	perrors "github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
+	perrors "github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

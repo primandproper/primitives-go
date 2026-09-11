@@ -3,7 +3,7 @@ package slots_test
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/cache/redis/slots"
+	"github.com/primandproper/primitives-go/v2/cache/redis/slots"
 )
 
 func BenchmarkSlotForKey(b *testing.B) {

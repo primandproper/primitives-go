@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/primitives-go/distributedlock"
-	"github.com/primandproper/primitives-go/distributedlock/memory"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	"github.com/primandproper/primitives-go/v2/distributedlock/memory"
 )
 
 // ExampleNewScopedLocker wraps a plain Locker in the scoped surface: acquire,

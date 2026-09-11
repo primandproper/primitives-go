@@ -3,7 +3,7 @@ package mobile
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/notifications/mobile/internal/pushfeedback"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/internal/pushfeedback"
 )
 
 // ErrTokenInvalid marks a send that failed because the device token will never

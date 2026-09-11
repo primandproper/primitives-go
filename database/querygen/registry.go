@@ -4,7 +4,7 @@ import (
 	"slices"
 	"sync"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // ErrNilRegistry indicates WithRegistry was handed no registry. Registering

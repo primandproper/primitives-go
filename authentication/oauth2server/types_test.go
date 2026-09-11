@@ -3,7 +3,7 @@ package oauth2server_test
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 
 	"github.com/shoenig/test"
 )

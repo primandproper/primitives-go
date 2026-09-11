@@ -6,12 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
-	cbnoop "github.com/primandproper/primitives-go/circuitbreaking/noop"
-	"github.com/primandproper/primitives-go/featureflags/launchdarkly"
-	"github.com/primandproper/primitives-go/featureflags/posthog"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	metricsmock "github.com/primandproper/primitives-go/observability/metrics/mock"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	cbnoop "github.com/primandproper/primitives-go/v2/circuitbreaking/noop"
+	"github.com/primandproper/primitives-go/v2/featureflags/launchdarkly"
+	"github.com/primandproper/primitives-go/v2/featureflags/posthog"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	metricsmock "github.com/primandproper/primitives-go/v2/observability/metrics/mock"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

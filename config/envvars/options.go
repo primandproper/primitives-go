@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/primandproper/primitives-go/errors"
-	reflast "github.com/primandproper/primitives-go/reflection/ast"
+	"github.com/primandproper/primitives-go/v2/errors"
+	reflast "github.com/primandproper/primitives-go/v2/reflection/ast"
 )
 
 // Options configures Collect and Generate.

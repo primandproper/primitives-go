@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/primandproper/primitives-go/idempotency"
+	"github.com/primandproper/primitives-go/v2/idempotency"
 )
 
 // transport stamps the idempotency key carried by a request's context onto the

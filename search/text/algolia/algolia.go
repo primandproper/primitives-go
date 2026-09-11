@@ -3,11 +3,11 @@ package algolia
 import (
 	"fmt"
 
-	"github.com/primandproper/primitives-go/circuitbreaking"
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/keys"
-	textsearch "github.com/primandproper/primitives-go/search/text"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 
 	algolia "github.com/algolia/algoliasearch-client-go/v3/algolia/search"
 )

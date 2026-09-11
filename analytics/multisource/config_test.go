@@ -3,9 +3,9 @@ package multisource
 import (
 	"testing"
 
-	analyticscfg "github.com/primandproper/primitives-go/analytics/config"
-	"github.com/primandproper/primitives-go/analytics/posthog"
-	"github.com/primandproper/primitives-go/analytics/segment"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	"github.com/primandproper/primitives-go/v2/analytics/posthog"
+	"github.com/primandproper/primitives-go/v2/analytics/segment"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

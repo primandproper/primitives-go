@@ -1,7 +1,7 @@
 package revenuecat
 
 import (
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // This file is the counterpart of capitalism/stripe's usage.go, and holds a

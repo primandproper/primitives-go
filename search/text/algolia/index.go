@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/primandproper/primitives-go/circuitbreaking"
-	"github.com/primandproper/primitives-go/observability/keys"
-	textsearch "github.com/primandproper/primitives-go/search/text"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
+	"github.com/primandproper/primitives-go/v2/observability/keys"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 
 	"github.com/algolia/algoliasearch-client-go/v3/algolia/opt"
 )

@@ -19,7 +19,7 @@ package noop
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/cache"
+	"github.com/primandproper/primitives-go/v2/cache"
 )
 
 var _ cache.Cache[any] = (*Cache[any])(nil)

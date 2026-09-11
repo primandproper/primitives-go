@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
-	"github.com/primandproper/primitives-go/observability/metrics"
-	metricsmock "github.com/primandproper/primitives-go/observability/metrics/mock"
-	vectorsearch "github.com/primandproper/primitives-go/search/vector"
-	"github.com/primandproper/primitives-go/search/vector/pgvector"
-	"github.com/primandproper/primitives-go/search/vector/qdrant"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	metricsmock "github.com/primandproper/primitives-go/v2/observability/metrics/mock"
+	vectorsearch "github.com/primandproper/primitives-go/v2/search/vector"
+	"github.com/primandproper/primitives-go/v2/search/vector/pgvector"
+	"github.com/primandproper/primitives-go/v2/search/vector/qdrant"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

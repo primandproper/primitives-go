@@ -4,12 +4,12 @@ import (
 	"context"
 	"slices"
 
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/notifications/mobile"
-	"github.com/primandproper/primitives-go/notifications/mobile/apns"
-	"github.com/primandproper/primitives-go/notifications/mobile/fcm"
-	"github.com/primandproper/primitives-go/notifications/mobile/noop"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/apns"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/fcm"
+	"github.com/primandproper/primitives-go/v2/notifications/mobile/noop"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

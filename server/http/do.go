@@ -3,10 +3,10 @@ package http
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/config/injection"
-	"github.com/primandproper/primitives-go/healthcheck"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/routing"
+	"github.com/primandproper/primitives-go/v2/config/injection"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/routing"
 
 	"github.com/samber/do/v2"
 )

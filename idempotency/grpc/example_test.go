@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	cachememory "github.com/primandproper/primitives-go/cache/memory"
-	"github.com/primandproper/primitives-go/distributedlock"
-	dlmemory "github.com/primandproper/primitives-go/distributedlock/memory"
-	"github.com/primandproper/primitives-go/idempotency"
-	idempotencygrpc "github.com/primandproper/primitives-go/idempotency/grpc"
+	cachememory "github.com/primandproper/primitives-go/v2/cache/memory"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	dlmemory "github.com/primandproper/primitives-go/v2/distributedlock/memory"
+	"github.com/primandproper/primitives-go/v2/idempotency"
+	idempotencygrpc "github.com/primandproper/primitives-go/v2/idempotency/grpc"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"

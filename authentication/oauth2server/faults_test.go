@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

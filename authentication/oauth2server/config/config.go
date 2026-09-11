@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/primitives-go/authentication/oauth2server"
-	oauth2memory "github.com/primandproper/primitives-go/authentication/oauth2server/memory"
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/pointer"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	oauth2memory "github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/pointer"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

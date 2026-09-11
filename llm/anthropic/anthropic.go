@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/primitives-go/errors"
-	"github.com/primandproper/primitives-go/llm"
-	"github.com/primandproper/primitives-go/llm/internal/bridge"
-	"github.com/primandproper/primitives-go/observability"
-	"github.com/primandproper/primitives-go/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/llm"
+	"github.com/primandproper/primitives-go/v2/llm/internal/bridge"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	anyllm "github.com/mozilla-ai/any-llm-go"
 	anyllmanthropic "github.com/mozilla-ai/any-llm-go/providers/anthropic"

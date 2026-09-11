@@ -5,7 +5,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/primandproper/primitives-go/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // Role is a named grant of permissions, optionally inheriting from other roles.

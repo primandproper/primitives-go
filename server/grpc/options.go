@@ -1,9 +1,9 @@
 package grpc
 
 import (
-	"github.com/primandproper/primitives-go/healthcheck"
-	"github.com/primandproper/primitives-go/observability/logging"
-	"github.com/primandproper/primitives-go/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // Option configures the server this package constructs. The zero configuration

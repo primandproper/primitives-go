@@ -11,7 +11,7 @@ package uploadscfg
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/uploads/objectstorage"
+	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

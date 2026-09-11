@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // Every error a handler returns passes through here on its way to the client,

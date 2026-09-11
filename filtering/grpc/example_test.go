@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/primitives-go/filtering"
-	"github.com/primandproper/primitives-go/filtering/filteringpb"
-	filteringgrpc "github.com/primandproper/primitives-go/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
 )
 
 // A service handler decoding the filter off a request. The page size arrives as

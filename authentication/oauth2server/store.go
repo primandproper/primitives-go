@@ -117,15 +117,23 @@ type Store interface {
 	// whose tokens have all expired legitimately revokes nothing.
 	RevokeFamily(ctx context.Context, familyID string) (int64, error)
 
-	// Sweep removes records whose deadlines have passed as of now, reporting
-	// how many it removed.
+	// Sweep removes records whose deadlines have passed, reporting how many it
+	// removed.
 	//
 	// It is a garbage collector, not a security control: every read above
 	// already refuses an expired record, so a row this has not reached yet is
 	// unusable. What it stops is the table growing with every code ever
 	// issued, which under dynamic registration is a table an anonymous caller
 	// can add to.
-	Sweep(ctx context.Context, now time.Time) (int64, error)
+	//
+	// The horizon is the implementation's own clock rather than the caller's
+	// instant, because that is the clock every deadline above was stamped from
+	// and the one every read above refuses against. A caller-supplied horizon
+	// made that a third opinion: an implementation could be asked to reclaim a
+	// record it would still answer with, or to keep one it would already
+	// refuse, and neither is a garbage collector's decision to take. Both
+	// implementations take WithClock, which is where a test moves it.
+	Sweep(ctx context.Context) (int64, error)
 
 	// Close releases whatever the implementation holds.
 	Close() error

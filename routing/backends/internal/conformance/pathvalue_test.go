@@ -6,12 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/primandproper/primitives-go/encoding"
-	"github.com/primandproper/primitives-go/routing"
-	"github.com/primandproper/primitives-go/routing/backends/chi"
-	"github.com/primandproper/primitives-go/routing/backends/gin"
-	"github.com/primandproper/primitives-go/routing/backends/httprouter"
-	"github.com/primandproper/primitives-go/routing/backends/stdlib"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/routing"
+	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
+	"github.com/primandproper/primitives-go/v2/routing/backends/gin"
+	"github.com/primandproper/primitives-go/v2/routing/backends/httprouter"
+	"github.com/primandproper/primitives-go/v2/routing/backends/stdlib"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

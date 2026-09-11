@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
 // The paths this package mounts. They are the ones RFC 8414 and RFC 9728 fix

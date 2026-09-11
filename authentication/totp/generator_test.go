@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	authtotp "github.com/primandproper/primitives-go/authentication/totp"
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	authtotp "github.com/primandproper/primitives-go/v2/authentication/totp"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/shoenig/test"

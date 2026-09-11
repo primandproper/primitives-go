@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/primitives-go/messagequeue"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

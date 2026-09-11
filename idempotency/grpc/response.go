@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -1,7 +1,7 @@
 package metricscfg
 
 import (
-	"github.com/primandproper/primitives-go/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 // Option configures how NewMetricsProvider assembles its provider.

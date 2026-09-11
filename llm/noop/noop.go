@@ -18,7 +18,7 @@ package noop
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/llm"
+	"github.com/primandproper/primitives-go/v2/llm"
 )
 
 var _ llm.Provider = (*Provider)(nil)

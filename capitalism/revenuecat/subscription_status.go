@@ -1,7 +1,7 @@
 package revenuecat
 
 import (
-	"github.com/primandproper/primitives-go/capitalism"
+	"github.com/primandproper/primitives-go/v2/capitalism"
 )
 
 // The event types RevenueCat documents.

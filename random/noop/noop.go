@@ -19,7 +19,7 @@ package noop
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/random"
+	"github.com/primandproper/primitives-go/v2/random"
 )
 
 var _ random.Generator = (*Generator)(nil)

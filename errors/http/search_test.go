@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
-	textsearch "github.com/primandproper/primitives-go/search/text"
-	vectorsearch "github.com/primandproper/primitives-go/search/vector"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
+	vectorsearch "github.com/primandproper/primitives-go/v2/search/vector"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"

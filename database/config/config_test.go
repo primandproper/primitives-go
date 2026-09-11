@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	platformerrors "github.com/primandproper/primitives-go/errors"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/shoenig/test"

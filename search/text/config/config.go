@@ -12,13 +12,13 @@ import (
 	"context"
 	"strings"
 
-	circuitbreakingcfg "github.com/primandproper/primitives-go/circuitbreaking/config"
-	"github.com/primandproper/primitives-go/config/cfgnorm"
-	"github.com/primandproper/primitives-go/errors"
-	textsearch "github.com/primandproper/primitives-go/search/text"
-	"github.com/primandproper/primitives-go/search/text/algolia"
-	"github.com/primandproper/primitives-go/search/text/elasticsearch"
-	"github.com/primandproper/primitives-go/search/text/noop"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
+	"github.com/primandproper/primitives-go/v2/errors"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
+	"github.com/primandproper/primitives-go/v2/search/text/algolia"
+	"github.com/primandproper/primitives-go/v2/search/text/elasticsearch"
+	"github.com/primandproper/primitives-go/v2/search/text/noop"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

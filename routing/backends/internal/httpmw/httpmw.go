@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/primandproper/primitives-go/routing"
+	"github.com/primandproper/primitives-go/v2/routing"
 )
 
 const (

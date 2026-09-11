@@ -1,7 +1,7 @@
 package fake
 
 import (
-	"github.com/primandproper/primitives-go/identifiers"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/go-faker/faker/v4"
 )

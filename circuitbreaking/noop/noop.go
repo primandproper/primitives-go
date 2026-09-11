@@ -16,7 +16,7 @@
 package noop
 
 import (
-	"github.com/primandproper/primitives-go/circuitbreaking"
+	"github.com/primandproper/primitives-go/v2/circuitbreaking"
 )
 
 var _ circuitbreaking.CircuitBreaker = (*circuitBreaker)(nil)

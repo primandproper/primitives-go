@@ -3,8 +3,8 @@ package idempotency
 import (
 	"context"
 
-	"github.com/primandproper/primitives-go/charset"
-	"github.com/primandproper/primitives-go/identifiers"
+	"github.com/primandproper/primitives-go/v2/charset"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 )
 
 // Observability keys. Package-specific ones are namespaced; nothing here maps

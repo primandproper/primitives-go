@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/primitives-go/secrets"
+	"github.com/primandproper/primitives-go/v2/secrets"
 
 	"github.com/shoenig/test/must"
 )
