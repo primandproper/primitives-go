@@ -179,7 +179,7 @@ func (cfg *SourceConfig) NewCollector(
 		return nil, errors.Wrap(err, "validating analytics config")
 	}
 
-	cb, err := cfg.CircuitBreaker.NewCircuitBreaker(ctx, circuitbreakingcfg.WithLogger(logger), circuitbreakingcfg.WithMetricsProvider(metricsProvider))
+	cb, err := circuitbreakingcfg.NewCircuitBreaker(ctx, &cfg.CircuitBreaker, circuitbreakingcfg.WithLogger(logger), circuitbreakingcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create analytics circuit breaker")
 	}

@@ -110,7 +110,7 @@ func (cfg *Config) NewPillars(ctx context.Context) (*Pillars, error) {
 		return nil, wrapped
 	}
 
-	logger, err := cfg.Logging.NewLogger(ctx)
+	logger, err := loggingcfg.NewLogger(ctx, &cfg.Logging)
 	if err != nil {
 		return abandon(err, "setting up logger")
 	}

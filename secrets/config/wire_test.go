@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/secrets"
 
 	"github.com/shoenig/test/must"
@@ -80,13 +81,18 @@ func TestNewSecretSourceFromConfig(T *testing.T) {
 		must.EqOp(t, value, got)
 	})
 
-	T.Run("provider error is wrapped", func(t *testing.T) {
+	T.Run("an unrecognized provider names itself in the error", func(t *testing.T) {
 		t.Parallel()
 
+		// One door, one wrapping. The thin second constructor used to add
+		// "provide secret source" on top of this, so the same failure reached a
+		// caller with two different messages depending on which door it came
+		// through; what survives is the one that says which provider.
 		cfg := &Config{Provider: "vault"}
 		source, err := NewSecretSource(context.Background(), cfg)
 		must.Error(t, err)
 		must.Nil(t, source)
-		must.StrContains(t, err.Error(), "provide secret source")
+		must.ErrorIs(t, err, errors.ErrUnknownProvider)
+		must.StrContains(t, err.Error(), `"vault"`)
 	})
 }

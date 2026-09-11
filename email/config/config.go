@@ -15,7 +15,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/primitives-go/v2/circuitbreaking"
 	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
 	"github.com/primandproper/primitives-go/v2/email"
 	"github.com/primandproper/primitives-go/v2/email/mailgun"
@@ -121,12 +120,37 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 	)
 }
 
-// NewEmailer provides an outbound_emailer.
-func (cfg *Config) NewEmailer(ctx context.Context, client *http.Client, circuitBreaker circuitbreaking.CircuitBreaker, opts ...Option) (email.Emailer, error) {
+// NewEmailer provides an email.Emailer from config.
+//
+// One door. This used to be two — a free function that built the circuit
+// breaker from Config.CircuitBreaker and a method that took one already built
+// — which read as two behaviors and was one, differing only in where the
+// breaker came from. The breaker is now WithCircuitBreaker when a caller has
+// one and Config.CircuitBreaker when it does not, so the rare case costs an
+// option rather than costing every other caller a positional argument.
+func NewEmailer(ctx context.Context, cfg *Config, client *http.Client, opts ...Option) (email.Emailer, error) {
+	if cfg == nil {
+		return nil, errors.ErrNilInputParameter
+	}
+
 	o := newOptions(opts)
 	logger, tracerProvider, metricsProvider := o.logger, o.tracerProvider, o.metricsProvider
 
 	cfg.EnsureDefaults()
+
+	circuitBreaker := o.circuitBreaker
+	if circuitBreaker == nil {
+		var breakerErr error
+
+		// Built into a variable and returned only once its error is known to be
+		// nil, per the nil-in-interface trap.
+		circuitBreaker, breakerErr = circuitbreakingcfg.NewCircuitBreaker(ctx, &cfg.CircuitBreaker,
+			circuitbreakingcfg.WithLogger(o.logger),
+			circuitbreakingcfg.WithMetricsProvider(o.metricsProvider))
+		if breakerErr != nil {
+			return nil, errors.Wrap(breakerErr, "failed to initialize email circuit breaker")
+		}
+	}
 
 	// The provider is checked before the rest of the config so an unrecognized
 	// one reports ErrUnknownProvider rather than whichever sub-config happened

@@ -53,7 +53,11 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 }
 
 // NewKeyedCircuitBreaker provides a KeyedCircuitBreaker.
-func (cfg *Config) NewKeyedCircuitBreaker(ctx context.Context, opts ...Option) (partitioned.KeyedCircuitBreaker, error) {
+//
+// It is a free function and not also a method on Config. Two exported names
+// for one behavior is two places for a caller to read a different contract,
+// and this is the spelling every sibling seam's constructor uses.
+func NewKeyedCircuitBreaker(ctx context.Context, cfg *Config, opts ...Option) (partitioned.KeyedCircuitBreaker, error) {
 	o := newOptions(opts)
 	logger, metricsProvider := o.logger, o.metricsProvider
 
@@ -72,14 +76,14 @@ func (cfg *Config) NewKeyedCircuitBreaker(ctx context.Context, opts ...Option) (
 		return nil, errors.Wrap(err, "validating keyed circuit breaker config")
 	}
 
-	global, err := cfg.Base.NewCircuitBreaker(ctx, circuitbreakingcfg.WithLogger(logger), circuitbreakingcfg.WithMetricsProvider(metricsProvider), circuitbreakingcfg.WithMetricAttributes(attribute.String(partitionAttributeKey, globalPartition)))
+	global, err := circuitbreakingcfg.NewCircuitBreaker(ctx, &cfg.Base, circuitbreakingcfg.WithLogger(logger), circuitbreakingcfg.WithMetricsProvider(metricsProvider), circuitbreakingcfg.WithMetricAttributes(attribute.String(partitionAttributeKey, globalPartition)))
 	if err != nil {
 		return nil, errors.Wrap(err, "providing global circuit breaker")
 	}
 
 	breakers := make(map[string]circuitbreaking.CircuitBreaker, len(cfg.Keys))
 	for _, key := range cfg.Keys {
-		cb, cbErr := cfg.Base.NewCircuitBreaker(ctx, circuitbreakingcfg.WithLogger(logger), circuitbreakingcfg.WithMetricsProvider(metricsProvider), circuitbreakingcfg.WithMetricAttributes(attribute.String(partitionAttributeKey, key)))
+		cb, cbErr := circuitbreakingcfg.NewCircuitBreaker(ctx, &cfg.Base, circuitbreakingcfg.WithLogger(logger), circuitbreakingcfg.WithMetricsProvider(metricsProvider), circuitbreakingcfg.WithMetricAttributes(attribute.String(partitionAttributeKey, key)))
 		if cbErr != nil {
 			return nil, errors.Wrapf(cbErr, "providing circuit breaker for key %q", key)
 		}
@@ -88,9 +92,4 @@ func (cfg *Config) NewKeyedCircuitBreaker(ctx context.Context, opts ...Option) (
 	}
 
 	return partitioned.NewKeyedCircuitBreaker(global, breakers), nil
-}
-
-// NewKeyedCircuitBreaker provides a KeyedCircuitBreaker from config.
-func NewKeyedCircuitBreaker(ctx context.Context, cfg *Config, opts ...Option) (partitioned.KeyedCircuitBreaker, error) {
-	return cfg.NewKeyedCircuitBreaker(ctx, opts...)
 }

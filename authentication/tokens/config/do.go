@@ -4,20 +4,10 @@ import (
 	"context"
 
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
-	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )
-
-// NewTokenIssuer provides a tokens.Issuer from a config.
-func NewTokenIssuer(ctx context.Context, cfg *Config, opts ...Option) (tokens.Issuer, error) {
-	if cfg == nil {
-		return nil, errors.ErrNilInputParameter
-	}
-
-	return cfg.NewTokenIssuer(ctx, opts...)
-}
 
 // RegisterTokenIssuer registers the token issuer with the injector.
 func RegisterTokenIssuer(i do.Injector) {

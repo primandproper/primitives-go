@@ -95,7 +95,12 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 // so returning one straight through would convert a nil *jwt.Signer into a
 // non-nil tokens.Issuer on the error path, and a caller testing the result against
 // nil would find an issuer that panics on first use.
-func (cfg *Config) NewTokenIssuer(ctx context.Context, opts ...Option) (tokens.Issuer, error) {
+//
+// It is a free function and not also a method on Config, and it lives here
+// beside the config rather than in do.go: a DI file registers what a package
+// builds, it does not hold the building. Two exported names for one behavior
+// is two places for a caller to read a different contract.
+func NewTokenIssuer(ctx context.Context, cfg *Config, opts ...Option) (tokens.Issuer, error) {
 	o := newOptions(opts)
 	logger, tracerProvider := o.logger, o.tracerProvider
 

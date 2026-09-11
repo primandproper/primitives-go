@@ -55,9 +55,11 @@ func RegisterPushSender(i do.Injector) {
 			opts = append(opts, WithSenderOptions(mobile.WithTokenInvalidator(invalidator)))
 		}
 
+		// Keyed on *Config, matching the constructor: NewPushSender applies
+		// defaults to what it is handed, and a value would discard them.
 		return NewPushSender(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[Config](i),
+			do.MustInvoke[*Config](i),
 			opts...,
 		)
 	})

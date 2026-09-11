@@ -142,7 +142,13 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 //	if cached, ok := source.(secrets.CachingSource); ok {
 //		cancel := cached.OnChange("signing-key", rebuildKeyring)
 //	}
-func (cfg *Config) NewSecretSource(ctx context.Context, opts ...Option) (secrets.SecretSource, error) {
+//
+// It is a free function and not also a method on Config. Two exported names
+// for one behavior is two places for a caller to read a different contract —
+// and here the two had drifted: both spelled the nil-config fallback to the
+// environment source, so a change to one would have left the other answering
+// differently.
+func NewSecretSource(ctx context.Context, cfg *Config, opts ...Option) (secrets.SecretSource, error) {
 	o := newOptions(opts)
 
 	if cfg == nil {

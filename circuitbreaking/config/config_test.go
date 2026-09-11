@@ -111,8 +111,7 @@ func TestNewCircuitBreakerFromConfig(T *testing.T) {
 
 		ctx := t.Context()
 
-		cb, err := cfg.NewCircuitBreaker(
-			ctx,
+		cb, err := NewCircuitBreaker(ctx, cfg,
 			WithMetricAttributes(attribute.String("partition", "123")),
 		)
 		test.NotNil(t, cb)
@@ -213,7 +212,7 @@ func TestConfig_NewCircuitBreaker(T *testing.T) {
 		ctx := t.Context()
 
 		var cfg *Config
-		cb, err := cfg.NewCircuitBreaker(ctx)
+		cb, err := NewCircuitBreaker(ctx, cfg)
 		test.Nil(t, cb)
 		test.Error(t, err)
 	})
@@ -228,7 +227,7 @@ func TestConfig_NewCircuitBreaker(T *testing.T) {
 			ErrorRate: 200,
 		}
 
-		cb, err := cfg.NewCircuitBreaker(ctx)
+		cb, err := NewCircuitBreaker(ctx, cfg)
 		test.Error(t, err)
 		test.Nil(t, cb)
 	})
@@ -240,7 +239,7 @@ func TestConfig_NewCircuitBreaker(T *testing.T) {
 		// "UNKNOWN" and passes the Required check instead of degrading to a noop.
 		cfg := &Config{Name: ""}
 
-		cb, err := cfg.NewCircuitBreaker(ctx)
+		cb, err := NewCircuitBreaker(ctx, cfg)
 		test.NoError(t, err)
 		_, isReal := cb.(*baseImplementation)
 		test.True(t, isReal)
@@ -251,7 +250,7 @@ func TestConfig_NewCircuitBreaker(T *testing.T) {
 
 		cfg := &Config{Name: "cb"}
 
-		cb, err := cfg.NewCircuitBreaker(ctx, nil)
+		cb, err := NewCircuitBreaker(ctx, cfg, nil)
 		test.NoError(t, err)
 		_, isReal := cb.(*baseImplementation)
 		test.True(t, isReal)
@@ -269,7 +268,7 @@ func TestBaseImplementation(T *testing.T) {
 			MinimumSampleThreshold: 1000,
 		}
 
-		cb, err := cfg.NewCircuitBreaker(ctx)
+		cb, err := NewCircuitBreaker(ctx, cfg)
 		test.NotNil(t, cb)
 		test.NoError(t, err)
 
@@ -285,7 +284,7 @@ func TestBaseImplementation(T *testing.T) {
 			MinimumSampleThreshold: 1000,
 		}
 
-		cb, err := cfg.NewCircuitBreaker(ctx)
+		cb, err := NewCircuitBreaker(ctx, cfg)
 		test.NotNil(t, cb)
 		test.NoError(t, err)
 
@@ -301,7 +300,7 @@ func TestBaseImplementation(T *testing.T) {
 			MinimumSampleThreshold: 1000,
 		}
 
-		cb, err := cfg.NewCircuitBreaker(ctx)
+		cb, err := NewCircuitBreaker(ctx, cfg)
 		test.NotNil(t, cb)
 		test.NoError(t, err)
 
@@ -317,7 +316,7 @@ func TestBaseImplementation(T *testing.T) {
 			MinimumSampleThreshold: 1000,
 		}
 
-		cb, err := cfg.NewCircuitBreaker(ctx)
+		cb, err := NewCircuitBreaker(ctx, cfg)
 		test.NotNil(t, cb)
 		test.NoError(t, err)
 

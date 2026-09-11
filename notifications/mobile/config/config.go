@@ -95,8 +95,17 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 // Options supplied with WithSenderOptions are applied after the ones derived
 // here, so a wiring site can attach what this package cannot make — a token
 // invalidator above all — or override the observability it just handed over.
-func (cfg *Config) NewPushSender(
+//
+// It is a free function and not also a method on Config. Two exported names
+// for one behavior is two places for a caller to read a different contract,
+// and this is the spelling every sibling seam's constructor uses.
+//
+// It takes *Config rather than a Config, which is what the free half used to
+// take: EnsureDefaults runs against the value it is given, and a copy meant
+// every default this constructor applied was discarded when it returned.
+func NewPushSender(
 	ctx context.Context,
+	cfg *Config,
 	opts ...Option,
 ) (mobile.PushNotificationSender, error) {
 	o := newOptions(opts)
