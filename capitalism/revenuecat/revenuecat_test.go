@@ -244,6 +244,78 @@ func TestPaymentManager_HandleEventWebhook(T *testing.T) {
 		test.EqOp(t, "user_123", event.Subscription.CustomerID)
 	})
 
+	T.Run("carries the period the subscription is paid through", func(t *testing.T) {
+		t.Parallel()
+
+		pm := newManager(t)
+
+		// RevenueCat reports these in milliseconds, and purchased_at_ms on a renewal
+		// is the renewal itself — the start of the period this event is about, not the
+		// original purchase.
+		start := time.Date(2026, time.September, 1, 12, 0, 0, 0, time.UTC)
+		end := time.Date(2026, time.October, 1, 12, 0, 0, 0, time.UTC)
+
+		obs := observability.NewRecordingObserver()
+		pm.o11y = obs
+
+		event, err := pm.HandleEventWebhook(signedRequest(t, delivery(fmt.Sprintf(
+			`"type":"RENEWAL","id":"evt_rc","app_user_id":"user_123","transaction_id":"txn_2","original_transaction_id":"txn_1","period_type":"NORMAL","purchased_at_ms":%d,"expiration_at_ms":%d`,
+			start.UnixMilli(), end.UnixMilli(),
+		))))
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		must.NotNil(t, event.Subscription.CurrentPeriodStart)
+		must.NotNil(t, event.Subscription.CurrentPeriodEnd)
+		test.True(t, start.Equal(*event.Subscription.CurrentPeriodStart))
+		test.True(t, end.Equal(*event.Subscription.CurrentPeriodEnd))
+
+		// UTC rather than whatever zone the decoding process runs in, so the same
+		// delivery does not mean two things on two machines.
+		test.EqOp(t, time.UTC, event.Subscription.CurrentPeriodEnd.Location())
+
+		obs.ObservedOperationWithData(t, map[string]any{
+			"capitalism.current_period_end": end.Format(time.RFC3339),
+		})
+	})
+
+	T.Run("leaves the end absent for an entitlement that does not lapse", func(t *testing.T) {
+		t.Parallel()
+
+		pm := newManager(t)
+
+		// A non-renewing purchase has a start and no expiry, which RevenueCat sends as
+		// null. Nil is a period that has not ended; the epoch would be one that ended
+		// in 1970, and those are opposite instructions to whatever revokes access.
+		start := time.Date(2026, time.September, 1, 12, 0, 0, 0, time.UTC)
+
+		event, err := pm.HandleEventWebhook(signedRequest(t, delivery(fmt.Sprintf(
+			`"type":"NON_RENEWING_PURCHASE","id":"evt_once","app_user_id":"user_123","transaction_id":"txn_only","purchased_at_ms":%d,"expiration_at_ms":null`,
+			start.UnixMilli(),
+		))))
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		must.NotNil(t, event.Subscription.CurrentPeriodStart)
+		test.True(t, start.Equal(*event.Subscription.CurrentPeriodStart))
+		test.Nil(t, event.Subscription.CurrentPeriodEnd)
+	})
+
+	T.Run("leaves the period absent when the event reported none", func(t *testing.T) {
+		t.Parallel()
+
+		pm := newManager(t)
+
+		event, err := pm.HandleEventWebhook(signedRequest(t, delivery(
+			`"type":"RENEWAL","id":"evt_rc","app_user_id":"user_123","transaction_id":"txn_1"`,
+		)))
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		test.Nil(t, event.Subscription.CurrentPeriodStart)
+		test.Nil(t, event.Subscription.CurrentPeriodEnd)
+	})
+
 	T.Run("falls back to the current transaction when there is no original", func(t *testing.T) {
 		t.Parallel()
 

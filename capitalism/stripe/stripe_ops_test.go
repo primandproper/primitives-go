@@ -3,6 +3,7 @@ package stripe
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -435,6 +436,69 @@ func TestStripePaymentManager_HandleEventWebhook_ReturnsEvent(T *testing.T) {
 		event, err := pm.HandleEventWebhook(req)
 		test.Error(t, err)
 		test.Nil(t, event)
+	})
+
+	T.Run("carries the period the subscription is paid through", func(t *testing.T) {
+		t.Parallel()
+
+		pm, secret := newManager(t)
+
+		// The two boundaries a consumer would otherwise have to invent. Stripe reports
+		// them as Unix seconds on every subscription event.
+		start := time.Date(2026, time.September, 1, 12, 0, 0, 0, time.UTC)
+		end := time.Date(2026, time.October, 1, 12, 0, 0, 0, time.UTC)
+
+		req := signedRequest(t, pm, secret, subscriptionEvent(t, stripe.EventTypeCustomerSubscriptionUpdated, fmt.Sprintf(`{
+			"id": "sub_123",
+			"customer": "cus_123",
+			"status": "active",
+			"current_period_start": %d,
+			"current_period_end": %d
+		}`, start.Unix(), end.Unix())))
+
+		obs := observability.NewRecordingObserver()
+		pm.o11y = obs
+
+		event, err := pm.HandleEventWebhook(req)
+		must.NoError(t, err)
+		must.NotNil(t, event)
+		must.NotNil(t, event.Subscription)
+
+		must.NotNil(t, event.Subscription.CurrentPeriodStart)
+		must.NotNil(t, event.Subscription.CurrentPeriodEnd)
+		test.True(t, start.Equal(*event.Subscription.CurrentPeriodStart))
+		test.True(t, end.Equal(*event.Subscription.CurrentPeriodEnd))
+
+		// UTC rather than whatever zone the decoding process runs in, so the same
+		// delivery does not mean two things on two machines.
+		test.EqOp(t, time.UTC, event.Subscription.CurrentPeriodEnd.Location())
+
+		obs.ObservedOperationWithData(t, map[string]any{
+			"capitalism.current_period_end": end.Format(time.RFC3339),
+		})
+	})
+
+	T.Run("leaves the period absent when Stripe reported none", func(t *testing.T) {
+		t.Parallel()
+
+		pm, secret := newManager(t)
+
+		// stripe-go decodes these as plain int64, so an omitted timestamp arrives as
+		// zero. Nil is the only way to say "Stripe did not tell us"; the epoch would
+		// say the subscription lapsed in 1970.
+		req := signedRequest(t, pm, secret, subscriptionEvent(t, stripe.EventTypeCustomerSubscriptionUpdated, `{
+			"id": "sub_123",
+			"customer": "cus_123",
+			"status": "active"
+		}`))
+
+		event, err := pm.HandleEventWebhook(req)
+		must.NoError(t, err)
+		must.NotNil(t, event)
+		must.NotNil(t, event.Subscription)
+
+		test.Nil(t, event.Subscription.CurrentPeriodStart)
+		test.Nil(t, event.Subscription.CurrentPeriodEnd)
 	})
 
 	T.Run("keeps the raw payload for a consumer with its own stripe-go", func(t *testing.T) {

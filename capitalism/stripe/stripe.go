@@ -191,6 +191,12 @@ func (s *PaymentManager) HandleEventWebhook(req *http.Request) (_ *capitalism.Ev
 			Set("stripe.subscription_status", out.Subscription.ProviderStatus).
 			Set("capitalism.subscription_status", out.Subscription.Status.String())
 
+		if out.Subscription.CurrentPeriodEnd != nil {
+			// The entitlement boundary, which is what a support question about an account
+			// cut off too early or too late is actually asking after.
+			op.Set("capitalism.current_period_end", out.Subscription.CurrentPeriodEnd.Format(time.RFC3339))
+		}
+
 		if !out.Subscription.Status.Known() {
 			// Logged rather than errored: the delivery is genuine and the caller is
 			// handed the raw status, so refusing it would drop an event Stripe will
@@ -216,8 +222,10 @@ func (s *PaymentManager) HandleEventWebhook(req *http.Request) (_ *capitalism.Ev
 // through a hand-rolled struct.
 func subscriptionState(subscription *stripe.Subscription) *capitalism.SubscriptionState {
 	state := &capitalism.SubscriptionState{
-		ID:             subscription.ID,
-		ProviderStatus: string(subscription.Status),
+		ID:                 subscription.ID,
+		ProviderStatus:     string(subscription.Status),
+		CurrentPeriodStart: epochSeconds(subscription.CurrentPeriodStart),
+		CurrentPeriodEnd:   epochSeconds(subscription.CurrentPeriodEnd),
 	}
 
 	state.Status, _ = MapSubscriptionStatus(string(subscription.Status))
@@ -227,6 +235,23 @@ func subscriptionState(subscription *stripe.Subscription) *capitalism.Subscripti
 	}
 
 	return state
+}
+
+// epochSeconds renders one of Stripe's Unix timestamps as a UTC time, or nil where the
+// payload carried none.
+//
+// stripe-go decodes these as a plain int64 rather than a pointer, so a field the delivery
+// omitted and a field it sent as zero arrive here identically — and zero is not a timestamp
+// Stripe reports, it is what an absent one decodes to. Passing it through would hand a
+// consumer a period that ended in 1970, which is the value that revokes access.
+func epochSeconds(seconds int64) *time.Time {
+	if seconds == 0 {
+		return nil
+	}
+
+	at := time.Unix(seconds, 0).UTC()
+
+	return &at
 }
 
 // CreateCustomer creates a Stripe customer.

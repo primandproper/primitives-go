@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
@@ -100,6 +101,21 @@ type (
 		ProductID             string `json:"product_id"`
 		PeriodType            string `json:"period_type"`
 		CancelReason          string `json:"cancel_reason"`
+
+		// PurchasedAtMS and ExpirationAtMS bound the period this event is about,
+		// in milliseconds since the Unix epoch.
+		//
+		// They are the two fields beyond the identifiers that this struct claims
+		// for a reason other than routing: capitalism.SubscriptionState carries
+		// the paid period, and a consumer that had to dig them out of Payload
+		// would be decoding provider JSON to learn the one thing this seam
+		// exists to hand it.
+		//
+		// RevenueCat sends expiration_at_ms as null for an entitlement that does
+		// not lapse — a non-renewing purchase, a lifetime unlock — which decodes
+		// to zero here and becomes an absent CurrentPeriodEnd.
+		PurchasedAtMS  int64 `json:"purchased_at_ms"`
+		ExpirationAtMS int64 `json:"expiration_at_ms"`
 	}
 )
 
@@ -242,6 +258,11 @@ func (r *PaymentManager) HandleEventWebhook(req *http.Request) (_ *capitalism.Ev
 		CustomerID:     customerID(&event),
 		Status:         status,
 		ProviderStatus: event.Type,
+		// purchased_at_ms is when the period this event reports began, which for a
+		// renewal is the renewal itself rather than the original purchase, and
+		// expiration_at_ms is when it lapses.
+		CurrentPeriodStart: epochMilliseconds(event.PurchasedAtMS),
+		CurrentPeriodEnd:   epochMilliseconds(event.ExpirationAtMS),
 	}
 
 	op.Set("revenuecat.subscription_id", out.Subscription.ID).
@@ -249,6 +270,12 @@ func (r *PaymentManager) HandleEventWebhook(req *http.Request) (_ *capitalism.Ev
 		Set("revenuecat.product_id", event.ProductID).
 		Set("revenuecat.period_type", event.PeriodType).
 		Set("capitalism.subscription_status", out.Subscription.Status.String())
+
+	if out.Subscription.CurrentPeriodEnd != nil {
+		// The entitlement boundary, which is what a support question about an
+		// account cut off too early or too late is actually asking after.
+		op.Set("capitalism.current_period_end", out.Subscription.CurrentPeriodEnd.Format(time.RFC3339))
+	}
 
 	if !known {
 		// Logged rather than errored: the delivery is genuine and the caller is
@@ -317,6 +344,24 @@ func customerID(event *webhookEvent) string {
 	}
 
 	return event.OriginalAppUserID
+}
+
+// epochMilliseconds renders one of RevenueCat's timestamps as a UTC time, or nil
+// where the payload carried none.
+//
+// RevenueCat reports these in milliseconds rather than the seconds Stripe uses,
+// which is why this is not the same function as capitalism/stripe's namesake and
+// must not become one. Zero stands for absent: RevenueCat sends null for an
+// expiry that does not exist, and passing the decoded zero through would hand a
+// consumer a period that ended in 1970, which is the value that revokes access.
+func epochMilliseconds(milliseconds int64) *time.Time {
+	if milliseconds == 0 {
+		return nil
+	}
+
+	at := time.UnixMilli(milliseconds).UTC()
+
+	return &at
 }
 
 // CreateCustomer reports ErrOutboundUnsupported.

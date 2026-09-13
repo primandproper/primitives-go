@@ -41,6 +41,13 @@ BILLING_ISSUE, EXPIRATION, SUBSCRIPTION_PAUSED — so the mapping table here is
 keyed on the event type, and SubscriptionState.ProviderStatus carries that type
 rather than a status the payload does not contain.
 
+The paid period does come out of the payload: purchased_at_ms is when the period
+the event reports began — for a RENEWAL that is the renewal, not the original
+purchase — and expiration_at_ms is when it lapses. RevenueCat sends the latter as
+null for an entitlement that does not lapse, and SubscriptionState.CurrentPeriodEnd
+is nil there rather than a zero time, because a period that has no end and a period
+that ended in 1970 are opposite instructions to whatever revokes access.
+
 Two of RevenueCat's folds do not fall out of the type alone, and both are
 applied on top of the table:
 
