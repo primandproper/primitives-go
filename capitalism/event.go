@@ -1,5 +1,7 @@
 package capitalism
 
+import "time"
+
 type (
 	// Event is a verified inbound webhook delivery, in this module's own
 	// vocabulary.
@@ -52,6 +54,34 @@ type (
 	// re-decoding the payload with a provider SDK to find out — which is the
 	// work this type exists to remove.
 	SubscriptionState struct {
+		// CurrentPeriodStart and CurrentPeriodEnd bound the period the
+		// subscription is currently paid through, and are nil where the
+		// delivery reported no boundary.
+		//
+		// They are here because a status on its own is not enough to store. A
+		// consumer reconciling this into a subscription row of its own has to
+		// record when entitlement runs out, and with nothing to copy it invents
+		// one — `now.AddDate(0, 1, 0) // approximate` is what that looks like in
+		// practice, and it is wrong for every plan that is not monthly and for
+		// every renewal that did not land today. Both providers report the
+		// period on every subscription event, so the guess was never for want of
+		// the fact.
+		//
+		// They are pointers, and independent of each other, because absent and
+		// zero are different answers and a half-bounded period is a real one.
+		// Stripe reports both ends on every subscription; RevenueCat reports a
+		// purchase time and no expiry for an entitlement that does not lapse,
+		// which is a period that begins and does not end. Rendering that as a
+		// zero time would say it ended in 1970, and that is the reading that
+		// revokes access.
+		//
+		// Both are UTC. The providers report epoch integers, which carry no
+		// zone, and resolving them against whichever zone the decoding process
+		// happens to run in would leave the same delivery meaning different
+		// things on two machines.
+		CurrentPeriodStart *time.Time
+		CurrentPeriodEnd   *time.Time
+
 		// ID is the provider's subscription identifier.
 		ID string
 

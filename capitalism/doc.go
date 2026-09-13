@@ -7,7 +7,9 @@ lets metering reach a provider's usage API without importing the provider's SDK.
 Inbound, PaymentManager.HandleEventWebhook returns an Event carrying a
 SubscriptionStatus, so that mapping a processor's words onto a standing happens
 once per adapter instead of once per consumer; capitalism/stripe holds the
-Stripe table.
+Stripe table. It carries the period that standing is paid through alongside it,
+because a status a consumer cannot date is a status it has to guess an expiry
+for.
 
 That inbound vocabulary is not identity.BillingStatus, and neither replaces the
 other. SubscriptionStatus is what the processor reports; identity.BillingStatus
