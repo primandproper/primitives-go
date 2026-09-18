@@ -10,6 +10,11 @@
 // An absent WebSocket block is a configured WebSocket rather than a missing one:
 // every field of websocket.Config has a default, and the upgrader documents a
 // nil config as "use them".
+//
+// SSE has no block at all, because it has nothing environment-shaped to
+// configure: its one setting, the reconnect delay, has to tell "unset" from
+// "set to zero" — the first emits no field and the second is refused — and a
+// decoded duration cannot. It is an sse.Option, reached through WithSSEOptions.
 package eventstreamcfg
 
 import (
@@ -103,7 +108,19 @@ func NewEventStreamUpgrader(ctx context.Context, cfg *Config, opts ...Option) (e
 
 	switch provider {
 	case ProviderSSE:
-		return sse.NewUpgrader(sse.WithLogger(logger), sse.WithTracerProvider(tracerProvider)), nil
+		// Built into a variable and returned only once its error is known nil: a
+		// nil *sse.Upgrader returned straight into this function's interface
+		// result would be a non-nil eventstream.EventStreamUpgrader that panics
+		// on first use.
+		upgrader, upgraderErr := sse.NewUpgrader(append(
+			[]sse.Option{sse.WithLogger(logger), sse.WithTracerProvider(tracerProvider)},
+			o.sseOptions...,
+		)...)
+		if upgraderErr != nil {
+			return nil, errors.Wrap(upgraderErr, "building sse upgrader")
+		}
+
+		return upgrader, nil
 	case ProviderWebSocket:
 		return websocket.NewUpgrader(cfg.WebSocket, websocket.WithLogger(logger), websocket.WithTracerProvider(tracerProvider)), nil
 	default:

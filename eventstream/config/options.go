@@ -1,6 +1,7 @@
 package eventstreamcfg
 
 import (
+	"github.com/primandproper/primitives-go/v2/eventstream/sse"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -19,6 +20,7 @@ type Option func(*options)
 type options struct {
 	logger         logging.Logger
 	tracerProvider tracing.Provider
+	sseOptions     []sse.Option
 }
 
 // newOptions applies opts, ignoring nil entries.
@@ -55,4 +57,18 @@ func WithPillars(p *observability.Pillars) Option {
 		logger, tracerProvider, _ := p.Deps()
 		o.logger, o.tracerProvider = logger, tracerProvider
 	}
+}
+
+// WithSSEOptions passes options through to the SSE upgrader, for the settings
+// SSE has no config field for — the reconnect delay, so far. It exists because
+// Go allows one variadic per function and that slot belongs to this package's
+// own Option.
+//
+// They are applied after the logger and tracer provider this package derives
+// from its own options, so an sse.WithLogger named here replaces the one
+// WithLogger produced. When another provider is selected they are ignored, as
+// they are on NewBidirectionalEventStreamUpgrader, which cannot build SSE at
+// all. Repeated calls accumulate.
+func WithSSEOptions(opts ...sse.Option) Option {
+	return func(o *options) { o.sseOptions = append(o.sseOptions, opts...) }
 }

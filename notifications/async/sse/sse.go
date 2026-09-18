@@ -46,9 +46,18 @@ func NewNotifier(cfg *Config, opts ...Option) (*Notifier, error) {
 
 	o := newOptions(opts)
 
+	// The upgrader only fails on a reconnect delay it cannot emit, and this
+	// notifier configures none, so the branch is unreachable today. It is here
+	// because the constructor can now refuse one, and a discarded error would be
+	// the thing to forget the day this grows a passthrough for it.
+	upgrader, err := essse.NewUpgrader(essse.WithLogger(o.logger), essse.WithTracerProvider(o.tracerProvider))
+	if err != nil {
+		return nil, errors.Wrap(err, "building sse upgrader")
+	}
+
 	return &Notifier{
 		o11y:     observability.NewObserver(o11yName, o.logger, o.tracerProvider),
-		upgrader: essse.NewUpgrader(essse.WithLogger(o.logger), essse.WithTracerProvider(o.tracerProvider)),
+		upgrader: upgrader,
 		manager:  eventstream.NewStreamManager[eventstream.EventStream](eventstream.WithTracerProvider(o.tracerProvider), eventstream.WithLogger(o.logger)),
 	}, nil
 }

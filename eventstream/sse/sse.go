@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/eventstream"
@@ -16,25 +18,57 @@ import (
 
 const (
 	name = "sse_stream"
+
+	// minReconnectDelay is the shortest reconnect delay the wire format can
+	// carry. "retry:" is whole milliseconds, so anything under one truncates to
+	// "retry: 0" — which is well-formed, and which a client honors by
+	// reconnecting as fast as it can.
+	minReconnectDelay = time.Millisecond
 )
 
 var (
 	_ eventstream.EventStreamUpgrader = (*Upgrader)(nil)
 	_ eventstream.EventStream         = (*sseStream)(nil)
+
+	// ErrInvalidReconnectDelay indicates NewUpgrader was given a reconnect delay
+	// shorter than a millisecond, zero and negative included.
+	//
+	// It is an error rather than an omitted field because the two outcomes a
+	// caller most needs told apart — "I did not set one" and "the one I set was
+	// nonsense" — would otherwise be the same silence, and the nonsense one is
+	// the expensive half: a fleet reconnecting without pause is the load the
+	// field exists to prevent.
+	ErrInvalidReconnectDelay = errors.New("sse upgrader: reconnect delay must be at least a millisecond")
 )
 
 // Upgrader upgrades HTTP connections to SSE event streams.
 type Upgrader struct {
 	o11y observability.Observer
+	// retryFrame is the "retry:" field every stream opens with, formatted once
+	// because it is the same bytes for every stream this Upgrader makes. Empty
+	// when no reconnect delay was configured, which is the emit-nothing case.
+	retryFrame []byte
 }
 
 // NewUpgrader creates a new SSE Upgrader.
-func NewUpgrader(opts ...Option) *Upgrader {
+//
+// It returns an error only for a reconnect delay the wire format cannot carry;
+// an Upgrader built without WithReconnectDelay cannot fail to be built.
+func NewUpgrader(opts ...Option) (*Upgrader, error) {
 	o := newOptions(opts)
+	if err := o.validate(); err != nil {
+		return nil, err
+	}
 
-	return &Upgrader{
+	u := &Upgrader{
 		o11y: observability.NewObserver(name, o.logger, o.tracerProvider),
 	}
+
+	if o.reconnectDelaySet {
+		u.retryFrame = []byte("retry: " + strconv.FormatInt(o.reconnectDelay.Milliseconds(), 10) + "\n\n")
+	}
+
+	return u, nil
 }
 
 // UpgradeToEventStream upgrades an HTTP connection to a unidirectional SSE event stream.
@@ -47,6 +81,18 @@ func (u *Upgrader) UpgradeToEventStream(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+
+	// The reconnection hint goes out with the headers rather than with the first
+	// event, because the streams that most need it are the quiet ones: a fleet
+	// reconnecting into a proxy that has just restarted has, by definition,
+	// received no events yet.
+	if len(u.retryFrame) > 0 {
+		if _, err := w.Write(u.retryFrame); err != nil {
+			u.o11y.Logger().Error("writing reconnection time", err)
+			return nil, errors.Wrap(err, "writing reconnection time")
+		}
+	}
+
 	flusher.Flush()
 
 	ctx, cancel := context.WithCancel(r.Context())
