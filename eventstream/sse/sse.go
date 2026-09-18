@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -14,9 +15,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/keys"
 )
 
-const (
-	name = "sse_stream"
-)
+const name = "sse_stream"
 
 var (
 	_ eventstream.EventStreamUpgrader = (*Upgrader)(nil)
@@ -26,15 +25,28 @@ var (
 // Upgrader upgrades HTTP connections to SSE event streams.
 type Upgrader struct {
 	o11y observability.Observer
+	// retryFrame is the "retry:" field every stream opens with, formatted once
+	// because it is the same bytes for every stream this Upgrader makes. Empty
+	// when no reconnect delay was configured, which is the emit-nothing case.
+	retryFrame []byte
 }
 
 // NewUpgrader creates a new SSE Upgrader.
 func NewUpgrader(opts ...Option) *Upgrader {
 	o := newOptions(opts)
 
-	return &Upgrader{
+	u := &Upgrader{
 		o11y: observability.NewObserver(name, o.logger, o.tracerProvider),
 	}
+
+	// The zero ReconnectDelay is the absent one: NewReconnectDelay refuses
+	// everything below a millisecond, so no delay a caller could have built
+	// arrives here as zero.
+	if d := o.reconnectDelay.Duration(); d > 0 {
+		u.retryFrame = []byte("retry: " + strconv.FormatInt(d.Milliseconds(), 10) + "\n\n")
+	}
+
+	return u
 }
 
 // UpgradeToEventStream upgrades an HTTP connection to a unidirectional SSE event stream.
@@ -47,6 +59,17 @@ func (u *Upgrader) UpgradeToEventStream(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+
+	// The reconnection hint goes out with the headers rather than with the first
+	// event, because the streams that most need it are the quiet ones: a fleet
+	// reconnecting into a proxy that has just restarted has, by definition,
+	// received no events yet.
+	if len(u.retryFrame) > 0 {
+		if _, err := w.Write(u.retryFrame); err != nil {
+			return nil, errors.Wrap(err, "writing reconnection time")
+		}
+	}
+
 	flusher.Flush()
 
 	ctx, cancel := context.WithCancel(r.Context())

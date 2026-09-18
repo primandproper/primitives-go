@@ -1,9 +1,14 @@
 package eventstreamcfg
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/eventstream"
+	"github.com/primandproper/primitives-go/v2/eventstream/sse"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
@@ -97,6 +102,48 @@ func TestNewEventStreamUpgrader(T *testing.T) {
 
 		test.ErrorIs(t, err, platformerrors.ErrUnknownProvider)
 	})
+
+	// End to end, because what comes back is the interface: the only place the
+	// passthrough is observable is the wire.
+	T.Run("SSE options reach the upgrader", func(t *testing.T) {
+		t.Parallel()
+
+		upgrader, err := NewEventStreamUpgrader(
+			t.Context(),
+			&Config{Provider: ProviderSSE},
+			WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second))),
+		)
+		must.NoError(t, err)
+		must.NotNil(t, upgrader)
+
+		streamReady := make(chan eventstream.EventStream, 1)
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			stream, upgradeErr := upgrader.UpgradeToEventStream(w, r)
+			if upgradeErr != nil {
+				http.Error(w, upgradeErr.Error(), http.StatusInternalServerError)
+				return
+			}
+			streamReady <- stream
+			<-stream.Done()
+		}))
+		t.Cleanup(server.Close)
+
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL, http.NoBody)
+		must.NoError(t, err)
+
+		resp, err := http.DefaultClient.Do(req)
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = resp.Body.Close() })
+
+		stream := <-streamReady
+		must.NotNil(t, stream)
+		t.Cleanup(func() { _ = stream.Close() })
+
+		buf := make([]byte, 64)
+		n, readErr := resp.Body.Read(buf)
+		must.NoError(t, readErr)
+		test.EqOp(t, "retry: 1000\n\n", string(buf[:n]))
+	})
 }
 
 func TestNewBidirectionalEventStreamUpgrader(T *testing.T) {
@@ -139,4 +186,28 @@ func TestNewBidirectionalEventStreamUpgrader(T *testing.T) {
 
 		test.ErrorIs(t, err, platformerrors.ErrUnknownProvider)
 	})
+
+	// Carried and dropped: this constructor cannot build SSE at all, so an SSE
+	// option is nothing for it to apply.
+	T.Run("SSE options are ignored", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := NewBidirectionalEventStreamUpgrader(
+			t.Context(),
+			&Config{Provider: ProviderWebSocket},
+			WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second))),
+		)
+
+		test.NoError(t, err)
+	})
+}
+
+// mustReconnectDelay builds a delay the tests know is valid.
+func mustReconnectDelay(t *testing.T, d time.Duration) sse.ReconnectDelay {
+	t.Helper()
+
+	delay, err := sse.NewReconnectDelay(d)
+	must.NoError(t, err)
+
+	return delay
 }

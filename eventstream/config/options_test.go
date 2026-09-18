@@ -2,7 +2,9 @@ package eventstreamcfg
 
 import (
 	"testing"
+	"time"
 
+	"github.com/primandproper/primitives-go/v2/eventstream/sse"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -37,6 +39,7 @@ func TestOptions(T *testing.T) {
 
 		test.Nil(t, o.logger)
 		test.Nil(t, o.tracerProvider)
+		test.SliceEmpty(t, o.sseOptions)
 	})
 
 	T.Run("WithPillars supplies every dependency this package takes", func(t *testing.T) {
@@ -80,5 +83,38 @@ func TestOptions(T *testing.T) {
 
 		test.Nil(t, o.tracerProvider)
 		test.NotNil(t, o.logger)
+	})
+}
+
+func TestWithSSEOptions(T *testing.T) {
+	T.Parallel()
+
+	T.Run("collects the options", func(t *testing.T) {
+		t.Parallel()
+
+		o := newOptions([]Option{WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second)))})
+
+		test.SliceLen(t, 1, o.sseOptions)
+	})
+
+	// Appended rather than assigned, so a wiring site that names them in two
+	// places keeps both.
+	T.Run("repeated calls accumulate", func(t *testing.T) {
+		t.Parallel()
+
+		o := newOptions([]Option{
+			WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second))),
+			WithSSEOptions(sse.WithLogger(loggingnoop.NewLogger()), sse.WithTracerProvider(nil)),
+		})
+
+		test.SliceLen(t, 3, o.sseOptions)
+	})
+
+	T.Run("naming none leaves none", func(t *testing.T) {
+		t.Parallel()
+
+		o := newOptions([]Option{WithSSEOptions()})
+
+		test.SliceEmpty(t, o.sseOptions)
 	})
 }

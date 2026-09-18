@@ -2,6 +2,7 @@ package sse
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -24,7 +25,71 @@ func TestNewUpgrader(T *testing.T) {
 
 		u := NewUpgrader()
 		test.NotNil(t, u)
+		test.SliceEmpty(t, u.retryFrame)
 	})
+
+	T.Run("with a reconnect delay", func(t *testing.T) {
+		t.Parallel()
+
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 15*time.Second)))
+		must.NotNil(t, u)
+		test.EqOp(t, "retry: 15000\n\n", string(u.retryFrame))
+	})
+
+	// The whole reason the delay is a type: every value NewUpgrader could refuse
+	// has already been refused by the time it could be named here, so the zero
+	// one is the only one that reaches it and it means "absent".
+	T.Run("the zero reconnect delay emits no frame", func(t *testing.T) {
+		t.Parallel()
+
+		u := NewUpgrader(WithReconnectDelay(ReconnectDelay{}))
+		must.NotNil(t, u)
+		test.SliceEmpty(t, u.retryFrame)
+	})
+}
+
+// connect stands up a server that upgrades every request with u, and returns the
+// server-side stream and the client's response. Both ends and the server are
+// closed for the caller, in that order, so the handler unblocks before the
+// server is torn down.
+func connect(t *testing.T, u *Upgrader) (eventstream.EventStream, *http.Response) {
+	t.Helper()
+
+	streamReady := make(chan eventstream.EventStream, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		stream, upgradeErr := u.UpgradeToEventStream(w, r)
+		if upgradeErr != nil {
+			http.Error(w, upgradeErr.Error(), http.StatusInternalServerError)
+			return
+		}
+		streamReady <- stream
+		<-stream.Done()
+	}))
+	t.Cleanup(server.Close)
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL, http.NoBody)
+	must.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	must.NoError(t, err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	stream := <-streamReady
+	must.NotNil(t, stream)
+	t.Cleanup(func() { _ = stream.Close() })
+
+	return stream, resp
+}
+
+// readFlush reads the bytes of one server-side flush off the response body.
+func readFlush(t *testing.T, resp *http.Response) string {
+	t.Helper()
+
+	buf := make([]byte, 4096)
+	n, err := resp.Body.Read(buf)
+	must.NoError(t, err)
+
+	return string(buf[:n])
 }
 
 func TestUpgrader_UpgradeToEventStream(T *testing.T) {
@@ -34,8 +99,9 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -74,6 +140,99 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 		test.Error(t, err)
 		test.StrContains(t, err.Error(), "streaming not supported")
 	})
+
+	// The ordering is the point: the Flusher check is the only failure that
+	// leaves a handler a status code to answer with, so it has to come before
+	// the first byte reaches the wire.
+	T.Run("the flusher check precedes the retry write", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, time.Second)))
+		w := &nonFlushableResponseWriter{header: http.Header{}}
+		r := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody)
+
+		stream, err := u.UpgradeToEventStream(w, r)
+		test.Nil(t, stream)
+		test.Error(t, err)
+		test.StrContains(t, err.Error(), "streaming not supported")
+		test.EqOp(t, 0, w.body.Len())
+	})
+
+	T.Run("writes the retry field before any event", func(t *testing.T) {
+		t.Parallel()
+
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 15*time.Second)))
+
+		stream, resp := connect(t, u)
+
+		// Read before sending anything: the hint rides out with the headers, which
+		// is what makes it reach a stream that never sends an event.
+		test.EqOp(t, "retry: 15000\n\n", readFlush(t, resp))
+
+		must.NoError(t, stream.Send(t.Context(), &eventstream.Event{
+			Type:    "update",
+			Payload: json.RawMessage(`{}`),
+		}))
+
+		test.EqOp(t, "event: update\ndata: {}\n\n", readFlush(t, resp))
+	})
+
+	T.Run("emits no retry field when no delay is named", func(t *testing.T) {
+		t.Parallel()
+
+		u := NewUpgrader()
+
+		stream, resp := connect(t, u)
+
+		must.NoError(t, stream.Send(t.Context(), &eventstream.Event{
+			Type:    "update",
+			Payload: json.RawMessage(`{}`),
+		}))
+
+		// The first thing off the wire is the event, so a caller that named no
+		// delay leaves the client on its own default.
+		test.EqOp(t, "event: update\ndata: {}\n\n", readFlush(t, resp))
+	})
+
+	T.Run("truncates the delay to whole milliseconds", func(t *testing.T) {
+		t.Parallel()
+
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 1500*time.Microsecond)))
+
+		_, resp := connect(t, u)
+
+		test.EqOp(t, "retry: 1\n\n", readFlush(t, resp))
+	})
+
+	// Per stream, not once per upgrader: the second connection has to get it too,
+	// or a fleet reconnecting would be told once and never again.
+	T.Run("every stream an upgrader produces carries the field", func(t *testing.T) {
+		t.Parallel()
+
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 2*time.Second)))
+
+		_, first := connect(t, u)
+		test.EqOp(t, "retry: 2000\n\n", readFlush(t, first))
+
+		_, second := connect(t, u)
+		test.EqOp(t, "retry: 2000\n\n", readFlush(t, second))
+	})
+
+	// Flushable, so the Flusher check passes and the retry write is what fails.
+	T.Run("reports a failure writing the retry field", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, time.Second)))
+		w := &failingResponseWriter{header: http.Header{}}
+		r := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody)
+
+		stream, err := u.UpgradeToEventStream(w, r)
+		test.Nil(t, stream)
+		test.Error(t, err)
+		test.StrContains(t, err.Error(), "writing reconnection time")
+	})
 }
 
 func TestSSEStream_Send(T *testing.T) {
@@ -83,8 +242,9 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -130,8 +290,9 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -175,8 +336,9 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -217,8 +379,9 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -264,8 +427,9 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -303,8 +467,9 @@ func TestSSEStream_Done(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -339,8 +504,9 @@ func TestSSEStream_Done(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -379,8 +545,9 @@ func TestSSEStream_Close(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -406,14 +573,19 @@ func TestSSEStream_Close(T *testing.T) {
 	})
 }
 
-// nonFlushableResponseWriter is a minimal ResponseWriter that does NOT implement http.Flusher.
+// nonFlushableResponseWriter is a minimal ResponseWriter that does NOT implement
+// http.Flusher. It records what it was handed, so a test can assert that a
+// refused upgrade wrote nothing and left the handler a status code to choose.
 type nonFlushableResponseWriter struct {
 	header http.Header
+	body   bytes.Buffer
 }
 
-func (w *nonFlushableResponseWriter) Header() http.Header         { return w.header }
-func (w *nonFlushableResponseWriter) Write(b []byte) (int, error) { return len(b), nil }
-func (w *nonFlushableResponseWriter) WriteHeader(int)             {}
+func (w *nonFlushableResponseWriter) Header() http.Header { return w.header }
+func (w *nonFlushableResponseWriter) Write(b []byte) (int, error) {
+	return w.body.Write(b)
+}
+func (w *nonFlushableResponseWriter) WriteHeader(int) {}
 
 // failingResponseWriter is a flushable ResponseWriter whose Write always fails.
 type failingResponseWriter struct {
@@ -484,8 +656,9 @@ func TestSSEStream_Send_verifies_SSE_format(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
+		u := NewUpgrader()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u := NewUpgrader()
 			stream, err := u.UpgradeToEventStream(w, r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
