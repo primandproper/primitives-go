@@ -38,6 +38,19 @@ The separator belongs to the renderer, not the caller: a non-empty namespace has
 '_' appended once, here. A caller who passes "ddb_" would otherwise render
 ddb__audit_log_entries — legal SQL, and a table nobody meant to name — so a
 namespace ending in '_' is rejected rather than silently accepted.
+
+# A schema over time
+
+A Schema is the DDL as it stands, which is all a fresh install needs and all a
+generator over one version wants. A package whose tables change needs to say
+more than that, because a consumer who already ran the earlier DDL is not going
+to run it again: Migrations is that sequence — a Migration per version —
+rendering from the start for a fresh install and from Since(N) for a database
+already at N.
+
+A shipped migration is never edited: a change is a new version. Editing one
+changes only what a fresh install gets, and leaves every database that already
+ran it holding something else, with nothing to say so.
 */
 package ddl
 
@@ -283,5 +296,5 @@ func (s Schema) SQL(d dialect.Dialect, prefix string) (string, error) {
 		return "", err
 	}
 
-	return strings.Join(stmts, ";\n\n") + ";\n", nil
+	return joinStatements(stmts), nil
 }

@@ -324,6 +324,16 @@ func TestSchema_SQL(T *testing.T) {
 		test.EqOp(t, 3, strings.Count(body, ";"))
 	})
 
+	T.Run("renders no body for a schema with no statements", func(t *testing.T) {
+		t.Parallel()
+
+		// A bare ";\n" would be an empty statement to whatever splits the body,
+		// so nothing to render is nothing rendered.
+		body, err := Schema{Component: "empty"}.SQL(dialect.Postgres, "ddb")
+		must.NoError(t, err)
+		test.EqOp(t, "", body)
+	})
+
 	T.Run("propagates an unsupported dialect and returns no body", func(t *testing.T) {
 		t.Parallel()
 
