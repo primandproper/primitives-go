@@ -88,7 +88,6 @@ func (u *Upgrader) UpgradeToEventStream(w http.ResponseWriter, r *http.Request) 
 	// received no events yet.
 	if len(u.retryFrame) > 0 {
 		if _, err := w.Write(u.retryFrame); err != nil {
-			u.o11y.Logger().Error("writing reconnection time", err)
 			return nil, errors.Wrap(err, "writing reconnection time")
 		}
 	}
