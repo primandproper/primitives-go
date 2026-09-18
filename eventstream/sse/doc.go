@@ -22,6 +22,7 @@ a handler still has a status code to answer with. An Upgrader built with
 WithReconnectDelay writes one frame before it flushes, and a write that fails
 there is returned too — but by then the response is committed, so a handler that
 receives that error has nothing left to say and can only abandon the request.
+That is the only other error the upgrade reports.
 
 # Reconnect timing
 
@@ -33,7 +34,12 @@ number is wrong — too eager for a fleet reconnecting into a proxy that has jus
 restarted, too slow for a stream a person is watching — and WithReconnectDelay
 is how it says so:
 
-	upgrader, err := sse.NewUpgrader(sse.WithReconnectDelay(15 * time.Second))
+	delay, err := sse.NewReconnectDelay(15 * time.Second)
+	if err != nil {
+		return err
+	}
+
+	upgrader := sse.NewUpgrader(sse.WithReconnectDelay(delay))
 
 Every stream that Upgrader produces then opens with a "retry:" field carrying the
 delay in milliseconds, which a client adopts as its reconnection time and keeps
@@ -45,13 +51,20 @@ Naming no delay emits no "retry:" at all and leaves the client on its own
 default. That is what every caller had before the option existed and is still
 what an Upgrader built without it does.
 
+The delay is a ReconnectDelay rather than a time.Duration, which is what keeps
+NewUpgrader infallible: the one value this package refuses is refused where the
+value is made, so an option that exists is an option that applies. The zero
+ReconnectDelay is the absent one — no accepted delay is zero, so "never named
+one" and "named zero" are distinct values here rather than the single one a bare
+Duration would render them as.
+
 The field carries whole milliseconds, so a delay is truncated toward zero: 1500µs
 emits "retry: 1". Below a millisecond the truncation reaches "retry: 0", which is
 a well-formed instruction to reconnect immediately and is honored as one, so that
-band is refused at construction instead — a delay under a millisecond, zero and
-negative included, makes NewUpgrader return an error matching
-ErrInvalidReconnectDelay. The floor also catches the unit slip that produces it,
-WithReconnectDelay(3000) written for "three seconds", which is three microseconds.
+band is refused by NewReconnectDelay instead — a delay under a millisecond, zero
+and negative included, returns an error matching ErrInvalidReconnectDelay. The
+floor also catches the unit slip that produces it, NewReconnectDelay(3000)
+written for "three seconds", which is three microseconds.
 
 There is no upper bound. A long delay is a coherent instruction to wait a long
 time, and which values are unreasonable is a judgment this package has no

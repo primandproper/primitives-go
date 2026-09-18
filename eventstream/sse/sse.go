@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/eventstream"
@@ -16,29 +15,11 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/keys"
 )
 
-const (
-	name = "sse_stream"
-
-	// minReconnectDelay is the shortest reconnect delay the wire format can
-	// carry. "retry:" is whole milliseconds, so anything under one truncates to
-	// "retry: 0" — which is well-formed, and which a client honors by
-	// reconnecting as fast as it can.
-	minReconnectDelay = time.Millisecond
-)
+const name = "sse_stream"
 
 var (
 	_ eventstream.EventStreamUpgrader = (*Upgrader)(nil)
 	_ eventstream.EventStream         = (*sseStream)(nil)
-
-	// ErrInvalidReconnectDelay indicates NewUpgrader was given a reconnect delay
-	// shorter than a millisecond, zero and negative included.
-	//
-	// It is an error rather than an omitted field because the two outcomes a
-	// caller most needs told apart — "I did not set one" and "the one I set was
-	// nonsense" — would otherwise be the same silence, and the nonsense one is
-	// the expensive half: a fleet reconnecting without pause is the load the
-	// field exists to prevent.
-	ErrInvalidReconnectDelay = errors.New("sse upgrader: reconnect delay must be at least a millisecond")
 )
 
 // Upgrader upgrades HTTP connections to SSE event streams.
@@ -51,24 +32,21 @@ type Upgrader struct {
 }
 
 // NewUpgrader creates a new SSE Upgrader.
-//
-// It returns an error only for a reconnect delay the wire format cannot carry;
-// an Upgrader built without WithReconnectDelay cannot fail to be built.
-func NewUpgrader(opts ...Option) (*Upgrader, error) {
+func NewUpgrader(opts ...Option) *Upgrader {
 	o := newOptions(opts)
-	if err := o.validate(); err != nil {
-		return nil, err
-	}
 
 	u := &Upgrader{
 		o11y: observability.NewObserver(name, o.logger, o.tracerProvider),
 	}
 
-	if o.reconnectDelaySet {
-		u.retryFrame = []byte("retry: " + strconv.FormatInt(o.reconnectDelay.Milliseconds(), 10) + "\n\n")
+	// The zero ReconnectDelay is the absent one: NewReconnectDelay refuses
+	// everything below a millisecond, so no delay a caller could have built
+	// arrives here as zero.
+	if d := o.reconnectDelay.Duration(); d > 0 {
+		u.retryFrame = []byte("retry: " + strconv.FormatInt(d.Milliseconds(), 10) + "\n\n")
 	}
 
-	return u, nil
+	return u
 }
 
 // UpgradeToEventStream upgrades an HTTP connection to a unidirectional SSE event stream.

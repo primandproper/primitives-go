@@ -15,6 +15,8 @@
 // configure: its one setting, the reconnect delay, has to tell "unset" from
 // "set to zero" — the first emits no field and the second is refused — and a
 // decoded duration cannot. It is an sse.Option, reached through WithSSEOptions.
+// An operator who wants it from the environment later gets a block that decodes
+// into sse.NewReconnectDelay, which is where the refusal already lives.
 package eventstreamcfg
 
 import (
@@ -108,19 +110,12 @@ func NewEventStreamUpgrader(ctx context.Context, cfg *Config, opts ...Option) (e
 
 	switch provider {
 	case ProviderSSE:
-		// Built into a variable and returned only once its error is known nil: a
-		// nil *sse.Upgrader returned straight into this function's interface
-		// result would be a non-nil eventstream.EventStreamUpgrader that panics
-		// on first use.
-		upgrader, upgraderErr := sse.NewUpgrader(append(
+		// The caller's own sse options come last, so one naming a logger or a
+		// tracer provider replaces what this package derived from its options.
+		return sse.NewUpgrader(append(
 			[]sse.Option{sse.WithLogger(logger), sse.WithTracerProvider(tracerProvider)},
 			o.sseOptions...,
-		)...)
-		if upgraderErr != nil {
-			return nil, errors.Wrap(upgraderErr, "building sse upgrader")
-		}
-
-		return upgrader, nil
+		)...), nil
 	case ProviderWebSocket:
 		return websocket.NewUpgrader(cfg.WebSocket, websocket.WithLogger(logger), websocket.WithTracerProvider(tracerProvider)), nil
 	default:

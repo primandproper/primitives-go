@@ -103,23 +103,6 @@ func TestNewEventStreamUpgrader(T *testing.T) {
 		test.ErrorIs(t, err, platformerrors.ErrUnknownProvider)
 	})
 
-	// The nil assertion is the load-bearing half. A *sse.Upgrader returned
-	// straight into this function's interface result would arrive non-nil on the
-	// error path, and a caller checking the upgrader rather than the error would
-	// hold something that panics on first use.
-	T.Run("SSE with an option the upgrader refuses", func(t *testing.T) {
-		t.Parallel()
-
-		upgrader, err := NewEventStreamUpgrader(
-			t.Context(),
-			&Config{Provider: ProviderSSE},
-			WithSSEOptions(sse.WithReconnectDelay(0)),
-		)
-
-		test.Nil(t, upgrader)
-		test.ErrorIs(t, err, sse.ErrInvalidReconnectDelay)
-	})
-
 	// End to end, because what comes back is the interface: the only place the
 	// passthrough is observable is the wire.
 	T.Run("SSE options reach the upgrader", func(t *testing.T) {
@@ -128,7 +111,7 @@ func TestNewEventStreamUpgrader(T *testing.T) {
 		upgrader, err := NewEventStreamUpgrader(
 			t.Context(),
 			&Config{Provider: ProviderSSE},
-			WithSSEOptions(sse.WithReconnectDelay(time.Second)),
+			WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second))),
 		)
 		must.NoError(t, err)
 		must.NotNil(t, upgrader)
@@ -204,17 +187,27 @@ func TestNewBidirectionalEventStreamUpgrader(T *testing.T) {
 		test.ErrorIs(t, err, platformerrors.ErrUnknownProvider)
 	})
 
-	// Ignored rather than validated: this constructor cannot build SSE at all, so
-	// an SSE option is nothing for it to refuse.
+	// Carried and dropped: this constructor cannot build SSE at all, so an SSE
+	// option is nothing for it to apply.
 	T.Run("SSE options are ignored", func(t *testing.T) {
 		t.Parallel()
 
 		_, err := NewBidirectionalEventStreamUpgrader(
 			t.Context(),
 			&Config{Provider: ProviderWebSocket},
-			WithSSEOptions(sse.WithReconnectDelay(0)),
+			WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second))),
 		)
 
 		test.NoError(t, err)
 	})
+}
+
+// mustReconnectDelay builds a delay the tests know is valid.
+func mustReconnectDelay(t *testing.T, d time.Duration) sse.ReconnectDelay {
+	t.Helper()
+
+	delay, err := sse.NewReconnectDelay(d)
+	must.NoError(t, err)
+
+	return delay
 }

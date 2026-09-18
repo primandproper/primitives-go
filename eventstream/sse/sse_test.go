@@ -23,8 +23,7 @@ func TestNewUpgrader(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := NewUpgrader()
-		must.NoError(t, err)
+		u := NewUpgrader()
 		test.NotNil(t, u)
 		test.SliceEmpty(t, u.retryFrame)
 	})
@@ -32,37 +31,20 @@ func TestNewUpgrader(T *testing.T) {
 	T.Run("with a reconnect delay", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := NewUpgrader(WithReconnectDelay(15 * time.Second))
-		must.NoError(t, err)
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 15*time.Second)))
 		must.NotNil(t, u)
 		test.EqOp(t, "retry: 15000\n\n", string(u.retryFrame))
 	})
 
-	// Refused rather than emitted: "retry: 0" is a well-formed instruction to
-	// reconnect immediately, so the silently-omitted field would be the one
-	// outcome worse than an error.
-	T.Run("a zero reconnect delay is refused", func(t *testing.T) {
+	// The whole reason the delay is a type: every value NewUpgrader could refuse
+	// has already been refused by the time it could be named here, so the zero
+	// one is the only one that reaches it and it means "absent".
+	T.Run("the zero reconnect delay emits no frame", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := NewUpgrader(WithReconnectDelay(0))
-		test.Nil(t, u)
-		test.ErrorIs(t, err, ErrInvalidReconnectDelay)
-	})
-
-	T.Run("a negative reconnect delay is refused", func(t *testing.T) {
-		t.Parallel()
-
-		u, err := NewUpgrader(WithReconnectDelay(-time.Second))
-		test.Nil(t, u)
-		test.ErrorIs(t, err, ErrInvalidReconnectDelay)
-	})
-
-	T.Run("a sub-millisecond reconnect delay is refused", func(t *testing.T) {
-		t.Parallel()
-
-		u, err := NewUpgrader(WithReconnectDelay(500 * time.Microsecond))
-		test.Nil(t, u)
-		test.ErrorIs(t, err, ErrInvalidReconnectDelay)
+		u := NewUpgrader(WithReconnectDelay(ReconnectDelay{}))
+		must.NotNil(t, u)
+		test.SliceEmpty(t, u.retryFrame)
 	})
 }
 
@@ -117,8 +99,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -150,8 +131,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 		w := &nonFlushableResponseWriter{header: http.Header{}}
 		r := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody)
 
@@ -168,8 +148,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		u, upgraderErr := NewUpgrader(WithReconnectDelay(time.Second))
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, time.Second)))
 		w := &nonFlushableResponseWriter{header: http.Header{}}
 		r := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody)
 
@@ -183,8 +162,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 	T.Run("writes the retry field before any event", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := NewUpgrader(WithReconnectDelay(15 * time.Second))
-		must.NoError(t, err)
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 15*time.Second)))
 
 		stream, resp := connect(t, u)
 
@@ -203,8 +181,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 	T.Run("emits no retry field when no delay is named", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := NewUpgrader()
-		must.NoError(t, err)
+		u := NewUpgrader()
 
 		stream, resp := connect(t, u)
 
@@ -221,8 +198,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 	T.Run("truncates the delay to whole milliseconds", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := NewUpgrader(WithReconnectDelay(1500 * time.Microsecond))
-		must.NoError(t, err)
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 1500*time.Microsecond)))
 
 		_, resp := connect(t, u)
 
@@ -234,8 +210,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 	T.Run("every stream an upgrader produces carries the field", func(t *testing.T) {
 		t.Parallel()
 
-		u, err := NewUpgrader(WithReconnectDelay(2 * time.Second))
-		must.NoError(t, err)
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, 2*time.Second)))
 
 		_, first := connect(t, u)
 		test.EqOp(t, "retry: 2000\n\n", readFlush(t, first))
@@ -249,8 +224,7 @@ func TestUpgrader_UpgradeToEventStream(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		u, upgraderErr := NewUpgrader(WithReconnectDelay(time.Second))
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader(WithReconnectDelay(mustReconnectDelay(t, time.Second)))
 		w := &failingResponseWriter{header: http.Header{}}
 		r := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody)
 
@@ -268,8 +242,7 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -317,8 +290,7 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -364,8 +336,7 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -408,8 +379,7 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -457,8 +427,7 @@ func TestSSEStream_Send(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -498,8 +467,7 @@ func TestSSEStream_Done(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -536,8 +504,7 @@ func TestSSEStream_Done(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -578,8 +545,7 @@ func TestSSEStream_Close(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)
@@ -690,8 +656,7 @@ func TestSSEStream_Send_verifies_SSE_format(T *testing.T) {
 		t.Parallel()
 
 		streamReady := make(chan eventstream.EventStream, 1)
-		u, upgraderErr := NewUpgrader()
-		must.NoError(t, upgraderErr)
+		u := NewUpgrader()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			stream, err := u.UpgradeToEventStream(w, r)

@@ -92,7 +92,7 @@ func TestWithSSEOptions(T *testing.T) {
 	T.Run("collects the options", func(t *testing.T) {
 		t.Parallel()
 
-		o := newOptions([]Option{WithSSEOptions(sse.WithReconnectDelay(time.Second))})
+		o := newOptions([]Option{WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second)))})
 
 		test.SliceLen(t, 1, o.sseOptions)
 	})
@@ -103,7 +103,7 @@ func TestWithSSEOptions(T *testing.T) {
 		t.Parallel()
 
 		o := newOptions([]Option{
-			WithSSEOptions(sse.WithReconnectDelay(time.Second)),
+			WithSSEOptions(sse.WithReconnectDelay(mustReconnectDelay(t, time.Second))),
 			WithSSEOptions(sse.WithLogger(loggingnoop.NewLogger()), sse.WithTracerProvider(nil)),
 		})
 

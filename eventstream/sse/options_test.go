@@ -22,8 +22,7 @@ func TestNewOptions(T *testing.T) {
 
 		must.NotNil(t, o)
 		test.Nil(t, o.tracerProvider)
-		test.False(t, o.reconnectDelaySet)
-		test.EqOp(t, time.Duration(0), o.reconnectDelay)
+		test.EqOp(t, time.Duration(0), o.reconnectDelay.Duration())
 	})
 
 	T.Run("skips nil options", func(t *testing.T) {
@@ -91,76 +90,52 @@ func TestWithLogger(T *testing.T) {
 	})
 }
 
-func TestWithReconnectDelay(T *testing.T) {
+func TestNewReconnectDelay(T *testing.T) {
 	T.Parallel()
 
-	T.Run("sets the delay and marks it set", func(t *testing.T) {
+	T.Run("carries the delay it was given", func(t *testing.T) {
 		t.Parallel()
 
-		o := newOptions([]Option{WithReconnectDelay(15 * time.Second)})
-
-		must.NotNil(t, o)
-		test.EqOp(t, 15*time.Second, o.reconnectDelay)
-		test.True(t, o.reconnectDelaySet)
+		d, err := NewReconnectDelay(15 * time.Second)
+		must.NoError(t, err)
+		test.EqOp(t, 15*time.Second, d.Duration())
 	})
 
-	// The load-bearing case. An explicit zero has to stay distinguishable from
-	// never having named one, because the two get opposite answers: silence for
-	// the caller who named nothing, an error for the caller who asked for a
-	// reconnect delay of zero.
-	T.Run("an explicit zero is recorded as set", func(t *testing.T) {
+	T.Run("the floor itself is accepted", func(t *testing.T) {
 		t.Parallel()
 
-		o := newOptions([]Option{WithReconnectDelay(0)})
-
-		must.NotNil(t, o)
-		test.EqOp(t, time.Duration(0), o.reconnectDelay)
-		test.True(t, o.reconnectDelaySet)
-	})
-
-	T.Run("last option wins", func(t *testing.T) {
-		t.Parallel()
-
-		o := newOptions([]Option{WithReconnectDelay(time.Minute), WithReconnectDelay(time.Second)})
-
-		must.NotNil(t, o)
-		test.EqOp(t, time.Second, o.reconnectDelay)
-	})
-}
-
-func TestOptions_validate(T *testing.T) {
-	T.Parallel()
-
-	T.Run("an unnamed delay is valid", func(t *testing.T) {
-		t.Parallel()
-
-		test.NoError(t, newOptions(nil).validate())
-	})
-
-	T.Run("the floor itself is valid", func(t *testing.T) {
-		t.Parallel()
-
-		test.NoError(t, newOptions([]Option{WithReconnectDelay(time.Millisecond)}).validate())
+		d, err := NewReconnectDelay(time.Millisecond)
+		must.NoError(t, err)
+		test.EqOp(t, time.Millisecond, d.Duration())
 	})
 
 	// There is no upper bound, and the largest duration there is still formats to
 	// thirteen ASCII digits, which the wire format carries.
-	T.Run("an enormous delay is valid", func(t *testing.T) {
+	T.Run("an enormous delay is accepted", func(t *testing.T) {
 		t.Parallel()
 
-		test.NoError(t, newOptions([]Option{WithReconnectDelay(math.MaxInt64)}).validate())
+		d, err := NewReconnectDelay(math.MaxInt64)
+		must.NoError(t, err)
+		test.EqOp(t, time.Duration(math.MaxInt64), d.Duration())
 	})
 
-	T.Run("zero is refused", func(t *testing.T) {
+	// The load-bearing case. Zero is the absent delay, so the caller who asks for
+	// one gets an error rather than the silence the caller who asked for nothing
+	// gets — which is the distinction a bare time.Duration cannot make, and the
+	// reason this type exists.
+	T.Run("zero is refused, and yields the absent delay", func(t *testing.T) {
 		t.Parallel()
 
-		test.ErrorIs(t, newOptions([]Option{WithReconnectDelay(0)}).validate(), ErrInvalidReconnectDelay)
+		d, err := NewReconnectDelay(0)
+		test.ErrorIs(t, err, ErrInvalidReconnectDelay)
+		test.EqOp(t, time.Duration(0), d.Duration())
 	})
 
 	T.Run("negative is refused", func(t *testing.T) {
 		t.Parallel()
 
-		test.ErrorIs(t, newOptions([]Option{WithReconnectDelay(-time.Second)}).validate(), ErrInvalidReconnectDelay)
+		_, err := NewReconnectDelay(-time.Second)
+		test.ErrorIs(t, err, ErrInvalidReconnectDelay)
 	})
 
 	// Sub-millisecond is the band that truncates to "retry: 0", which a client
@@ -168,7 +143,8 @@ func TestOptions_validate(T *testing.T) {
 	T.Run("sub-millisecond is refused", func(t *testing.T) {
 		t.Parallel()
 
-		test.ErrorIs(t, newOptions([]Option{WithReconnectDelay(500 * time.Microsecond)}).validate(), ErrInvalidReconnectDelay)
+		_, err := NewReconnectDelay(500 * time.Microsecond)
+		test.ErrorIs(t, err, ErrInvalidReconnectDelay)
 	})
 
 	// The unit slip the floor exists to catch: 3000 written for "three seconds"
@@ -176,6 +152,63 @@ func TestOptions_validate(T *testing.T) {
 	T.Run("a bare integer meant as milliseconds is refused", func(t *testing.T) {
 		t.Parallel()
 
-		test.ErrorIs(t, newOptions([]Option{WithReconnectDelay(3000)}).validate(), ErrInvalidReconnectDelay)
+		_, err := NewReconnectDelay(3000)
+		test.ErrorIs(t, err, ErrInvalidReconnectDelay)
 	})
+
+	T.Run("names the delay it refused", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := NewReconnectDelay(3000)
+		must.Error(t, err)
+		test.StrContains(t, err.Error(), "3µs")
+	})
+}
+
+func TestWithReconnectDelay(T *testing.T) {
+	T.Parallel()
+
+	T.Run("sets the delay", func(t *testing.T) {
+		t.Parallel()
+
+		d := mustReconnectDelay(t, 15*time.Second)
+		o := newOptions([]Option{WithReconnectDelay(d)})
+
+		must.NotNil(t, o)
+		test.EqOp(t, 15*time.Second, o.reconnectDelay.Duration())
+	})
+
+	// The zero value is constructible — it is what NewReconnectDelay returns
+	// alongside its error — and naming it is naming nothing, which is the same
+	// silence a caller who named no delay at all gets.
+	T.Run("the zero delay is the absent one", func(t *testing.T) {
+		t.Parallel()
+
+		o := newOptions([]Option{WithReconnectDelay(ReconnectDelay{})})
+
+		must.NotNil(t, o)
+		test.EqOp(t, time.Duration(0), o.reconnectDelay.Duration())
+	})
+
+	T.Run("last option wins", func(t *testing.T) {
+		t.Parallel()
+
+		o := newOptions([]Option{
+			WithReconnectDelay(mustReconnectDelay(t, time.Minute)),
+			WithReconnectDelay(mustReconnectDelay(t, time.Second)),
+		})
+
+		must.NotNil(t, o)
+		test.EqOp(t, time.Second, o.reconnectDelay.Duration())
+	})
+}
+
+// mustReconnectDelay builds a delay the tests know is valid.
+func mustReconnectDelay(t *testing.T, d time.Duration) ReconnectDelay {
+	t.Helper()
+
+	delay, err := NewReconnectDelay(d)
+	must.NoError(t, err)
+
+	return delay
 }
