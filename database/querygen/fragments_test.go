@@ -347,9 +347,10 @@ LIMIT COALESCE(sqlc.narg(result_limit), 50);`
 		test.EqOp(t, want, pg().ReindexScanQuery("things"))
 	})
 
-	// The scan's cursor is deliberately not the filter cursor's argument. They
-	// converge to one Go type per package when they share a name, and an id
-	// cursor is not the nullable timestamp a filtered list's often resolves to.
+	// The scan's cursor is deliberately not the filter cursor's argument. No
+	// engine resolves a type through the collation comparison, so a corpus owes
+	// this argument an override — and an override naming CursorArg would land
+	// on every filtered list's cursor too.
 	T.Run("does not bind the filter cursor's argument", func(t *testing.T) {
 		t.Parallel()
 

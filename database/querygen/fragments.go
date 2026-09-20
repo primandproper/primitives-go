@@ -240,9 +240,10 @@ func (g *Generator) CursorPaginationFragment(table string, direction Direction) 
 // collation, on every dialect, for a reason the merge in search/sync's pruner
 // makes unforgiving — see Generator.byteOrdered.
 // The cursor binds through ReindexCursorArg rather than CursorArg, and that
-// constant's documentation says why: sharing the filter cursor's name makes the
-// two converge to one Go type across a package, and a nullable timestamp is not
-// what an id cursor is.
+// constant's documentation says why: no engine resolves a type through the
+// collation comparison, so a corpus emitting this owes the argument a type
+// override — and an override that had to name CursorArg would land on every
+// filtered list's cursor as well.
 func (g *Generator) ReindexScanQuery(table string) string {
 	id := Qualify(table, IDColumn)
 
