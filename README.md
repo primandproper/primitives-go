@@ -1,6 +1,6 @@
 # primitives-go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/primandproper/primitives-go/v2.svg)](https://pkg.go.dev/github.com/primandproper/primitives-go/v2)
+[![Go Reference](https://pkg.go.dev/badge/github.com/primandproper/primitives-go/v2.svg)](https://pkg.go.dev/github.com/primandproper/primitives-go/v2) [![codecov](https://codecov.io/gh/primandproper/primitives-go/graph/badge.svg?token=4ZTN491ZN9)](https://codecov.io/gh/primandproper/primitives-go)
 
 The tier every service is built from: providers behind interfaces, the transports whose shape somebody else decided, the database and schema tooling stores are built with, and the handful of values both tiers have to agree on. Layers that touch the network — HTTP, gRPC, database, messaging — instrument with OpenTelemetry.
 
