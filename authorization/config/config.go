@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/authorization/cached"
 	"github.com/primandproper/primitives-go/v2/authorization/static"
 	"github.com/primandproper/primitives-go/v2/cache"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -17,11 +18,29 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+// ProviderStatic names the resolver this package builds, and is the only
+// provider it implements. A deployment resolving policy from SQL is configured
+// by platform-go's rbac/config, which embeds this Config and selects between
+// those tables and this resolver.
+//
+// An unset Provider selects it, which is what keeps the zero Config valid.
+const ProviderStatic = "static"
+
 // Config configures a policy resolver.
 //
 // The zero value is valid and yields a working static resolver that grants
 // nothing.
 type Config struct {
+
+	// Provider selects the implementation. ProviderStatic is the only value
+	// this package builds, and an unset Provider takes it — so the zero Config
+	// stays valid, as this type documents above.
+	//
+	// It is declared here rather than only on the domain half so that the
+	// variable is read by somebody — see NewPolicyResolver for what that buys,
+	// why the refusal is not a validation rule, and why NewCachedResolver
+	// makes none.
+	Provider string `env:"PROVIDER" json:"provider,omitempty" yaml:"provider,omitempty"`
 	// Roles is the policy for the static resolver. It is loadable from JSON or
 	// YAML, so a static deployment can change policy by shipping config rather
 	// than code.
@@ -139,6 +158,19 @@ func NewPolicyResolver(
 	// "unconfigured" cannot diverge.
 	if cfg == nil {
 		cfg = &Config{}
+	}
+
+	// The refusal lives here and deliberately in three places it does not: not
+	// in ValidateWithContext, not in NewCachedResolver, and not on the zero
+	// Config. rbac/config embeds this one with no env tag, so one PROVIDER
+	// populates both Provider fields; a validation rule would fail every SQL
+	// deployment before its dispatch ran, and NewCachedResolver is called by
+	// that dispatch's database branch with this very Config. An empty Provider
+	// is ProviderStatic, which is what the zero value's promise rests on.
+	if p := cfgnorm.Provider(cfg.Provider); p != "" && p != ProviderStatic {
+		return nil, errors.Wrapf(errors.ErrUnknownProvider,
+			"authorization provider %q: this config builds the static resolver only, "+
+				"and a SQL-backed one is built by platform-go's rbac/config", cfg.Provider)
 	}
 
 	if err := cfg.ValidateWithContext(ctx); err != nil {

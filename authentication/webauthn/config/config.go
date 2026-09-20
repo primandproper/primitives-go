@@ -6,15 +6,30 @@ import (
 	"github.com/primandproper/primitives-go/v2/authentication/webauthn"
 	webauthncache "github.com/primandproper/primitives-go/v2/authentication/webauthn/cache"
 	cachecfg "github.com/primandproper/primitives-go/v2/cache/config"
+	"github.com/primandproper/primitives-go/v2/config/cfgnorm"
 	"github.com/primandproper/primitives-go/v2/errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+// ProviderCache names the ceremony store this package builds, and is the only
+// provider it implements. A deployment holding ceremony state in SQL is
+// configured by platform-go's authentication/webauthnsessions/config, which
+// embeds this Config and selects between that table and this store.
+const ProviderCache = "cache"
+
 // Config assembles a webauthn.RelyingParty and a cache-backed ceremony store
 // from environment configuration.
 type Config struct {
 	_ struct{} `json:"-" yaml:"-"`
+
+	// Provider selects where ceremony state lives. ProviderCache is the only
+	// value this package builds, and an unset Provider takes it.
+	//
+	// It is declared here rather than only on the domain half so that the
+	// variable is read by somebody — see NewSessionStore for what that buys
+	// and why the refusal is not a validation rule.
+	Provider string `env:"PROVIDER" json:"provider,omitempty" yaml:"provider,omitempty"`
 
 	// RelyingParty is the WebAuthn relying party itself — the domain, the
 	// display name, the permitted origins, and the ceremony deadline.
@@ -31,6 +46,10 @@ var _ validation.ValidatableWithContext = (*Config)(nil)
 // EnsureDefaults fills in zero fields, including the relying party's own.
 func (cfg *Config) EnsureDefaults() {
 	cfg.RelyingParty.EnsureDefaults()
+
+	if cfg.Provider == "" {
+		cfg.Provider = ProviderCache
+	}
 }
 
 // ValidateWithContext validates a Config struct.
@@ -43,10 +62,18 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 	)
 }
 
-// NewSessionStore builds the cache-backed ceremony store.
+// NewSessionStore builds the cache-backed ceremony store, and refuses any other
+// provider.
 //
 // A deployment holding ceremony state in SQL calls webauthndbcfg.NewSessionStore
 // instead, which selects between that table and this store.
+//
+// The refusal lives here and deliberately not in ValidateWithContext. The
+// domain half embeds this Config with no env tag, so one PROVIDER populates
+// both Provider fields — and its own validator runs this one first. A rule
+// rejecting ProviderDatabase there would fail every SQL deployment during
+// validation, before the dispatch that would have built the right store ever
+// ran.
 func NewSessionStore(
 	ctx context.Context,
 	cfg *Config,
@@ -59,6 +86,13 @@ func NewSessionStore(
 	o := newOptions(opts)
 
 	cfg.EnsureDefaults()
+
+	if p := cfgnorm.Provider(cfg.Provider); p != ProviderCache {
+		return nil, errors.Wrapf(errors.ErrUnknownProvider,
+			"webauthn ceremony store provider %q: this config builds the cache-backed store only, "+
+				"and a SQL-backed one is built by platform-go's "+
+				"authentication/webauthnsessions/config", cfg.Provider)
+	}
 
 	if err := cfg.ValidateWithContext(ctx); err != nil {
 		return nil, errors.Wrap(err, "validating webauthn config")

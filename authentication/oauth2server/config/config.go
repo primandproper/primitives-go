@@ -13,9 +13,28 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+// ProviderMemory names the store this package builds, and is the only provider
+// it implements. A deployment keeping records in SQL is configured by
+// platform-go's authentication/oauth2serverstore/config, which embeds this
+// Config and selects between that table and this store.
+const ProviderMemory = "memory"
+
 // Config assembles an authorization server from environment configuration.
 type Config struct {
 	_ struct{} `json:"-" yaml:"-"`
+
+	// Provider selects where the records live. ProviderMemory is the only
+	// value this package builds, and an unset Provider takes it.
+	//
+	// It is declared here rather than only on the domain half so that the
+	// variable is read by somebody. The split put the choice with the
+	// implementation that created it, which is right — but it left this tier
+	// with no claim on PROVIDER at all, and caarlos0/env does not error on a
+	// variable nothing reads. A deployment carrying PROVIDER=database into a
+	// wiring site that reaches this constructor got the memory store and a
+	// clean startup. It now gets a refusal naming where that provider is
+	// built. See NewStore.
+	Provider string `env:"PROVIDER" json:"provider,omitempty" yaml:"provider,omitempty"`
 
 	// SweepInterval is how often the store removes records past their
 	// deadlines. Unset takes oauth2server.DefaultSweepInterval; zero starts no
@@ -137,6 +156,10 @@ func (cfg *Config) EnsureDefaults() {
 		cfg.ClientRegistrationTTL = pointer.To(oauth2server.DefaultClientRegistrationTTL)
 	}
 	cfg.SweepInterval = cfgnorm.EnsureSweepInterval(cfg.SweepInterval, oauth2server.DefaultSweepInterval)
+
+	if cfg.Provider == "" {
+		cfg.Provider = ProviderMemory
+	}
 }
 
 // ValidateWithContext validates a Config struct.
@@ -157,10 +180,18 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 	)
 }
 
-// NewStore builds the in-memory Store.
+// NewStore builds the in-memory Store, and refuses any other provider.
 //
 // A deployment keeping records in SQL calls oauth2dbcfg.NewStore instead, which
 // selects between that store and this one.
+//
+// The refusal lives here and deliberately not in ValidateWithContext. The
+// domain half embeds this Config with no env tag, so one PROVIDER populates
+// both Provider fields — and its own validator runs this one first. A rule
+// rejecting ProviderDatabase there would fail every SQL deployment during
+// validation, before the dispatch that would have built the right store ever
+// ran. Validation permits the name; the constructor that cannot honor it is
+// what says so.
 func NewStore(ctx context.Context, cfg *Config, opts ...Option) (oauth2server.Store, error) {
 	if cfg == nil {
 		return nil, errors.ErrNilInputParameter
@@ -169,6 +200,13 @@ func NewStore(ctx context.Context, cfg *Config, opts ...Option) (oauth2server.St
 	o := newOptions(opts)
 
 	cfg.EnsureDefaults()
+
+	if p := cfgnorm.Provider(cfg.Provider); p != ProviderMemory {
+		return nil, errors.Wrapf(errors.ErrUnknownProvider,
+			"oauth2 server store provider %q: this config builds the in-memory store only, "+
+				"and a SQL-backed one is built by platform-go's "+
+				"authentication/oauth2serverstore/config", cfg.Provider)
+	}
 
 	if err := cfg.ValidateWithContext(ctx); err != nil {
 		return nil, errors.Wrap(err, "validating oauth2 server config")
