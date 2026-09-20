@@ -269,6 +269,24 @@ func handlerStatus(err error) (*status.Status, bool) {
 // errors into gRPC status details for wire transmission.
 // Handlers should return errors (optionally wrapped); the interceptor will
 // derive the gRPC code via MapToGRPC and attach the encoded error to details.
+// The details channel is not redacted, and that is the half of this file worth
+// reading before installing either interceptor.
+//
+// clientMessage below takes care to keep the wrapped chain — table names,
+// connection strings, the permission that was missing — off the status message.
+// encodeErrorToDetails then puts that same chain into the status details of the
+// same response, because reconstructing the error on the far side is what these
+// interceptors are for. The two are not protecting the same thing and are not
+// meant to: the message is for whoever is calling, the details are for a peer
+// this process trusts.
+//
+// So a server running these and reachable by untrusted clients — a mobile app,
+// a browser — needs the detail stripped at the edge, or the text the message
+// channel refused to carry is available beside it, and DecodeErrorFromStatus is
+// the supported way to unpack it. The package documentation states this too;
+// it is repeated here because this is the file somebody reads when they are
+// deciding to install one, and clientMessage's own comment reads like an
+// assurance that covers the whole response.
 func UnaryErrorEncodingInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -303,6 +321,8 @@ func UnaryErrorEncodingInterceptor() grpc.UnaryServerInterceptor {
 
 // StreamErrorEncodingInterceptor returns a stream interceptor that encodes
 // handler errors into gRPC status details for wire transmission.
+//
+// The same unredacted-details caveat applies — see UnaryErrorEncodingInterceptor.
 func StreamErrorEncodingInterceptor() grpc.StreamServerInterceptor {
 	return func(
 		srv any,

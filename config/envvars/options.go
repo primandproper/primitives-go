@@ -3,8 +3,12 @@ package envvars
 import (
 	"context"
 	"go/token"
+	"io"
+	"log"
 	"maps"
+	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/primandproper/primitives-go/v2/errors"
@@ -128,8 +132,14 @@ func (o *Options) dependencyDirs(ctx context.Context) (map[string]string, error)
 		return nil, err
 	}
 
+	var skipped []string
+
 	for importPath, dir := range discovered {
 		if !matchesAny(importPath, o.Dependencies) {
+			if _, given := dirs[importPath]; !given {
+				skipped = append(skipped, importPath)
+			}
+
 			continue
 		}
 
@@ -138,6 +148,8 @@ func (o *Options) dependencyDirs(ctx context.Context) (map[string]string, error)
 		}
 	}
 
+	warnSkipped(skipped)
+
 	for _, prefix := range o.Dependencies {
 		if !anyMatches(dirs, prefix) {
 			return nil, errors.Newf("no module whose path begins with %q was found for %q; it is required by Dependencies", prefix, o.Dir)
@@ -145,6 +157,50 @@ func (o *Options) dependencyDirs(ctx context.Context) (map[string]string, error)
 	}
 
 	return dirs, nil
+}
+
+// warnSkipped names the modules that were discovered and then dropped by the
+// Dependencies allowlist.
+//
+// Dependencies bounds what is parsed, and a module outside it is walked past in
+// silence — which is the right behavior and the wrong report. A config struct
+// embedded from an unparsed module contributes none of its variables, and the
+// run still exits zero having written a smaller file that looks plausible. The
+// failure is a key that quietly stops being documented, and the only signal is
+// a constant count nobody has a baseline for.
+//
+// It names every dropped module rather than guessing which ones mattered,
+// because whether a dropped module held config is exactly what this function
+// could not parse in order to find out. A caller who meant to drop them reads
+// one line and moves on; a caller who split a module in two and forgot to widen
+// the list reads the name of the half that went missing.
+//
+// Stderr rather than a logger, because this runs from go:generate, which is
+// where a build-time warning is already expected to appear.
+func warnSkipped(skipped []string) {
+	writeSkippedWarning(os.Stderr, skipped)
+}
+
+// writeSkippedWarning is warnSkipped with the destination supplied, so the
+// wording is a test's to assert rather than something only a human notices.
+func writeSkippedWarning(w io.Writer, skipped []string) {
+	if len(skipped) == 0 {
+		return
+	}
+
+	slices.Sort(skipped)
+
+	// A log.Logger rather than fmt.Fprintf, because the write is advisory and a
+	// failed one has nowhere better to be reported — and Printf returns nothing
+	// to discard, which is the difference between that being a decision and
+	// being an unchecked error the linter is right about. No flags, because a
+	// warning from a build-time generator wants to read like the tool talking
+	// rather than like a log line.
+	out := log.New(w, "envvars: ", 0)
+
+	out.Printf("%d module(s) discovered and not parsed, because Dependencies does not match them: %s",
+		len(skipped), strings.Join(skipped, ", "))
+	out.Printf("any config struct reachable from a root but declared in one of these contributes no variables")
 }
 
 func matchesAny(importPath string, prefixes []string) bool {
