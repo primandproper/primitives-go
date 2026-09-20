@@ -127,6 +127,27 @@ func TestNewStore(T *testing.T) {
 		test.Nil(t, store)
 	})
 
+	// The variable used to be read by nobody: this tier claimed no PROVIDER,
+	// and caarlos0/env does not error on one nothing reads, so a deployment
+	// carrying PROVIDER=database here got the memory store and a clean start.
+	T.Run("refuses a provider it does not build", func(t *testing.T) {
+		t.Parallel()
+
+		store, err := NewStore(t.Context(), &Config{Provider: "database"})
+		test.ErrorIs(t, err, errors.ErrUnknownProvider)
+		test.Nil(t, store)
+	})
+
+	T.Run("takes the memory provider named or unnamed", func(t *testing.T) {
+		t.Parallel()
+
+		for _, provider := range []string{"", ProviderMemory, " Memory "} {
+			store, err := NewStore(t.Context(), &Config{Provider: provider})
+			must.NoError(t, err)
+			test.NotNil(t, store)
+		}
+	})
+
 	T.Run("refuses a config that cannot validate", func(t *testing.T) {
 		t.Parallel()
 

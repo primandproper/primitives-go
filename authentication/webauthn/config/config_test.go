@@ -124,6 +124,17 @@ func TestNewSessionStore(T *testing.T) {
 		test.Nil(t, store)
 	})
 
+	T.Run("refuses a provider it does not build", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := testConfig()
+		cfg.Provider = "database"
+
+		store, err := NewSessionStore(t.Context(), cfg)
+		test.ErrorIs(t, err, errors.ErrUnknownProvider)
+		test.Nil(t, store)
+	})
+
 	T.Run("reports a cache it cannot build", func(t *testing.T) {
 		t.Parallel()
 

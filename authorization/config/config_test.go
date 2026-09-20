@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/authorization/cached"
 	"github.com/primandproper/primitives-go/v2/cache"
 	"github.com/primandproper/primitives-go/v2/cache/memory"
+	"github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
@@ -206,6 +207,49 @@ func TestNewPolicyResolver_Cached(T *testing.T) {
 
 // NewCachedResolver is the seam authzdbcfg calls, so its two behaviors are
 // asserted here rather than only through the other half.
+func TestProviderRefusal(T *testing.T) {
+	T.Parallel()
+
+	// The variable used to be read by nobody: this tier claimed no PROVIDER,
+	// and caarlos0/env does not error on one nothing reads, so a deployment
+	// carrying PROVIDER=database here got the static resolver and a clean
+	// start — with decisions coming from Roles instead of the policy table.
+	T.Run("NewPolicyResolver refuses a provider it does not build", func(t *testing.T) {
+		t.Parallel()
+
+		resolver, err := build(t, &Config{Provider: "database"})
+		test.ErrorIs(t, err, errors.ErrUnknownProvider)
+		test.Nil(t, resolver)
+	})
+
+	T.Run("an unset or static provider is the zero config's promise", func(t *testing.T) {
+		t.Parallel()
+
+		for _, provider := range []string{"", ProviderStatic, " Static "} {
+			resolver, err := build(t, &Config{Provider: provider})
+			must.NoError(t, err)
+			test.NotNil(t, resolver)
+		}
+	})
+
+	// The guard that keeps the refusal from reaching platform-go. rbac/config
+	// embeds this Config with no env tag, so one PROVIDER populates both
+	// Provider fields — and its *database* branch calls NewCachedResolver with
+	// that very Config, to wrap the SQL resolver this package cannot build. A
+	// refusal here, or in ValidateWithContext, would fail every SQL deployment
+	// at the one door it is required to pass through.
+	T.Run("NewCachedResolver accepts the provider it does not build", func(t *testing.T) {
+		t.Parallel()
+
+		bare, err := build(t, &Config{})
+		must.NoError(t, err)
+
+		wrapped, err := NewCachedResolver(t.Context(), &Config{Provider: "database"}, bare, nil)
+		must.NoError(t, err)
+		test.NotNil(t, wrapped)
+	})
+}
+
 func TestNewCachedResolver(T *testing.T) {
 	T.Parallel()
 
