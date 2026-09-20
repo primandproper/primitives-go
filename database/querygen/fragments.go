@@ -239,6 +239,10 @@ func (g *Generator) CursorPaginationFragment(table string, direction Direction) 
 // The ordering is a byte comparison rather than the database's default
 // collation, on every dialect, for a reason the merge in search/sync's pruner
 // makes unforgiving — see Generator.byteOrdered.
+// The cursor binds through ReindexCursorArg rather than CursorArg, and that
+// constant's documentation says why: sharing the filter cursor's name makes the
+// two converge to one Go type across a package, and a nullable timestamp is not
+// what an id cursor is.
 func (g *Generator) ReindexScanQuery(table string) string {
 	id := Qualify(table, IDColumn)
 
@@ -252,7 +256,7 @@ ORDER BY %[4]s
 		table,
 		Qualify(table, ArchivedAtColumn),
 		g.byteOrdered(id),
-		CursorArg,
+		ReindexCursorArg,
 		g.limitClause(),
 	)
 }

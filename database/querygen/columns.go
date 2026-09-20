@@ -67,6 +67,23 @@ const (
 	UpdatedBeforeArg   = filtering.ArgUpdatedBefore
 )
 
+// ReindexCursorArg is the sqlc argument the reindex scan resumes from.
+//
+// It is not CursorArg, and the difference is the whole reason this constant
+// exists. A filtered list's cursor is nullable and may be any orderable column
+// the table paginates on, so in a corpus with several such lists the name
+// converges to whatever type they share — often a nullable timestamp. The
+// reindex scan's cursor is neither: it is always the id, always text, and
+// always bound. Sharing a name with the filter cursor makes the two converge to
+// one Go type across a package, and the generated code for one of them then
+// does not compile.
+//
+// That is not hypothetical and is why this is a separate name rather than a
+// note. A type override is matched as table.column or *.column — see
+// sqlc-gen-unison's TypeOverride — so it cannot distinguish two statements
+// binding one argument name, and the only thing that can is the name.
+const ReindexCursorArg = "reindex_cursor"
+
 // IDsArg is the sqlc argument the bulk stamp binds its id list through. It is
 // not one of the filter arguments above — nothing in filtering.QueryFilter
 // takes a set of ids — so it is spelled separately rather than smuggled into

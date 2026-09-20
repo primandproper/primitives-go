@@ -816,8 +816,8 @@ func runWidgetSuite(t *testing.T, ctx context.Context, d dialect.Dialect, db *sq
 
 		for range 10 {
 			statement, arguments := widgetQuery(t, d, "ScanWidgetIDsForReindex", map[string]any{
-				CursorArg: cursor,
-				LimitArg:  2,
+				ReindexCursorArg: cursor,
+				LimitArg:         2,
 			})
 
 			page := scanIDs(t, ctx, db, statement, arguments)
