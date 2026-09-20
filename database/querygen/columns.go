@@ -67,6 +67,24 @@ const (
 	UpdatedBeforeArg   = filtering.ArgUpdatedBefore
 )
 
+// ReindexCursorArg is the sqlc argument the reindex scan resumes from.
+//
+// It is not CursorArg, and the reason is about what a consumer has to do rather
+// than about a conflict here. No engine resolves a type for this argument: it
+// is compared against the id through a collation expression — COLLATE "C",
+// COLLATE BINARY, CAST(... AS BINARY) — and the comparison teaches sqlc
+// nothing, so the parameter defaults to a timestamp and the generated package
+// does not compile. Every corpus emitting this statement therefore owes it a
+// type override saying the obvious thing: it is the id, so it is text.
+//
+// An override is matched as table.column or *.column — see sqlc-gen-unison's
+// TypeOverride — so it names an argument and cannot name a statement. Were this
+// bound as CursorArg, the entry a corpus needs here would land on every
+// filtered list's cursor too, and those are nullable strings. One name cannot
+// be both, which is what makes this a name of its own rather than a note about
+// one.
+const ReindexCursorArg = "reindex_cursor"
+
 // IDsArg is the sqlc argument the bulk stamp binds its id list through. It is
 // not one of the filter arguments above — nothing in filtering.QueryFilter
 // takes a set of ids — so it is spelled separately rather than smuggled into

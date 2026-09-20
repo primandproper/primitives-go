@@ -340,11 +340,25 @@ func TestGenerator_ReindexScanQuery(T *testing.T) {
 		want := `SELECT things.id
 FROM things
 WHERE things.archived_at IS NULL
-	AND things.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND things.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY things.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);`
 
 		test.EqOp(t, want, pg().ReindexScanQuery("things"))
+	})
+
+	// The scan's cursor is deliberately not the filter cursor's argument. No
+	// engine resolves a type through the collation comparison, so a corpus owes
+	// this argument an override — and an override naming CursorArg would land
+	// on every filtered list's cursor too.
+	T.Run("does not bind the filter cursor's argument", func(t *testing.T) {
+		t.Parallel()
+
+		got := pg().ReindexScanQuery("things")
+
+		test.StrContains(t, got, ReindexCursorArg)
+		test.StrNotContains(t, got, "sqlc.arg("+CursorArg+")")
+		test.NotEq(t, CursorArg, ReindexCursorArg)
 	})
 
 	T.Run("both the comparison and the ordering carry the byte order, on every dialect", func(t *testing.T) {
