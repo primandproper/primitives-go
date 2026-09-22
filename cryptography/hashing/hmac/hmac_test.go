@@ -105,6 +105,41 @@ func TestNewHMACSHA512Hasher(T *testing.T) {
 	})
 }
 
+func TestNewHMACSHA1Hasher(T *testing.T) {
+	T.Parallel()
+
+	// RFC 2202 test case 2, the SHA-1 counterpart of the vector above.
+	T.Run("matches RFC 2202 case 2", func(t *testing.T) {
+		t.Parallel()
+
+		hasher := NewHMACSHA1Hasher([]byte("Jefe"))
+
+		test.EqOp(t,
+			"effcdf6ae5eb2fa2d27416d5f184df9c259a7c79",
+			hashing.HexString(hasher, "what do ya want for nothing?"),
+		)
+	})
+
+	T.Run("digest is twenty bytes wide", func(t *testing.T) {
+		t.Parallel()
+
+		test.SliceLen(t, 20, NewHMACSHA1Hasher([]byte("key")).Hash([]byte("anything")))
+	})
+
+	// The three constructors are three algorithms, not three spellings of one:
+	// a mix-up between them is a verifier that rejects every real delivery.
+	T.Run("disagrees with the other digests on the same content", func(t *testing.T) {
+		t.Parallel()
+
+		content := []byte("the same payload")
+
+		test.False(t, Equal(
+			NewHMACSHA1Hasher([]byte("key")).Hash(content),
+			NewHMACSHA256Hasher([]byte("key")).Hash(content),
+		))
+	})
+}
+
 func TestEqual(T *testing.T) {
 	T.Parallel()
 

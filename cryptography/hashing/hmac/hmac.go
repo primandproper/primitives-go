@@ -2,6 +2,7 @@ package hmac
 
 import (
 	"crypto/hmac"
+	"crypto/sha1" //nolint:gosec // G505: SHA-1 is here only because a provider's published scheme specifies it; see NewHMACSHA1Hasher
 	"crypto/sha256"
 	"crypto/sha512"
 	"hash"
@@ -36,6 +37,24 @@ func NewHMACSHA256Hasher(key []byte) *Hasher {
 // on the same terms as NewHMACSHA256Hasher.
 func NewHMACSHA512Hasher(key []byte) *Hasher {
 	return newHasher(key, sha512.New)
+}
+
+// NewHMACSHA1Hasher returns a hashing.Hasher computing HMAC-SHA-1 under key, on
+// the same terms as NewHMACSHA256Hasher.
+//
+// It exists to verify schemes that already specify SHA-1 and cannot be told
+// otherwise — Twilio's X-Twilio-Signature is the one this module reads — not to
+// be chosen for anything new. HMAC-SHA-1 is not broken by the collision attacks
+// that retired bare SHA-1, because an HMAC does not rest on collision
+// resistance; a provider that lets you pick, however, has given you a better
+// option and you should take it.
+//
+// Nothing that signs on this module's behalf reaches it: requestsigning mints
+// SHA-256, and webhooks/inbound's configurable HMACScheme deliberately offers no
+// Digest that selects it, so a verifier cannot be downgraded to SHA-1 by
+// configuration. Reaching it is a deliberate call to this constructor.
+func NewHMACSHA1Hasher(key []byte) *Hasher {
+	return newHasher(key, sha1.New)
 }
 
 func newHasher(key []byte, newHash func() hash.Hash) *Hasher {

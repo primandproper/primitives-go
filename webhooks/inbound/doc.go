@@ -89,7 +89,9 @@ schema this package does not know and should not publish as if it did.
 Delivery.Headers carries what arrived, because a provider puts things there a
 consumer needs — GitHub's X-GitHub-Delivery is the delivery ID and appears
 nowhere else. They are not covered by any of these signatures, which sign the
-body (and, for Stripe, a timestamp). A consumer must therefore treat header
+body (and, for Stripe, a timestamp; for Twilio, the URL and the body's form
+parameters, which is why its dedup key travels inside the form as MessageSid
+rather than in a header). A consumer must therefore treat header
 values as untrusted for anything security-relevant, and read what matters from
 the verified body. Credential headers are dropped rather than forwarded, and
 WithForwardedHeaders narrows the set further.

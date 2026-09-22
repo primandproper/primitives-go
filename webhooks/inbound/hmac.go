@@ -56,8 +56,7 @@ const (
 
 // HMACScheme describes a provider that signs the raw request body with an HMAC
 // and sends the result in a single header. It covers most of the long tail:
-// Shopify, Twilio's older scheme, Slack's inner shell, and whatever the next
-// vendor ships.
+// Shopify, Slack's inner shell, and whatever the next vendor ships.
 //
 // It is a struct rather than four positional arguments because three of the
 // four are strings, and a call site that reads NewHMACVerifier("acme",
@@ -65,9 +64,14 @@ const (
 // verifying nothing while looking correct.
 //
 // It does not cover a scheme that signs anything other than the body — an AWS
-// SNS canonical string, or the timestamp-prefixed payload Stripe and RevenueCat
-// both sign. The latter is TimestampedHMACScheme, which this package also
-// ships; the rest are their own Verifier implementations.
+// SNS canonical string, the URL and sorted form parameters Twilio signs, or the
+// timestamp-prefixed payload Stripe and RevenueCat both sign. The last is
+// TimestampedHMACScheme and Twilio is TwilioVerifier, both of which this package
+// also ships; the rest are their own Verifier implementations.
+//
+// Nor does it offer HMAC-SHA-1 as a Digest. Twilio's scheme specifies it, and
+// TwilioVerifier reaches it directly; a provider that signs the body has no
+// business being pointed at it by configuration.
 type HMACScheme struct {
 	// Provider is the label the verifier reports and the receiver stamps on
 	// every Delivery. Required.
