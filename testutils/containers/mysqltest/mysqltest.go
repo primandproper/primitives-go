@@ -9,20 +9,48 @@
 // Callers describe the shape they want with Options and receive a live Instance
 // inside a closure, so a test body says what it does with MySQL and nothing
 // about how MySQL is stood up or torn down.
+//
+// # The resolution ladder
+//
+// Run decides where the MySQL comes from, in this order:
+//
+//  1. the DSN in the environment variable named by WithDSNFromEnv, if that
+//     option was given and the variable is set. No container is started.
+//  2. -short, which skips.
+//  3. a container, behind the RUN_CONTAINER_TESTS gate — the test skips when
+//     it is closed.
+//
+// The first rung is how a suite runs against a server CI already provides, so
+// that a binary exercising postgres and MySQL side by side can be pointed at
+// both and need no Docker daemon at all. It is the same rung pgtest has, and it
+// exists here because an escape hatch for one dialect of a multi-dialect suite
+// removes nothing: the binary still needs the daemon for the other.
+//
+// # What may be on the other end
+//
+// The container defaults to stock MySQL (DefaultImage), but the MySQL-dialect
+// suites in the consuming repository run against MariaDB, and a CI job
+// providing a server through WithDSNFromEnv provides MariaDB. The two are close
+// enough that one dialect of SQL covers both, and far enough apart that a
+// developer pointing the variable at MySQL 8 and a CI job pointing it at
+// MariaDB are not running the same tests. When a result differs between the
+// two, the MariaDB one is the one CI will report.
 package mysqltest
 
 import (
 	"context"
 	"database/sql"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/testutils/containers"
 
-	// The go-sql-driver is registered here so that callers get a working
+	// Importing the driver by name also registers it, so callers get a working
 	// "mysql" driver from importing mysqltest alone.
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/shoenig/test/must"
 	"github.com/testcontainers/testcontainers-go"
 	mysqlcontainer "github.com/testcontainers/testcontainers-go/modules/mysql"
@@ -73,6 +101,7 @@ type options struct {
 	database     string
 	username     string
 	password     string
+	dsnEnvVar    string
 	params       []string
 	customizers  []testcontainers.ContainerCustomizer
 	maxOpenConns int
@@ -94,9 +123,28 @@ func WithCredentials(database, username, password string) Option {
 }
 
 // WithConnectionParams replaces the DSN parameters Instance.ConnectionString is
-// built with. The defaults are parseTime=true and multiStatements=true.
+// built with. The defaults are parseTime=true and multiStatements=true. They
+// apply to a container's DSN only: one read through WithDSNFromEnv is used
+// verbatim, parameters and all.
 func WithConnectionParams(params ...string) Option {
 	return func(o *options) { o.params = params }
+}
+
+// WithDSNFromEnv names an environment variable holding a go-sql-driver DSN
+// (user:password@tcp(host:port)/dbname?params — not a URL). When it is set and
+// non-empty, Run connects to that server and starts no container at all — the
+// first rung of the resolution ladder, ahead of -short and ahead of starting
+// anything.
+//
+// It is how a suite runs against a MySQL or MariaDB that CI already provides,
+// and how a developer points the whole binary at a local server. The
+// container-only fields of Instance are absent on this path: Container is nil,
+// and Database, Username and Password are read out of the DSN rather than from
+// WithCredentials. The DSN is used as given, so it has to carry the parameters
+// the suite relies on — parseTime=true and multiStatements=true, usually —
+// because WithConnectionParams does not reach it.
+func WithDSNFromEnv(name string) Option {
+	return func(o *options) { o.dsnEnvVar = name }
 }
 
 // WithMaxOpenConns caps Instance.DB's pool. Set it well above the number of
@@ -134,14 +182,16 @@ type Instance struct {
 	DB *sql.DB
 
 	// Container is the underlying testcontainer, for the rare test that needs
-	// Host, MappedPort or Exec. Its lifecycle is not yours to manage.
+	// Host, MappedPort or Exec. Its lifecycle is not yours to manage. It is nil
+	// when WithDSNFromEnv resolved the server, since there is no container then.
 	Container *mysqlcontainer.MySQLContainer
 
 	// ConnectionString is the DSN DB was opened with.
 	ConnectionString string
 
-	// Database, Username and Password are the credentials the container was
-	// provisioned with, exposed so tests can reconnect or grant against them.
+	// Database, Username and Password are the credentials the server was
+	// reached with, exposed so tests can reconnect or grant against them. On the
+	// WithDSNFromEnv path they are the DSN's, not WithCredentials'.
 	Database string
 	Username string
 	Password string
@@ -153,8 +203,17 @@ type Instance struct {
 // password, which is what makes this constructible at all. Parameters are the
 // caller's verbatim: root work usually wants a different set (e.g.
 // allowCleartextPasswords=true) than data-path connections do.
+//
+// A server named by WithDSNFromEnv was provisioned by somebody else, so its root
+// password is not this package's to know, and the test fails rather than
+// guessing. A suite that needs root there reads a root DSN from an environment
+// variable of its own.
 func (i *Instance) RootConnectionString(tb testing.TB, params ...string) string {
 	tb.Helper()
+
+	if i.Container == nil {
+		tb.Fatal("mysqltest: RootConnectionString needs a container; the root password of a server named by WithDSNFromEnv is not known here")
+	}
 
 	cs, err := i.Container.ConnectionString(tb.Context(), params...)
 	must.NoError(tb, err)
@@ -182,16 +241,17 @@ func (i *Instance) Open(tb testing.TB, connectionString string) *sql.DB {
 	return db
 }
 
-// Run starts a MySQL container, opens a pool against it, and hands both to fn
-// as an Instance. It is containers.Run with the MySQL-shaped setup — image,
+// Run resolves a MySQL, opens a pool against it, and hands both to fn as an
+// Instance. It is containers.Run with the MySQL-shaped setup — image,
 // credentials, readiness wait, sql.Open, ping — already applied, so the closure
 // starts from a database it can query.
 //
-// As with containers.Run, the RUN_CONTAINER_TESTS gate is enforced here (the
-// test skips without a Docker daemon), startup failures fail the test, and
-// teardown of both the pool and the container is registered with tb.Cleanup —
-// so fn is free to spawn parallel subtests against the Instance and return
-// before they run.
+// The server comes from the resolution ladder in the package documentation: a
+// DSN named by WithDSNFromEnv if one is set, and a container otherwise, behind
+// the RUN_CONTAINER_TESTS gate (the test skips without a Docker daemon).
+// Startup failures fail the test, and teardown of the pool and of any container
+// is registered with tb.Cleanup — so fn is free to spawn parallel subtests
+// against the Instance and return before they run.
 func Run(tb testing.TB, fn func(ctx context.Context, my *Instance), opts ...Option) {
 	tb.Helper()
 
@@ -201,6 +261,20 @@ func Run(tb testing.TB, fn func(ctx context.Context, my *Instance), opts ...Opti
 
 	cfg := newOptions(opts)
 
+	if dsn := cfg.dsnFromEnv(); dsn != "" {
+		// A server somebody else is running: nothing to gate on but -short,
+		// because a caller asking for a fast answer does not want a database
+		// round-trip either.
+		if testing.Short() {
+			tb.SkipNow()
+		}
+
+		ctx := tb.Context()
+		fn(ctx, cfg.instanceForDSN(tb, ctx, dsn))
+
+		return
+	}
+
 	containers.Run(tb,
 		func(ctx context.Context) (*mysqlcontainer.MySQLContainer, error) {
 			return mysqlcontainer.Run(ctx, cfg.image, cfg.containerOptions()...)
@@ -209,28 +283,77 @@ func Run(tb testing.TB, fn func(ctx context.Context, my *Instance), opts ...Opti
 			connectionString, err := container.ConnectionString(ctx, cfg.params...)
 			must.NoError(tb, err)
 
-			db, err := sql.Open(DriverName, connectionString)
-			must.NoError(tb, err)
-			must.NotNil(tb, db)
-
-			tb.Cleanup(func() { closePool(tb, db) })
-
-			if cfg.maxOpenConns > 0 {
-				db.SetMaxOpenConns(cfg.maxOpenConns)
-			}
-
-			containers.PingUntilReady(tb, ctx, db.PingContext)
-
-			fn(ctx, &Instance{
-				DB:               db,
+			instance := &Instance{
+				DB:               cfg.openPool(tb, ctx, connectionString),
 				Container:        container,
 				ConnectionString: connectionString,
 				Database:         cfg.database,
 				Username:         cfg.username,
 				Password:         cfg.password,
-			})
+			}
+
+			fn(ctx, instance)
 		},
 	)
+}
+
+// dsnFromEnv reads the first rung of the resolution ladder, or "" when the
+// caller named no variable or the one they named is unset.
+func (o *options) dsnFromEnv() string {
+	if o.dsnEnvVar == "" {
+		return ""
+	}
+
+	return strings.TrimSpace(os.Getenv(o.dsnEnvVar))
+}
+
+// instanceForDSN is the WithDSNFromEnv path: a server somebody else is running,
+// so there is nothing to start and nothing to terminate, and teardown is the
+// pool and only the pool. The credentials come out of the DSN through the
+// driver's own parser, since a go-sql-driver DSN is not a URL.
+func (o *options) instanceForDSN(tb testing.TB, ctx context.Context, dsn string) *Instance {
+	tb.Helper()
+
+	parsed, err := parseDSN(o.dsnEnvVar, dsn)
+	must.NoError(tb, err)
+
+	return &Instance{
+		DB:               o.openPool(tb, ctx, dsn),
+		ConnectionString: dsn,
+		Database:         parsed.DBName,
+		Username:         parsed.User,
+		Password:         parsed.Passwd,
+	}
+}
+
+// parseDSN parses a DSN read from the named environment variable, naming the
+// variable on failure so a misconfigured CI job says which knob is wrong.
+func parseDSN(envVar, dsn string) (*mysql.Config, error) {
+	parsed, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return nil, platformerrors.Wrapf(err, "mysqltest: parsing DSN from %s", envVar)
+	}
+
+	return parsed, nil
+}
+
+// openPool opens, sizes and pings a pool, draining it when tb ends.
+func (o *options) openPool(tb testing.TB, ctx context.Context, connectionString string) *sql.DB {
+	tb.Helper()
+
+	db, err := sql.Open(DriverName, connectionString)
+	must.NoError(tb, err)
+	must.NotNil(tb, db)
+
+	tb.Cleanup(func() { closePool(tb, db) })
+
+	if o.maxOpenConns > 0 {
+		db.SetMaxOpenConns(o.maxOpenConns)
+	}
+
+	containers.PingUntilReady(tb, ctx, db.PingContext)
+
+	return db
 }
 
 // closePool drains a pool at the end of a test, logging rather than failing if
