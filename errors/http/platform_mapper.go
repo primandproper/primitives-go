@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/ratelimiting"
 	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 	vectorsearch "github.com/primandproper/primitives-go/v2/search/vector"
+	"github.com/primandproper/primitives-go/v2/sms"
 )
 
 // PlatformMapper maps platform-level errors to HTTP error codes and messages.
@@ -19,7 +20,8 @@ import (
 //
 // "Platform" is a narrower word here than it looks. It means the primitives —
 // database, circuitbreaking, ratelimiting, idempotency, requestsigning, the two
-// search indexes, and the platformerrors sentinels — and nothing built on them.
+// search indexes, sms, and the platformerrors sentinels — and nothing built on
+// them.
 // The mappings for dataprivacy, links, operations and sessions used to live in
 // this switch and now live beside their own sentinels, as dataprivacy.HTTPMapper
 // and its three counterparts, registered with RegisterHTTPErrorMapper. That is
@@ -131,6 +133,21 @@ func (platformMapper) Map(err error) (code ErrorCode, msg string, ok bool) {
 		return ErrValidatingRequestInput, "embedding must not be empty", true
 	case errors.Is(err, vectorsearch.ErrDimensionMismatch):
 		return ErrValidatingRequestInput, "embedding does not match the index dimension", true
+	// The three refusals a text-message provider makes about the message rather
+	// than about itself. They are sms's own sentinels rather than an adapter's,
+	// for the reason the search ones are: this mapper imports what it maps, and
+	// importing sms/twilio would put a vendor's transport into the import graph
+	// of the package every handler already depends on.
+	//
+	// None of the messages names the number. Which recipient refused is in the
+	// request the caller already has, and a phone number in an error message is a
+	// phone number in a log aggregator.
+	case errors.Is(err, sms.ErrRecipientOptedOut):
+		return ErrRecipientOptedOut, "recipient has opted out of messages from this sender", true
+	case errors.Is(err, sms.ErrUnverifiedRecipient):
+		return ErrRecipientUnverified, "messaging is not fully provisioned for this deployment", true
+	case errors.Is(err, sms.ErrInvalidRecipient):
+		return ErrValidatingRequestInput, "invalid recipient phone number", true
 	case errors.Is(err, platformerrors.ErrNilInputParameter),
 		errors.Is(err, platformerrors.ErrEmptyInputParameter),
 		errors.Is(err, platformerrors.ErrInvalidIDProvided),

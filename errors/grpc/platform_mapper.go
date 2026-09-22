@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/ratelimiting"
 	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 	vectorsearch "github.com/primandproper/primitives-go/v2/search/vector"
+	"github.com/primandproper/primitives-go/v2/sms"
 
 	"google.golang.org/grpc/codes"
 )
@@ -26,7 +27,8 @@ import (
 //
 // "Platform" is a narrower word here than it looks. It means the primitives —
 // database, circuitbreaking, ratelimiting, idempotency, requestsigning, the two
-// search indexes, and the platformerrors sentinels — and nothing built on them.
+// search indexes, sms, and the platformerrors sentinels — and nothing built on
+// them.
 // The mappings for dataprivacy, links, operations and sessions used to live in
 // this switch and now live beside their own sentinels, as dataprivacy.GRPCMapper
 // and its three counterparts, registered with RegisterGRPCErrorMapper. That is
@@ -125,6 +127,22 @@ func (platformMapper) Map(err error) (code codes.Code, ok bool) {
 		return codes.NotFound, true
 	case errors.Is(err, vectorsearch.ErrEmptyEmbedding),
 		errors.Is(err, vectorsearch.ErrDimensionMismatch):
+		return codes.InvalidArgument, true
+	// FailedPrecondition rather than PermissionDenied, which was the other
+	// candidate: gRPC's guidance scopes PermissionDenied to a caller that may not
+	// do the thing, and this caller may. It is the recipient who withdrew
+	// consent, and the state that has to change before a retry can succeed is
+	// theirs — they text START — which is squarely FailedPrecondition's "do not
+	// retry until the system state is fixed".
+	case errors.Is(err, sms.ErrRecipientOptedOut):
+		return codes.FailedPrecondition, true
+	// Internal, because a trial account that may only message verified numbers is
+	// this deployment being unfinished rather than anything the caller sent. It
+	// is the gRPC counterpart of the 500 the HTTP mapper resolves to, and the
+	// same argument: the remedy is on the billing page, not in the request.
+	case errors.Is(err, sms.ErrUnverifiedRecipient):
+		return codes.Internal, true
+	case errors.Is(err, sms.ErrInvalidRecipient):
 		return codes.InvalidArgument, true
 	case errors.Is(err, platformerrors.ErrNilInputParameter),
 		errors.Is(err, platformerrors.ErrEmptyInputParameter),

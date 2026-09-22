@@ -61,6 +61,7 @@ Implementations are listed in parentheses; most concerns also ship a `noop`. Thr
 | `notifications/async` | Channel push to clients    | ably, pusher, sse, websocket                      |
 | `notifications/mobile`| Mobile push                | apns, fcm                                         |
 | `email`               | Transactional email        | mailgun, mailjet, postmark, resend, sendgrid, ses |
+| `sms`                 | Transactional text messages| twilio                                            |
 
 ### Web & transport
 | Package            | Purpose                                       | Implementations                       |

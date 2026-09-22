@@ -26,6 +26,8 @@ var (
 		string(ErrActionLinkUnusable):         ErrActionLinkUnusable,
 		string(ErrInvalidSearchCursor):        ErrInvalidSearchCursor,
 		string(ErrSearchWindowExceeded):       ErrSearchWindowExceeded,
+		string(ErrRecipientOptedOut):          ErrRecipientOptedOut,
+		string(ErrRecipientUnverified):        ErrRecipientUnverified,
 	}
 )
 
@@ -158,4 +160,26 @@ const (
 	// one is a session this service could not read, and this one is a caller who
 	// has no session yet and did not earn one.
 	ErrAuthenticationFailed ErrorCode = "E123"
+	// ErrRecipientOptedOut is returned when a text message was refused because
+	// the person on the receiving end has told the carrier to stop.
+	//
+	// It is its own code rather than a general conflict because the consumer has
+	// something specific to do with it, and only one chance to do it: an opt-out
+	// is a legal fact about a person, made by them and binding on every sender of
+	// that number, and it has to be written down where the rest of the system can
+	// see it. A client shown ErrResourceConflict records a failed send and tries
+	// again tomorrow.
+	//
+	// It says nothing about the number. Which recipient refused is in the request
+	// the caller already has, and an error message naming a phone number is one
+	// that ends up in a log aggregator.
+	ErrRecipientOptedOut ErrorCode = "E124"
+	// ErrRecipientUnverified is returned when the SMS provider will only deliver
+	// to numbers verified in its console — a trial account — and this one is not.
+	//
+	// It is a 500 for the same reason ErrTalkingToDatabase is: the request was
+	// fine, the recipient was fine, and the deployment is not finished. Answering
+	// it as bad input would send an operator to look at the phone number instead
+	// of at the billing page, which is where the fix is.
+	ErrRecipientUnverified ErrorCode = "E125"
 )

@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/ratelimiting"
 	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 	vectorsearch "github.com/primandproper/primitives-go/v2/search/vector"
+	"github.com/primandproper/primitives-go/v2/sms"
 
 	"github.com/shoenig/test"
 	"google.golang.org/grpc/codes"
@@ -62,6 +63,9 @@ var mappedSentinels = []error{
 	vectorsearch.ErrNotFound,
 	vectorsearch.ErrEmptyEmbedding,
 	vectorsearch.ErrDimensionMismatch,
+	sms.ErrRecipientOptedOut,
+	sms.ErrInvalidRecipient,
+	sms.ErrUnverifiedRecipient,
 }
 
 func TestPlatformMappers_coverTheSameSentinels(T *testing.T) {
