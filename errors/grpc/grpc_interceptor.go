@@ -140,34 +140,53 @@ func ClientSafeMessage(err error) (string, bool) {
 // carries — the earlier list wins, which is why the registered (domain) list is
 // passed before the platform one.
 func firstClientSafeNode(err error, lists ...[]error) (string, bool) {
-	for _, list := range lists {
-		for _, sentinel := range list {
-			if nodeIs(err, sentinel) {
-				return sentinel.Error(), true
+	return firstMatchingNode(err, func(node error) (string, bool) {
+		for _, list := range lists {
+			for _, sentinel := range list {
+				if nodeIs(node, sentinel) {
+					return sentinel.Error(), true
+				}
 			}
 		}
+
+		return "", false
+	})
+}
+
+// firstMatchingNode walks err outermost-first — depth-first through a Join, in
+// the order it was joined — and returns the first answer match gives for a
+// node, and false when no node has one.
+//
+// The walk is the unwrapping errors.As would do, done by hand so that each node
+// is inspected before what it wraps; asserting on the node itself is the point,
+// not an oversight. It is written once rather than per lookup because the order
+// is the part that can be got wrong: ClientSafeMessage and ClientSafeReason both
+// document that the outermost node wins, and two copies of that walk could
+// disagree about which refusal a chain is while both looked correct.
+func firstMatchingNode[T any](err error, match func(error) (T, bool)) (T, bool) {
+	if answer, ok := match(err); ok {
+		return answer, true
 	}
 
-	// The walk is the unwrapping errors.As would do, done by hand so that each
-	// node is inspected before what it wraps; asserting on the node itself is
-	// the point, not an oversight.
 	switch u := err.(type) { //nolint:errorlint // this is the unwrap step of a chain walk, not a match
 	case interface{ Unwrap() error }:
 		if next := u.Unwrap(); next != nil {
-			return firstClientSafeNode(next, lists...)
+			return firstMatchingNode(next, match)
 		}
 	case interface{ Unwrap() []error }:
 		for _, next := range u.Unwrap() {
 			if next == nil {
 				continue
 			}
-			if msg, ok := firstClientSafeNode(next, lists...); ok {
-				return msg, true
+			if answer, ok := firstMatchingNode(next, match); ok {
+				return answer, true
 			}
 		}
 	}
 
-	return "", false
+	var zero T
+
+	return zero, false
 }
 
 // nodeIs is std errors.Is for a single node — identity, or the node's own Is
@@ -236,10 +255,46 @@ var (
 //
 // It is additive and safe to call from more than one goroutine, and a sentinel
 // registered twice costs a second comparison and nothing else.
+//
+// A sentinel a client has to branch on rather than merely display goes to
+// RegisterClientSafeReasons instead, which registers it here too and adds the
+// stable identifier this call has nothing to say about.
 func RegisterClientSafeSentinels(sentinels ...error) {
 	registeredClientSafeMu.Lock()
 	defer registeredClientSafeMu.Unlock()
 	registeredClientSafe = append(registeredClientSafe, sentinels...)
+}
+
+// statusWithDetails builds the status the interceptors return: the code and
+// message they settled on, carrying the two details this package puts on the
+// wire.
+//
+// The two are for different readers and are attached separately so that one
+// failing to marshal does not cost the other. The ErrorInfo is the client's —
+// a stable identifier to branch on, safe to forward — and the EncodedError is
+// the peer's: the whole chain, unredacted, which an edge reachable by untrusted
+// clients strips with StripEncodedErrorDetail. Keeping them in distinct details
+// is what makes that stripping selective; see ClientReason.
+//
+// Both are attached best-effort, as the encoded detail always has been: a status
+// that says the right code and message without a detail is better than an error
+// about attaching one.
+func statusWithDetails(ctx context.Context, code codes.Code, msg string, err error) *status.Status {
+	st := status.New(code, msg)
+
+	if info := clientReasonDetail(err); info != nil {
+		if stWithInfo, withInfoErr := st.WithDetails(info); withInfoErr == nil {
+			st = stWithInfo
+		}
+	}
+
+	if detail := encodeErrorToDetails(ctx, err); detail != nil {
+		if stWithDetails, withDetailsErr := st.WithDetails(detail); withDetailsErr == nil {
+			st = stWithDetails
+		}
+	}
+
+	return st
 }
 
 // handlerStatus reports the status a handler shaped its error as, and false for
@@ -309,13 +364,7 @@ func UnaryErrorEncodingInterceptor() grpc.UnaryServerInterceptor {
 			msg = st.Message()
 		}
 
-		st := status.New(code, msg)
-		if detail := encodeErrorToDetails(ctx, err); detail != nil {
-			if stWithDetails, withDetailsErr := st.WithDetails(detail); withDetailsErr == nil {
-				st = stWithDetails
-			}
-		}
-		return nil, st.Err()
+		return nil, statusWithDetails(ctx, code, msg, err).Err()
 	}
 }
 
@@ -345,13 +394,7 @@ func StreamErrorEncodingInterceptor() grpc.StreamServerInterceptor {
 			msg = st.Message()
 		}
 
-		st := status.New(code, msg)
-		if detail := encodeErrorToDetails(ss.Context(), err); detail != nil {
-			if stWithDetails, withDetailsErr := st.WithDetails(detail); withDetailsErr == nil {
-				st = stWithDetails
-			}
-		}
-		return st.Err()
+		return statusWithDetails(ss.Context(), code, msg, err).Err()
 	}
 }
 
