@@ -35,6 +35,17 @@ const (
 	// pulling an arbitrarily large body into memory on the error path.
 	maxErrorBodyBytes = 64 << 10 // 64 KiB
 
+	// maxErrorBodySnippetBytes bounds how much of a body that did not decode as
+	// Twilio's error object reaches the error message.
+	//
+	// It is a second, much smaller bound because the two serve different
+	// readers: maxErrorBodyBytes is what the JSON decoder is allowed to see, and
+	// this is what a person reading a log line is. A proxy's HTML error page
+	// quoted in full is not something anyone reads, and io.LimitReader truncates
+	// silently where http.MaxBytesReader would have failed the read, so the
+	// bound on the read is no longer a bound on the message.
+	maxErrorBodySnippetBytes = 512
+
 	// The span and log attributes this package records. They are local constants
 	// rather than observability/keys entries because nothing else in this module
 	// records them, and a key with one writer is not a convention anybody can
@@ -261,7 +272,7 @@ func (s *Sender) SendSMS(ctx context.Context, details *sms.OutboundSMS) (_ *sms.
 // failed either way, and a nil error here would report a send that never
 // happened as a success.
 func (s *Sender) errorForResponse(op observability.Operation, resp *http.Response) error {
-	body, readErr := io.ReadAll(http.MaxBytesReader(nil, resp.Body, maxErrorBodyBytes))
+	body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodyBytes))
 	if readErr != nil {
 		op.Acknowledge(readErr, "reading twilio error response body")
 
@@ -274,7 +285,7 @@ func (s *Sender) errorForResponse(op observability.Operation, resp *http.Respons
 	// a decoding error instead.
 	var apiErr errorResponse
 	if err := json.Unmarshal(body, &apiErr); err != nil || apiErr.Code == 0 {
-		return platformerrors.Errorf("twilio returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return platformerrors.Errorf("twilio returned status %d: %s", resp.StatusCode, errorBodySnippet(body))
 	}
 
 	op.Set(errorCodeAttrKey, apiErr.Code)
@@ -286,6 +297,22 @@ func (s *Sender) errorForResponse(op observability.Operation, resp *http.Respons
 	}
 
 	return platformerrors.Errorf("twilio returned status %d (error %d): %s", resp.StatusCode, apiErr.Code, apiErr.Message)
+}
+
+// errorBodySnippet renders a body that did not decode as Twilio's error object
+// for the one error message that quotes it.
+//
+// The cut is by bytes and can land inside a rune, so what survives it is run
+// through ToValidUTF8: a log line carrying half a character is a log line an
+// aggregator may refuse. A body already within the bound is returned trimmed
+// and otherwise untouched.
+func errorBodySnippet(body []byte) string {
+	trimmed := strings.TrimSpace(string(body))
+	if len(trimmed) <= maxErrorBodySnippetBytes {
+		return trimmed
+	}
+
+	return strings.ToValidUTF8(trimmed[:maxErrorBodySnippetBytes], "") + "…"
 }
 
 // sentinelForCode maps a Twilio error code onto the sms sentinel that says the

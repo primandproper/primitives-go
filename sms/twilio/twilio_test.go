@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -409,5 +410,37 @@ func TestSender_SendSMS_missingSID(T *testing.T) {
 		receipt, err := sender.SendSMS(t.Context(), &sms.OutboundSMS{To: "+15558675309", From: "+15551112222", Body: "hi"})
 		must.Error(t, err)
 		test.Nil(t, receipt)
+	})
+}
+
+func TestErrorBodySnippet(T *testing.T) {
+	T.Parallel()
+
+	T.Run("returns a short body trimmed and whole", func(t *testing.T) {
+		t.Parallel()
+
+		test.EqOp(t, "<html>502</html>", errorBodySnippet([]byte("  <html>502</html>\n")))
+	})
+
+	// io.LimitReader truncates silently where http.MaxBytesReader failed the
+	// read, so without this bound a misrouted request that landed on something
+	// chatty would put 64 KiB of someone else's HTML into an error message.
+	T.Run("bounds a body that is too long to quote", func(t *testing.T) {
+		t.Parallel()
+
+		snippet := errorBodySnippet([]byte(strings.Repeat("a", maxErrorBodyBytes)))
+
+		test.EqOp(t, maxErrorBodySnippetBytes+len("…"), len(snippet))
+		test.StrHasSuffix(t, "…", snippet)
+	})
+
+	// The cut is by bytes and lands mid-rune here: "é" is two bytes, so a bound
+	// that is odd relative to the run splits the last one.
+	T.Run("drops a rune the cut split in half", func(t *testing.T) {
+		t.Parallel()
+
+		snippet := errorBodySnippet([]byte("a" + strings.Repeat("é", maxErrorBodySnippetBytes)))
+
+		test.True(t, utf8.ValidString(snippet))
 	})
 }
