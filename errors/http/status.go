@@ -48,6 +48,18 @@ var codeToStatus = map[ErrorCode]int{
 	// survives where clients can actually read it: in the two error codes.
 	ErrInvalidSearchCursor:  http.StatusBadRequest, // E121
 	ErrSearchWindowExceeded: http.StatusBadRequest, // E122
+	// 409 rather than 403, which was the other candidate. A 403 says the caller
+	// may not do this, and the caller may: they are authorized to send, and it is
+	// the recipient who has withdrawn consent. Conflict says what actually
+	// happened — the request is at odds with the current state of the world, and
+	// the state has to change before it can succeed — which is the same shape
+	// ErrResourceConflict has and the reason the two share a status.
+	//
+	// The state change is a person texting START, which nothing on the server can
+	// perform. ErrRecipientUnverified is deliberately absent from this table and
+	// so resolves to 500: see its own documentation for why a trial account is
+	// the deployment's failure rather than the request's.
+	ErrRecipientOptedOut: http.StatusConflict, // E124
 }
 
 // HTTPStatusForCode returns the HTTP status code that corresponds to an ErrorCode.

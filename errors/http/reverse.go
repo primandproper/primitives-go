@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/idempotency"
 	"github.com/primandproper/primitives-go/v2/ratelimiting"
 	textsearch "github.com/primandproper/primitives-go/v2/search/text"
+	"github.com/primandproper/primitives-go/v2/sms"
 )
 
 // codeToError inverts PlatformMapper for the codes that came from exactly one
@@ -26,6 +27,8 @@ var codeToError = map[ErrorCode]error{
 	ErrInvalidSearchCursor:    textsearch.ErrInvalidCursor,
 	ErrNotEntitled:            platformerrors.ErrNotEntitled,
 	ErrQuotaExhausted:         platformerrors.ErrQuotaExhausted,
+	ErrRecipientOptedOut:      sms.ErrRecipientOptedOut,
+	ErrRecipientUnverified:    sms.ErrUnverifiedRecipient,
 	ErrResourceConflict:       platformerrors.ErrResourceInUse,
 	ErrSearchWindowExceeded:   textsearch.ErrResultWindowExceeded,
 	ErrTooManyRequests:        ratelimiting.ErrRateLimited,
