@@ -98,9 +98,15 @@ type (
 	// pretty-printing JSON produces a different byte sequence and therefore a
 	// different MAC, and the resulting failure looks like a wrong secret.
 	//
-	// The implementations here are Stripe, GitHub, and a configurable HMAC for
-	// the long tail; a scheme this package does not implement satisfies the
-	// same two methods and runs through the same Receiver.
+	// The implementations here are Stripe, GitHub, RevenueCat, Twilio, and a
+	// configurable HMAC for the long tail; a scheme this package does not
+	// implement satisfies the same two methods and runs through the same
+	// Receiver.
+	//
+	// body is not always what gets signed. Twilio's MAC is over the webhook URL
+	// and the body's decoded form parameters, so TwilioVerifier takes the URL at
+	// construction — the interface is unchanged, because the bytes are still
+	// what the verifier is given and still what it rules on.
 	Verifier interface {
 		// Provider names the provider this verifier speaks for, e.g. "stripe".
 		// It is a label: it lands on Delivery, on spans, and on this package's
