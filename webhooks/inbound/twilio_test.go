@@ -381,3 +381,91 @@ func TestTwilioSignedString(T *testing.T) {
 		test.Error(t, err)
 	})
 }
+
+// TestTwilioVerifier_defaultPort pins the forgiveness twilioSignedURLs buys.
+// Twilio's backend is inconsistent about spelling out :443 or :80, so a
+// verifier that compared only against the configured URL would reject every
+// real delivery whenever the backend disagreed with the console — with the same
+// error a wrong auth token gives, which is the worst way to learn it.
+func TestTwilioVerifier_defaultPort(T *testing.T) {
+	T.Parallel()
+
+	params := url.Values{"Body": {"hello"}, "MessageSid": {"SM0123456789abcdef"}}
+	body := []byte(params.Encode())
+
+	// Each pair is what the console was given and what Twilio signed. Both
+	// directions, because the backend may add the port or drop it.
+	for name, urls := range map[string]struct{ configured, signed string }{
+		"https configured without the port, signed with it": {"https://example.com/hook", "https://example.com:443/hook"},
+		"https configured with the port, signed without it": {"https://example.com:443/hook", "https://example.com/hook"},
+		"http configured without the port, signed with it":  {"http://example.com/hook", "http://example.com:80/hook"},
+		"http configured with the port, signed without it":  {"http://example.com:80/hook", "http://example.com/hook"},
+		"the query string survives the port being added":    {"https://example.com/hook?tenant=1", "https://example.com:443/hook?tenant=1"},
+		"the query string survives the port being removed":  {"https://example.com:443/hook?tenant=1", "https://example.com/hook?tenant=1"},
+	} {
+		T.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			verifier, err := NewTwilioVerifier(twilioDocToken, urls.configured)
+			must.NoError(t, err)
+
+			headers := http.Header{TwilioSignatureHeader: {signTwilio(t, twilioDocToken, urls.signed, params)}}
+			test.NoError(t, verifier.Verify(t.Context(), headers, body))
+		})
+	}
+
+	// A non-default port is one Twilio had to dial to reach the service, so it
+	// cannot be the thing that differs. Accepting a signature over the portless
+	// URL would be accepting one over a URL nothing ever requested.
+	T.Run("a non-default port is not dropped", func(t *testing.T) {
+		t.Parallel()
+
+		verifier, err := NewTwilioVerifier(twilioDocToken, "https://example.com:8443/hook")
+		must.NoError(t, err)
+
+		headers := http.Header{TwilioSignatureHeader: {signTwilio(t, twilioDocToken, "https://example.com/hook", params)}}
+		test.ErrorIs(t, verifier.Verify(t.Context(), headers, body), ErrInvalidSignature)
+	})
+
+	// The forgiveness is exactly one byte-for-byte alternative, not a general
+	// tolerance for URLs that look similar.
+	T.Run("a different host still fails", func(t *testing.T) {
+		t.Parallel()
+
+		verifier, err := NewTwilioVerifier(twilioDocToken, "https://example.com/hook")
+		must.NoError(t, err)
+
+		headers := http.Header{TwilioSignatureHeader: {signTwilio(t, twilioDocToken, "https://evil.example.com/hook", params)}}
+		test.ErrorIs(t, verifier.Verify(t.Context(), headers, body), ErrInvalidSignature)
+	})
+}
+
+func TestTwilioSignedURLs(T *testing.T) {
+	T.Parallel()
+
+	for name, tc := range map[string]struct {
+		in   string
+		want []string
+	}{
+		"https without a port":     {"https://example.com/h", []string{"https://example.com/h", "https://example.com:443/h"}},
+		"https with the default":   {"https://example.com:443/h", []string{"https://example.com:443/h", "https://example.com/h"}},
+		"http without a port":      {"http://example.com/h", []string{"http://example.com/h", "http://example.com:80/h"}},
+		"http with the default":    {"http://example.com:80/h", []string{"http://example.com:80/h", "http://example.com/h"}},
+		"a non-default port":       {"https://example.com:8443/h", []string{"https://example.com:8443/h"}},
+		"http's default under tls": {"https://example.com:80/h", []string{"https://example.com:80/h"}},
+		"no path at all":           {"https://example.com", []string{"https://example.com", "https://example.com:443"}},
+		"a query and no path":      {"https://example.com?a=1", []string{"https://example.com?a=1", "https://example.com:443?a=1"}},
+		// Neither appears in a Twilio webhook URL; the authority is still read
+		// correctly, so the colon in userinfo and the ones inside the IPv6
+		// literal are not mistaken for a port.
+		"userinfo carrying a colon":        {"https://user:pw@example.com/h", []string{"https://user:pw@example.com/h", "https://user:pw@example.com:443/h"}},
+		"an IPv6 literal":                  {"https://[::1]/h", []string{"https://[::1]/h", "https://[::1]:443/h"}},
+		"an IPv6 literal with the default": {"https://[::1]:443/h", []string{"https://[::1]:443/h", "https://[::1]/h"}},
+	} {
+		T.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			test.Eq(t, tc.want, twilioSignedURLs(tc.in))
+		})
+	}
+}

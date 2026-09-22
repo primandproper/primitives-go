@@ -55,8 +55,11 @@ const (
 // not form-encoded therefore fails verification like any other body that did
 // not prove where it came from.
 type TwilioVerifier struct {
-	publicURL string
-	hashers   []hashing.Hasher
+	// signedURLs are the forms of the configured URL Twilio may have signed,
+	// computed once by twilioSignedURLs. There is more than one because the
+	// backend is inconsistent about the default port; see that function.
+	signedURLs []string
+	hashers    []hashing.Hasher
 }
 
 var _ Verifier = (*TwilioVerifier)(nil)
@@ -75,6 +78,10 @@ var _ Verifier = (*TwilioVerifier)(nil)
 // request looking nothing like what was signed, and every delivery then fails
 // with ErrInvalidSignature — which is the same error a wrong token gives, so
 // suspect this first.
+//
+// The one difference it is forgiving about is the scheme's default port, which
+// Twilio's backend is inconsistent about including; writing the URL either way
+// verifies. See twilioSignedURLs.
 //
 // Reads WithAdditionalSecrets, which is how Twilio's secondary auth token is
 // supplied: the console issues a second token for exactly this rotation, and
@@ -106,7 +113,7 @@ func NewTwilioVerifier(authToken, publicURL string, opts ...VerifierOption) (*Tw
 		hashers = append(hashers, hmac.NewHMACSHA1Hasher([]byte(key)))
 	}
 
-	return &TwilioVerifier{publicURL: publicURL, hashers: hashers}, nil
+	return &TwilioVerifier{signedURLs: twilioSignedURLs(publicURL), hashers: hashers}, nil
 }
 
 // Provider returns "twilio".
@@ -128,21 +135,112 @@ func (v *TwilioVerifier) Verify(_ context.Context, headers http.Header, body []b
 		return platformerrors.Wrapf(ErrInvalidSignature, "%s is not valid base64", TwilioSignatureHeader)
 	}
 
-	signed, err := twilioSignedString(v.publicURL, body)
-	if err != nil {
-		// A body this scheme cannot canonicalize did not prove it came from
-		// Twilio, which is the same statement a mismatched MAC makes. Returning
-		// a parse error instead would answer a 400 to a forgery and hand a
-		// prober a way to tell "malformed" from "unsigned".
-		return platformerrors.Wrap(ErrInvalidSignature, "body is not form-encoded")
+	// Every URL Twilio may have signed, against every secret, without
+	// short-circuiting on the first match; see hmac.MatchesAny and
+	// twilioSignedURLs.
+	var matched bool
+
+	for _, signedURL := range v.signedURLs {
+		signed, signErr := twilioSignedString(signedURL, body)
+		if signErr != nil {
+			// A body this scheme cannot canonicalize did not prove it came from
+			// Twilio, which is the same statement a mismatched MAC makes. Returning
+			// a parse error instead would answer a 400 to a forgery and hand a
+			// prober a way to tell "malformed" from "unsigned".
+			//
+			// The body is the same for every candidate URL, so one failing to
+			// parse means they all do.
+			return platformerrors.Wrap(ErrInvalidSignature, "body is not form-encoded")
+		}
+
+		if hmac.MatchesAny(v.hashers, []byte(signed), candidate) {
+			matched = true
+		}
 	}
 
-	// Every secret, without short-circuiting; see hmac.MatchesAny.
-	if !hmac.MatchesAny(v.hashers, []byte(signed), candidate) {
+	if !matched {
 		return ErrInvalidSignature
 	}
 
 	return nil
+}
+
+// twilioSignedURLs returns every form of publicURL that Twilio may have signed:
+// the one that was configured, and — where the two differ only by the scheme's
+// default port — the other one.
+//
+// Twilio's backend is inconsistent about whether the URL it signs spells out an
+// explicit :443 or :80. Its own helper libraries answer this by computing the
+// signature both ways and accepting either, with the comment "sig generation on
+// back-end is inconsistent"; a receiver that compared only against what the
+// console was given rejects every delivery whenever the backend disagrees with
+// it, and does so with the same ErrInvalidSignature a wrong auth token gives.
+//
+// Only the default port varies. A non-default port is one Twilio must have
+// dialed to reach the service at all, so it cannot be the thing that differs,
+// and offering a candidate without it would accept a signature over a URL that
+// was never requested. That is narrower than Twilio's own libraries, which strip
+// any port; the extra candidate they allow is one their backend cannot produce.
+//
+// The authority is edited in place rather than re-rendered through net/url, for
+// the reason NewTwilioVerifier parses without rebuilding: every other byte of
+// the URL has to reach the MAC exactly as it was written, and percent-encoding
+// in a path or query does not reliably survive the round trip.
+func twilioSignedURLs(publicURL string) []string {
+	asConfigured := []string{publicURL}
+
+	schemeEnd := strings.Index(publicURL, "://")
+	if schemeEnd < 0 {
+		return asConfigured
+	}
+
+	var defaultPort string
+
+	switch strings.ToLower(publicURL[:schemeEnd]) {
+	case "https":
+		defaultPort = "443"
+	case "http":
+		defaultPort = "80"
+	default:
+		// Some other scheme has no default port to disagree about.
+		return asConfigured
+	}
+
+	authorityStart := schemeEnd + len("://")
+
+	authorityEnd := strings.IndexAny(publicURL[authorityStart:], "/?#")
+	if authorityEnd < 0 {
+		authorityEnd = len(publicURL)
+	} else {
+		authorityEnd += authorityStart
+	}
+
+	head, authority, tail := publicURL[:authorityStart], publicURL[authorityStart:authorityEnd], publicURL[authorityEnd:]
+
+	// The port follows the last colon that is outside any userinfo and outside
+	// any bracketed IPv6 literal. Neither appears in a Twilio webhook URL, but
+	// reading the authority correctly costs two lines.
+	host := authority
+	if at := strings.LastIndex(authority, "@"); at >= 0 {
+		host = authority[at+1:]
+	}
+
+	portStart := strings.LastIndex(host, ":")
+	if portStart < strings.LastIndex(host, "]") {
+		portStart = -1
+	}
+
+	if portStart < 0 {
+		// No port was configured, so the other candidate spells out the default.
+		return append(asConfigured, head+authority+":"+defaultPort+tail)
+	}
+
+	if host[portStart+1:] != defaultPort {
+		return asConfigured
+	}
+
+	// The default port was spelled out, so the other candidate drops it.
+	return append(asConfigured, head+authority[:len(authority)-len(host)+portStart]+tail)
 }
 
 // twilioSignedString builds the string Twilio signs: the public URL, then every
