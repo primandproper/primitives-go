@@ -149,7 +149,12 @@ func (s *APIServer) Shutdown(ctx context.Context) error {
 // a library cannot decide that a bind failure should take the host process
 // down, and a caller that wants that can still do it from the returned error.
 // A graceful close reports nil.
-func (s *APIServer) Serve(ctx context.Context) error {
+func (s *APIServer) Serve(ctx context.Context) (err error) {
+	// Every exit settles the bound address, so a failure before the bind ends an
+	// Addr wait as surely as a failed bind does. After a successful bind this is
+	// a no-op: only the first settlement counts.
+	defer func() { s.bound.Settle(nil, err) }()
+
 	s.logger.Debug("setting up server")
 
 	// The router is served as-is. Request tracing belongs to the routing backend,
@@ -165,7 +170,7 @@ func (s *APIServer) Serve(ctx context.Context) error {
 	s.httpServer.Handler = s.router.Handler()
 
 	http2ServerConf := &http2.Server{}
-	if err := http2.ConfigureServer(s.httpServer, http2ServerConf); err != nil {
+	if err = http2.ConfigureServer(s.httpServer, http2ServerConf); err != nil {
 		return perrors.Wrap(err, "configuring HTTP2")
 	}
 
@@ -173,16 +178,13 @@ func (s *APIServer) Serve(ctx context.Context) error {
 	// bind fails fast rather than hanging indefinitely.
 	listener, err := s.listen(ctx)
 	if err != nil {
-		err = perrors.Wrap(err, "binding listener")
-		s.bound.Settle(nil, err)
-
-		return err
+		return perrors.Wrap(err, "binding listener")
 	}
 
 	s.bound.Settle(listener.Addr(), nil)
 
 	if s.config.SSLCertificateFile != "" && s.config.SSLCertificateKeyFile != "" {
-		s.logger.WithValue("port", s.httpServer.Addr).Info("Listening for HTTPS requests")
+		s.logger.WithValue("address", listener.Addr().String()).Info("Listening for HTTPS requests")
 		// returns ErrServerClosed on graceful close.
 		if err = s.httpServer.ServeTLS(listener, s.config.SSLCertificateFile, s.config.SSLCertificateKeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return perrors.Wrap(err, "serving HTTPS traffic")
@@ -191,7 +193,7 @@ func (s *APIServer) Serve(ctx context.Context) error {
 		return nil
 	}
 
-	s.logger.WithValue("port", s.httpServer.Addr).Info("Listening for HTTP requests")
+	s.logger.WithValue("address", listener.Addr().String()).Info("Listening for HTTP requests")
 	// returns ErrServerClosed on graceful close.
 	if err = s.httpServer.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return perrors.Wrap(err, "serving HTTP traffic")

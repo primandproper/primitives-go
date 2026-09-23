@@ -245,19 +245,21 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // return nothing, and the only sentinel it checked was net/http's
 // ErrServerClosed — which gRPC never returns — so a bind failure or a dead
 // server was completely silent.
-func (s *Server) Serve(ctx context.Context) error {
+func (s *Server) Serve(ctx context.Context) (err error) {
+	// Every exit settles the bound address, so a failed bind — or anything added
+	// ahead of it later — ends an Addr wait. After a successful bind this is a
+	// no-op: only the first settlement counts.
+	defer func() { s.bound.Settle(nil, err) }()
+
 	var lc net.ListenConfig
 	lis, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", s.config.Port))
 	if err != nil {
-		err = perrors.Wrap(err, "binding gRPC listener")
-		s.bound.Settle(nil, err)
-
-		return err
+		return perrors.Wrap(err, "binding gRPC listener")
 	}
 
 	s.bound.Settle(lis.Addr(), nil)
 
-	s.logger.WithValue("port", s.config.Port).Info("Listening for GRPC requests")
+	s.logger.WithValue("address", lis.Addr().String()).Info("Listening for GRPC requests")
 
 	// grpc.ErrServerStopped is what Stop and GracefulStop produce, and is the
 	// only "this is a normal shutdown" answer this server can get.

@@ -65,4 +65,15 @@ func TestAddress(T *testing.T) {
 		test.Nil(t, got)
 		test.ErrorIs(t, err, context.Canceled)
 	})
+	T.Run("settling with neither an address nor an error reports ErrNotBound", func(t *testing.T) {
+		t.Parallel()
+
+		var a Address
+
+		a.Settle(nil, nil)
+
+		got, err := a.Wait(t.Context())
+		test.Nil(t, got)
+		test.ErrorIs(t, err, ErrNotBound)
+	})
 }

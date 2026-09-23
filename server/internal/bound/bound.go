@@ -18,7 +18,13 @@ import (
 	"context"
 	"net"
 	"sync"
+
+	"github.com/primandproper/primitives-go/v2/errors"
 )
+
+// ErrNotBound is what a wait reports when the server settled without either an
+// address or an error: it returned before binding and had nothing to say why.
+var ErrNotBound = errors.New("server returned without binding a listener")
 
 // Address is the outcome of a server's first bind.
 //
@@ -40,7 +46,14 @@ func (a *Address) ch() chan struct{} {
 // Settle records the outcome of a bind. Only the first call counts: a server
 // that is served twice answers with the first listener, which is the one a
 // caller that waited was waiting for.
+//
+// A nil addr with a nil err is recorded as ErrNotBound, so a server can settle
+// from a deferred call on every exit and a waiter never gets two nils back.
 func (a *Address) Settle(addr net.Addr, err error) {
+	if addr == nil && err == nil {
+		err = ErrNotBound
+	}
+
 	a.settled.Do(func() {
 		a.addr, a.err = addr, err
 		close(a.ch())
