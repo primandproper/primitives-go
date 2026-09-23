@@ -37,6 +37,27 @@ func TestRegisterHTTPServer(T *testing.T) {
 		test.NotNil(t, srv)
 	})
 
+	T.Run("the concrete server and the interface are the same instance", func(t *testing.T) {
+		t.Parallel()
+
+		i := do.New()
+		do.ProvideValue[context.Context](i, t.Context())
+		do.ProvideValue(i, Config{Port: 8080, StartupDeadline: time.Second})
+		do.ProvideValue(i, loggingnoop.NewLogger())
+		do.ProvideValue(i, (*routing.Router)(nil))
+		do.ProvideValue(i, tracingnoop.NewTracerProvider())
+
+		RegisterHTTPServer(i, "test_service")
+
+		concrete, err := do.Invoke[*APIServer](i)
+		must.NoError(t, err)
+
+		iface, err := do.Invoke[Server](i)
+		must.NoError(t, err)
+
+		test.Eq[Server](t, concrete, iface)
+	})
+
 	T.Run("serves the probes from the registry the container carries", func(t *testing.T) {
 		t.Parallel()
 
