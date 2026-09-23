@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/routing"
+	"github.com/primandproper/primitives-go/v2/server/internal/bound"
 
 	"golang.org/x/net/http2"
 )
@@ -42,6 +43,7 @@ type (
 		httpServer     *http.Server
 		tracerProvider tracing.Provider
 		config         *Config
+		bound          bound.Address
 	}
 )
 
@@ -171,8 +173,13 @@ func (s *APIServer) Serve(ctx context.Context) error {
 	// bind fails fast rather than hanging indefinitely.
 	listener, err := s.listen(ctx)
 	if err != nil {
-		return perrors.Wrap(err, "binding listener")
+		err = perrors.Wrap(err, "binding listener")
+		s.bound.Settle(nil, err)
+
+		return err
 	}
+
+	s.bound.Settle(listener.Addr(), nil)
 
 	if s.config.SSLCertificateFile != "" && s.config.SSLCertificateKeyFile != "" {
 		s.logger.WithValue("port", s.httpServer.Addr).Info("Listening for HTTPS requests")
@@ -191,6 +198,22 @@ func (s *APIServer) Serve(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// Addr is the address Serve bound, once it has.
+//
+// It is what makes Port 0 usable: the OS chooses the port, and this is how a
+// caller learns which one. Configuring a port reserved by binding :0 elsewhere
+// and closing it is a race this closes.
+//
+// It blocks until Serve has tried to bind. A failed bind returns that failure
+// rather than leaving the caller to wait out ctx, and a ctx that ends first
+// returns its error. Only the first Serve is reported.
+//
+// It is on *APIServer and not on the Server interface, because adding a method
+// to an interface stops every other implementation of it compiling.
+func (s *APIServer) Addr(ctx context.Context) (net.Addr, error) {
+	return s.bound.Wait(ctx)
 }
 
 // listen binds the TCP listener the server serves on. When StartupDeadline is

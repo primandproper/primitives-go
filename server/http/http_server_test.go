@@ -430,3 +430,72 @@ func Test_provideStdLibHTTPServer(T *testing.T) {
 		test.EqOp(t, ":0", srv.Addr)
 	})
 }
+
+func TestAPIServer_Addr(T *testing.T) {
+	T.Parallel()
+
+	newServer := func(t *testing.T, port uint16) *APIServer {
+		t.Helper()
+
+		return &APIServer{
+			logger:         loggingnoop.NewLogger(),
+			router:         testRouter(t),
+			httpServer:     provideStdLibHTTPServer(&Config{Port: port}),
+			tracerProvider: tracingnoop.NewTracerProvider(),
+			config:         &Config{},
+		}
+	}
+
+	T.Run("reports the port the OS chose for Port 0", func(t *testing.T) {
+		t.Parallel()
+
+		srv := newServer(t, 0)
+
+		go func() { _ = srv.Serve(t.Context()) }()
+		t.Cleanup(func() { _ = srv.httpServer.Close() })
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+
+		addr, err := srv.Addr(ctx)
+		must.NoError(t, err)
+
+		tcp, ok := addr.(*net.TCPAddr)
+		must.True(t, ok)
+		test.NotEq(t, 0, tcp.Port)
+
+		conn, err := new(net.Dialer).DialContext(ctx, "tcp", tcp.String())
+		must.NoError(t, err)
+		test.NoError(t, conn.Close())
+	})
+
+	T.Run("a failed bind ends the wait with that failure", func(t *testing.T) {
+		t.Parallel()
+
+		lis, err := new(net.ListenConfig).Listen(t.Context(), "tcp", ":0")
+		must.NoError(t, err)
+		defer lis.Close()
+
+		srv := newServer(t, uint16(lis.Addr().(*net.TCPAddr).Port))
+
+		serveErr := srv.Serve(t.Context())
+		must.Error(t, serveErr)
+
+		addr, err := srv.Addr(t.Context())
+		test.Nil(t, addr)
+		test.ErrorIs(t, err, serveErr)
+	})
+
+	T.Run("a context that ends first ends the wait", func(t *testing.T) {
+		t.Parallel()
+
+		srv := newServer(t, 0)
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		addr, err := srv.Addr(ctx)
+		test.Nil(t, addr)
+		test.ErrorIs(t, err, context.Canceled)
+	})
+}

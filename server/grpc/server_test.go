@@ -446,3 +446,64 @@ func TestServer_Shutdown_ContextExpiry(T *testing.T) {
 		<-serveErrs
 	})
 }
+
+func TestServer_Addr(T *testing.T) {
+	T.Parallel()
+
+	T.Run("reports the port the OS chose for Port 0", func(t *testing.T) {
+		t.Parallel()
+
+		srv, err := NewGRPCServer(t.Context(), &Config{Port: 0}, nil, nil, nil)
+		must.NoError(t, err)
+
+		go func() { _ = srv.Serve(t.Context()) }()
+		t.Cleanup(srv.grpcServer.Stop)
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+
+		addr, err := srv.Addr(ctx)
+		must.NoError(t, err)
+
+		tcp, ok := addr.(*net.TCPAddr)
+		must.True(t, ok)
+		test.NotEq(t, 0, tcp.Port)
+
+		// The address is the one being served, not merely one that was bound.
+		conn, err := new(net.Dialer).DialContext(ctx, "tcp", tcp.String())
+		must.NoError(t, err)
+		test.NoError(t, conn.Close())
+	})
+
+	T.Run("a failed bind ends the wait with that failure", func(t *testing.T) {
+		t.Parallel()
+
+		lis, err := new(net.ListenConfig).Listen(t.Context(), "tcp", ":0")
+		must.NoError(t, err)
+		defer lis.Close()
+
+		srv, err := NewGRPCServer(t.Context(), &Config{Port: uint16(lis.Addr().(*net.TCPAddr).Port)}, nil, nil, nil)
+		must.NoError(t, err)
+
+		serveErr := srv.Serve(t.Context())
+		must.Error(t, serveErr)
+
+		addr, err := srv.Addr(t.Context())
+		test.Nil(t, addr)
+		test.ErrorIs(t, err, serveErr)
+	})
+
+	T.Run("a context that ends first ends the wait", func(t *testing.T) {
+		t.Parallel()
+
+		srv, err := NewGRPCServer(t.Context(), &Config{Port: 0}, nil, nil, nil)
+		must.NoError(t, err)
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		addr, err := srv.Addr(ctx)
+		test.Nil(t, addr)
+		test.ErrorIs(t, err, context.Canceled)
+	})
+}

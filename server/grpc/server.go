@@ -13,6 +13,7 @@ import (
 	perrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/server/internal/bound"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -68,6 +69,7 @@ type (
 		config         *Config
 		grpcServer     *grpc.Server
 		tracerProvider tracing.Provider
+		bound          bound.Address
 	}
 
 	// RegistrationFunc is i.e. protobuf.RegisterSomeExampleServiceServer(grpcServer, &exampleServiceServerImpl{}).
@@ -247,8 +249,13 @@ func (s *Server) Serve(ctx context.Context) error {
 	var lc net.ListenConfig
 	lis, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", s.config.Port))
 	if err != nil {
-		return perrors.Wrap(err, "binding gRPC listener")
+		err = perrors.Wrap(err, "binding gRPC listener")
+		s.bound.Settle(nil, err)
+
+		return err
 	}
+
+	s.bound.Settle(lis.Addr(), nil)
 
 	s.logger.WithValue("port", s.config.Port).Info("Listening for GRPC requests")
 
@@ -259,6 +266,20 @@ func (s *Server) Serve(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// Addr is the address Serve bound, once it has.
+//
+// It is what makes Port 0 usable: the OS chooses the port, and this is how a
+// caller learns which one — a test standing the server up beside others, or a
+// harness dialing a service it assembled. Configuring a port reserved by
+// binding :0 elsewhere and closing it is a race this closes.
+//
+// It blocks until Serve has tried to bind. A failed bind returns that failure
+// rather than leaving the caller to wait out ctx, and a ctx that ends first
+// returns its error. Only the first Serve is reported.
+func (s *Server) Addr(ctx context.Context) (net.Addr, error) {
+	return s.bound.Wait(ctx)
 }
 
 // healthProbeMethodPrefix is the gRPC health service every load balancer and
