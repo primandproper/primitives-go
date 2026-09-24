@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/routing"
+	"github.com/primandproper/primitives-go/v2/server/internal/bound"
 
 	"golang.org/x/net/http2"
 )
@@ -42,6 +43,7 @@ type (
 		httpServer     *http.Server
 		tracerProvider tracing.Provider
 		config         *Config
+		bound          bound.Address
 	}
 )
 
@@ -147,7 +149,12 @@ func (s *APIServer) Shutdown(ctx context.Context) error {
 // a library cannot decide that a bind failure should take the host process
 // down, and a caller that wants that can still do it from the returned error.
 // A graceful close reports nil.
-func (s *APIServer) Serve(ctx context.Context) error {
+func (s *APIServer) Serve(ctx context.Context) (err error) {
+	// Every exit settles the bound address, so a failure before the bind ends an
+	// Addr wait as surely as a failed bind does. After a successful bind this is
+	// a no-op: only the first settlement counts.
+	defer func() { s.bound.Settle(nil, err) }()
+
 	s.logger.Debug("setting up server")
 
 	// The router is served as-is. Request tracing belongs to the routing backend,
@@ -163,7 +170,7 @@ func (s *APIServer) Serve(ctx context.Context) error {
 	s.httpServer.Handler = s.router.Handler()
 
 	http2ServerConf := &http2.Server{}
-	if err := http2.ConfigureServer(s.httpServer, http2ServerConf); err != nil {
+	if err = http2.ConfigureServer(s.httpServer, http2ServerConf); err != nil {
 		return perrors.Wrap(err, "configuring HTTP2")
 	}
 
@@ -174,8 +181,10 @@ func (s *APIServer) Serve(ctx context.Context) error {
 		return perrors.Wrap(err, "binding listener")
 	}
 
+	s.bound.Settle(listener.Addr(), nil)
+
 	if s.config.SSLCertificateFile != "" && s.config.SSLCertificateKeyFile != "" {
-		s.logger.WithValue("port", s.httpServer.Addr).Info("Listening for HTTPS requests")
+		s.logger.WithValue("address", listener.Addr().String()).Info("Listening for HTTPS requests")
 		// returns ErrServerClosed on graceful close.
 		if err = s.httpServer.ServeTLS(listener, s.config.SSLCertificateFile, s.config.SSLCertificateKeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return perrors.Wrap(err, "serving HTTPS traffic")
@@ -184,13 +193,29 @@ func (s *APIServer) Serve(ctx context.Context) error {
 		return nil
 	}
 
-	s.logger.WithValue("port", s.httpServer.Addr).Info("Listening for HTTP requests")
+	s.logger.WithValue("address", listener.Addr().String()).Info("Listening for HTTP requests")
 	// returns ErrServerClosed on graceful close.
 	if err = s.httpServer.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return perrors.Wrap(err, "serving HTTP traffic")
 	}
 
 	return nil
+}
+
+// Addr is the address Serve bound, once it has.
+//
+// It is what makes Port 0 usable: the OS chooses the port, and this is how a
+// caller learns which one. Configuring a port reserved by binding :0 elsewhere
+// and closing it is a race this closes.
+//
+// It blocks until Serve has tried to bind. A failed bind returns that failure
+// rather than leaving the caller to wait out ctx, and a ctx that ends first
+// returns its error. Only the first Serve is reported.
+//
+// It is on *APIServer and not on the Server interface, because adding a method
+// to an interface stops every other implementation of it compiling.
+func (s *APIServer) Addr(ctx context.Context) (net.Addr, error) {
+	return s.bound.Wait(ctx)
 }
 
 // listen binds the TCP listener the server serves on. When StartupDeadline is

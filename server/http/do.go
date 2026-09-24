@@ -11,7 +11,9 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// RegisterHTTPServer registers a Server with the injector.
+// RegisterHTTPServer registers an *APIServer with the injector, and aliases it
+// as Server. The concrete key is the one that reaches Addr; the interface key is
+// the one existing consumers invoke, and both resolve to the same instance.
 // The serviceName parameter is passed directly rather than injected, since
 // string is too generic a type to resolve unambiguously from the injector.
 //
@@ -21,7 +23,7 @@ import (
 // into — a caller who wants the probes elsewhere, or not at all, calls
 // NewHTTPServer with the options it wants instead.
 func RegisterHTTPServer(i do.Injector, serviceName string) {
-	do.Provide(i, func(i do.Injector) (Server, error) {
+	do.Provide(i, func(i do.Injector) (*APIServer, error) {
 		pillars, err := observability.InvokePillars(i)
 		if err != nil {
 			return nil, err
@@ -55,4 +57,7 @@ func RegisterHTTPServer(i do.Injector, serviceName string) {
 
 		return srv, nil
 	})
+
+	// Panics only when a key is already taken, as do.Provide above does.
+	do.MustAs[*APIServer, Server](i)
 }
