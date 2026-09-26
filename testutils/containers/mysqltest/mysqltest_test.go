@@ -24,6 +24,7 @@ func TestNewOptions(T *testing.T) {
 		test.EqOp(t, 0, cfg.maxOpenConns)
 		test.EqOp(t, "", cfg.dsnEnvVar)
 		test.SliceEmpty(t, cfg.customizers)
+		test.False(t, cfg.productionDurability)
 	})
 
 	T.Run("ladder options", func(t *testing.T) {
@@ -41,6 +42,7 @@ func TestNewOptions(T *testing.T) {
 			WithCredentials("mariatest", "mariauser", "mariapass"),
 			WithConnectionParams("parseTime=true"),
 			WithMaxOpenConns(64),
+			WithProductionDurability(),
 			WithCustomizers(testcontainers.WithEnv(map[string]string{"FOO": "bar"})),
 		})
 		test.EqOp(t, "mariadb:11", cfg.image)
@@ -49,6 +51,7 @@ func TestNewOptions(T *testing.T) {
 		test.EqOp(t, "mariapass", cfg.password)
 		test.Eq(t, []string{"parseTime=true"}, cfg.params)
 		test.EqOp(t, 64, cfg.maxOpenConns)
+		test.True(t, cfg.productionDurability)
 		test.SliceLen(t, 1, cfg.customizers)
 	})
 
@@ -72,9 +75,40 @@ func TestOptions_containerOptions(T *testing.T) {
 		override := testcontainers.WithEnv(map[string]string{"FOO": "bar"})
 		got := newOptions([]Option{WithCustomizers(override)}).containerOptions()
 
-		// database, username, password, wait strategy, then the caller's own.
-		test.SliceLen(t, 5, got)
+		// database, username, password, wait strategy, durability flags, then
+		// the caller's own.
+		test.SliceLen(t, 6, got)
 	})
+
+	T.Run("fast durability is the default", func(t *testing.T) {
+		t.Parallel()
+
+		req := customizedRequest(t, newOptions(nil).containerOptions())
+		test.Eq(t, fastDurabilityFlags, req.Cmd)
+	})
+
+	T.Run("production durability leaves the image's command alone", func(t *testing.T) {
+		t.Parallel()
+
+		req := customizedRequest(t, newOptions([]Option{WithProductionDurability()}).containerOptions())
+		test.SliceEmpty(t, req.Cmd)
+	})
+}
+
+// customizedRequest applies customizers to an otherwise empty request, the way
+// the MySQL module does before starting a container. Its customizers write to
+// Env, so the map has to exist.
+func customizedRequest(t *testing.T, customizers []testcontainers.ContainerCustomizer) *testcontainers.GenericContainerRequest {
+	t.Helper()
+
+	req := &testcontainers.GenericContainerRequest{
+		Env: map[string]string{},
+	}
+	for _, c := range customizers {
+		must.NoError(t, c.Customize(req))
+	}
+
+	return req
 }
 
 // TestOptions_dsnFromEnv is not parallel, and neither are its subtests: t.Setenv
@@ -149,6 +183,22 @@ func TestRun_Container(T *testing.T) {
 		})
 	})
 
+	T.Run("the server trades durability for speed but keeps its binlog", func(t *testing.T) {
+		t.Parallel()
+
+		Run(t, func(ctx context.Context, my *Instance) {
+			assertDurability(t, ctx, my, durabilitySettings{flushLogAtTrxCommit: 0, syncBinlog: 0, doublewrite: "OFF"})
+		})
+	})
+
+	T.Run("WithProductionDurability keeps the image's defaults", func(t *testing.T) {
+		t.Parallel()
+
+		Run(t, func(ctx context.Context, my *Instance) {
+			assertDurability(t, ctx, my, durabilitySettings{flushLogAtTrxCommit: 1, syncBinlog: 1, doublewrite: "ON"})
+		}, WithProductionDurability())
+	})
+
 	T.Run("root connection can do admin work", func(t *testing.T) {
 		t.Parallel()
 
@@ -160,6 +210,29 @@ func TestRun_Container(T *testing.T) {
 			test.StrHasPrefix(t, "root@", user)
 		})
 	})
+}
+
+type durabilitySettings struct {
+	doublewrite         string
+	flushLogAtTrxCommit int
+	syncBinlog          int
+}
+
+// assertDurability reads the server's durability settings, and checks that
+// binary logging is on whatever they are: suites rely on MySQL 8's default.
+func assertDurability(t *testing.T, ctx context.Context, my *Instance, want durabilitySettings) {
+	t.Helper()
+
+	var (
+		got    durabilitySettings
+		logBin int
+	)
+	must.NoError(t, my.DB.QueryRowContext(ctx,
+		"SELECT @@innodb_flush_log_at_trx_commit, @@sync_binlog, @@innodb_doublewrite, @@log_bin",
+	).Scan(&got.flushLogAtTrxCommit, &got.syncBinlog, &got.doublewrite, &logBin))
+
+	test.Eq(t, want, got)
+	test.EqOp(t, 1, logBin)
 }
 
 // TestRun_DSNFromEnv_Container stands a container up the ordinary way and then
