@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	"github.com/primandproper/primitives-go/v2/database/internal/sqlclient"
+	"github.com/primandproper/primitives-go/v2/database/postgres/pgretry"
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -73,9 +74,10 @@ type Client struct {
 }
 
 var (
-	_ database.Client    = (*Client)(nil)
-	_ database.RawAccess = (*Client)(nil)
-	_ PgxAccess          = (*Client)(nil)
+	_ database.Client          = (*Client)(nil)
+	_ database.RawAccess       = (*Client)(nil)
+	_ database.TxOptionsAccess = (*Client)(nil)
+	_ PgxAccess                = (*Client)(nil)
 )
 
 // NewDatabaseClient provides a new DataManager client.
@@ -334,7 +336,13 @@ func (q *Client) Writer() database.SQLQueryExecutor {
 // WithTransaction runs fn inside a transaction on the write database, committing on a
 // nil return and rolling back on error or panic. See database.RunInTransaction.
 func (q *Client) WithTransaction(ctx context.Context, fn func(tx database.Tx) error) error {
-	return sqlclient.WithTransaction(ctx, q.o11y, q.writeDB, q.RollbackTransaction, fn)
+	return q.WithTransactionOptions(ctx, fn)
+}
+
+// WithTransactionOptions is WithTransaction configured by opts, which satisfies
+// database.TxOptionsAccess. Callers reach it through database.WithTransaction.
+func (q *Client) WithTransactionOptions(ctx context.Context, fn func(tx database.Tx) error, opts ...database.TxOption) error {
+	return sqlclient.WithTransaction(ctx, q.o11y, q.writeDB, q.RollbackTransaction, pgretry.IsRetryable, fn, opts...)
 }
 
 // Close closes the database/sql layer first so its connections drain back to the

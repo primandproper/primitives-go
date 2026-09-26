@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	stderrors "errors"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/database"
@@ -12,7 +13,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/XSAM/otelsql"
-	_ "github.com/go-sql-driver/mysql"
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
@@ -31,8 +32,9 @@ type Client struct {
 }
 
 var (
-	_ database.Client    = (*Client)(nil)
-	_ database.RawAccess = (*Client)(nil)
+	_ database.Client          = (*Client)(nil)
+	_ database.RawAccess       = (*Client)(nil)
+	_ database.TxOptionsAccess = (*Client)(nil)
 )
 
 // NewDatabaseClient provides a new DataManager client.
@@ -170,7 +172,35 @@ func (q *Client) Writer() database.SQLQueryExecutor {
 // WithTransaction runs fn inside a transaction on the write database, committing on a
 // nil return and rolling back on error or panic. See database.RunInTransaction.
 func (q *Client) WithTransaction(ctx context.Context, fn func(tx database.Tx) error) error {
-	return sqlclient.WithTransaction(ctx, q.o11y, q.writeDB, q.RollbackTransaction, fn)
+	return q.WithTransactionOptions(ctx, fn)
+}
+
+// WithTransactionOptions is WithTransaction configured by opts, which satisfies
+// database.TxOptionsAccess. Callers reach it through database.WithTransaction.
+func (q *Client) WithTransactionOptions(ctx context.Context, fn func(tx database.Tx) error, opts ...database.TxOption) error {
+	return sqlclient.WithTransaction(ctx, q.o11y, q.writeDB, q.RollbackTransaction, isRetryableConflict, fn, opts...)
+}
+
+// errLockDeadlock is ER_LOCK_DEADLOCK: InnoDB found a lock cycle and rolled this
+// transaction back as the victim.
+const errLockDeadlock = 1213
+
+// isRetryableConflict reports whether err is a conflict database.RetryOnConflict
+// re-runs a transaction for. It is 1213 alone, and each neighbor is out for a
+// reason:
+//
+//   - 1213 is in. The engine has already rolled the whole transaction back, so
+//     starting over from nothing is the only move there is, and the other side
+//     of the cycle has been let through to finish.
+//   - 1205, lock wait timeout, says "try restarting transaction" too, and is out.
+//     It arrives after innodb_lock_wait_timeout, 50 seconds by default, so a
+//     retry spends a second full wait behind a lock nobody has released.
+//   - 1020, record changed since last read, is out. Only MariaDB raises it, under
+//     REPEATABLE READ, and stock MySQL is what this client is tested against.
+func isRetryableConflict(err error) bool {
+	mysqlErr, ok := stderrors.AsType[*mysqldriver.MySQLError](err)
+
+	return ok && mysqlErr.Number == errLockDeadlock
 }
 
 // Close closes the database connection.

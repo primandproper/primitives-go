@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
 )
@@ -678,5 +680,40 @@ func TestClient_Close(T *testing.T) {
 		writeMock.ExpectClose().WillReturnError(errors.New("blah"))
 
 		test.Error(t, c.Close())
+	})
+}
+
+func TestIsRetryableConflict(T *testing.T) {
+	T.Parallel()
+
+	T.Run("recognizes a deadlock", func(t *testing.T) {
+		t.Parallel()
+
+		test.True(t, isRetryableConflict(&mysqldriver.MySQLError{Number: 1213}))
+	})
+
+	T.Run("recognizes a deadlock wrapped by a caller", func(t *testing.T) {
+		t.Parallel()
+
+		test.True(t, isRetryableConflict(fmt.Errorf("registering user: %w", &mysqldriver.MySQLError{Number: 1213})))
+	})
+
+	T.Run("rejects a lock wait timeout", func(t *testing.T) {
+		t.Parallel()
+
+		test.False(t, isRetryableConflict(&mysqldriver.MySQLError{Number: 1205}))
+	})
+
+	T.Run("rejects MariaDB's record-changed error", func(t *testing.T) {
+		t.Parallel()
+
+		test.False(t, isRetryableConflict(&mysqldriver.MySQLError{Number: 1020}))
+	})
+
+	T.Run("rejects an error that is not from the driver", func(t *testing.T) {
+		t.Parallel()
+
+		test.False(t, isRetryableConflict(errors.New("deadlock")))
+		test.False(t, isRetryableConflict(nil))
 	})
 }
