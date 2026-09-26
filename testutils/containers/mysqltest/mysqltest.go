@@ -35,6 +35,27 @@
 // developer pointing the variable at MySQL 8 and a CI job pointing it at
 // MariaDB are not running the same tests. When a result differs between the
 // two, the MariaDB one is the one CI will report.
+//
+// # Durability
+//
+// A container Run starts trades crash safety for speed, because a test server
+// has none to protect: its data is discarded when the container stops. The
+// server is started with --innodb-flush-log-at-trx-commit=0, --sync-binlog=0
+// and --innodb-doublewrite=OFF, which stop InnoDB and the binary log from
+// fsyncing on every commit and turn off the doublewrite buffer. Suites that
+// render a fresh schema per subtest otherwise pay for those fsyncs on every
+// CREATE TABLE, and pay the most where disks are slowest: a CI runner shared by
+// every package's containers at once.
+//
+// Binary logging itself stays on. MySQL 8 enables it by default, and it is a
+// real deployment property — it is what makes CREATE TRIGGER need a
+// separately granted privilege — so suites exercising it must not pass because
+// the test server lacked it. sync_binlog=0 changes when the log is flushed, not
+// whether it is written.
+//
+// WithProductionDurability restores the image's own defaults, for the rare
+// suite that tests durability itself. A server named by WithDSNFromEnv is
+// somebody else's, and its settings are left as they are.
 package mysqltest
 
 import (
@@ -87,6 +108,16 @@ const (
 	readyLog = "port: 3306 "
 )
 
+// fastDurabilityFlags are the mysqld flags a container is started with unless
+// WithProductionDurability is given. Each one is accepted by MySQL 8 and by
+// MariaDB, so they hold under WithImage("mariadb:11") too. They deliberately
+// do not include --skip-log-bin; see the package documentation.
+var fastDurabilityFlags = []string{
+	"--innodb-flush-log-at-trx-commit=0",
+	"--sync-binlog=0",
+	"--innodb-doublewrite=OFF",
+}
+
 // defaultParams are the DSN parameters Instance.ConnectionString carries when
 // no override is given. parseTime keeps DATETIME(6) round-tripping as
 // time.Time rather than []byte; multiStatements lets a test feed rendered DDL
@@ -105,6 +136,8 @@ type options struct {
 	params       []string
 	customizers  []testcontainers.ContainerCustomizer
 	maxOpenConns int
+
+	productionDurability bool
 }
 
 // WithImage overrides DefaultImage. Use it for MySQL derivatives that the rest
@@ -152,6 +185,15 @@ func WithDSNFromEnv(name string) Option {
 // Zero (the default) leaves database/sql's unlimited default in place.
 func WithMaxOpenConns(n int) Option {
 	return func(o *options) { o.maxOpenConns = n }
+}
+
+// WithProductionDurability starts the container with the image's own
+// durability settings rather than fast ones: every commit fsync'd,
+// the doublewrite buffer on. Only a suite that tests durability itself wants
+// this; everything else pays for crash safety it discards when the container
+// stops. It has no effect on a server named by WithDSNFromEnv.
+func WithProductionDurability() Option {
+	return func(o *options) { o.productionDurability = true }
 }
 
 // WithCustomizers appends testcontainers customizers to the ones Run already
@@ -369,7 +411,7 @@ func closePool(tb testing.TB, db *sql.DB) {
 // containerOptions renders the resolved options as testcontainers customizers.
 // User-supplied customizers come last so they can override the defaults.
 func (o *options) containerOptions() []testcontainers.ContainerCustomizer {
-	return append([]testcontainers.ContainerCustomizer{
+	customizers := []testcontainers.ContainerCustomizer{
 		mysqlcontainer.WithDatabase(o.database),
 		mysqlcontainer.WithUsername(o.username),
 		mysqlcontainer.WithPassword(o.password),
@@ -377,5 +419,13 @@ func (o *options) containerOptions() []testcontainers.ContainerCustomizer {
 			startupDeadline,
 			wait.ForLog(readyLog),
 		),
-	}, o.customizers...)
+	}
+
+	// Both images' entrypoints run a command that begins with a flag as
+	// arguments to mysqld, so these amend the server rather than replace it.
+	if !o.productionDurability {
+		customizers = append(customizers, testcontainers.WithCmdArgs(fastDurabilityFlags...))
+	}
+
+	return append(customizers, o.customizers...)
 }
