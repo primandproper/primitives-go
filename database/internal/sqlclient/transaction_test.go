@@ -299,6 +299,33 @@ func TestWithTransaction_RetryOnConflict(T *testing.T) {
 		test.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	T.Run("re-runs the callback when the conflict is reported at commit", func(t *testing.T) {
+		t.Parallel()
+
+		// A serializable transaction's conflict can surface at COMMIT rather than
+		// from a statement in fn. That error arrives wrapped, and with no rollback
+		// behind it, since a failed commit has already released the connection.
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectCommit().WillReturnError(errConflict)
+		mock.ExpectBegin()
+		mock.ExpectCommit()
+
+		var runs int
+
+		test.NoError(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+
+			return nil
+		}, database.RetryOnConflict(3)))
+
+		test.EqOp(t, 2, runs)
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	T.Run("wraps the last conflict as exhausted when every attempt conflicts", func(t *testing.T) {
 		t.Parallel()
 
