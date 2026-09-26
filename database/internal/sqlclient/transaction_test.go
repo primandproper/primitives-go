@@ -3,12 +3,14 @@ package sqlclient
 import (
 	"context"
 	"database/sql"
+	stderrors "errors"
 	"testing"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/retry"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shoenig/test"
@@ -213,7 +215,7 @@ func TestWithTransaction(T *testing.T) {
 		mock.ExpectCommit()
 
 		var ran bool
-		test.NoError(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, func(database.Tx) error {
+		test.NoError(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, nil, func(database.Tx) error {
 			ran = true
 
 			return nil
@@ -235,7 +237,7 @@ func TestWithTransaction(T *testing.T) {
 
 		cause := errors.New("callback failed")
 
-		test.ErrorIs(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, func(database.Tx) error {
+		test.ErrorIs(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, nil, func(database.Tx) error {
 			return cause
 		}), cause)
 
@@ -252,11 +254,268 @@ func TestWithTransaction(T *testing.T) {
 		cause := errors.New("cannot begin")
 		mock.ExpectBegin().WillReturnError(cause)
 
-		test.ErrorIs(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, func(database.Tx) error {
+		test.ErrorIs(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, nil, func(database.Tx) error {
 			t.Error("callback ran despite the transaction never beginning")
 
 			return nil
 		}), cause)
+	})
+}
+
+func TestWithTransaction_RetryOnConflict(T *testing.T) {
+	T.Parallel()
+
+	noopRollback := func(_ context.Context, tx database.SQLQueryExecutorAndTransactionManager) {
+		_ = tx.Rollback()
+	}
+
+	errConflict := errors.New("deadlock found when trying to get lock")
+	isConflict := func(err error) bool { return stderrors.Is(err, errConflict) }
+
+	T.Run("re-runs the callback on a conflict and commits the attempt that succeeds", func(t *testing.T) {
+		t.Parallel()
+
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+		mock.ExpectBegin()
+		mock.ExpectCommit()
+
+		var runs int
+
+		test.NoError(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+			if runs == 1 {
+				return errConflict
+			}
+
+			return nil
+		}, database.RetryOnConflict(3)))
+
+		test.EqOp(t, 2, runs)
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	T.Run("re-runs the callback when the conflict is reported at commit", func(t *testing.T) {
+		t.Parallel()
+
+		// A serializable transaction's conflict can surface at COMMIT rather than
+		// from a statement in fn. That error arrives wrapped, and with no rollback
+		// behind it, since a failed commit has already released the connection.
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectCommit().WillReturnError(errConflict)
+		mock.ExpectBegin()
+		mock.ExpectCommit()
+
+		var runs int
+
+		test.NoError(t, WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+
+			return nil
+		}, database.RetryOnConflict(3)))
+
+		test.EqOp(t, 2, runs)
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	T.Run("wraps the last conflict as exhausted when every attempt conflicts", func(t *testing.T) {
+		t.Parallel()
+
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+
+		var runs int
+
+		err = WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+
+			return errConflict
+		}, database.RetryOnConflict(2))
+
+		test.EqOp(t, 2, runs)
+		test.ErrorIs(t, err, retry.ErrExhausted)
+		test.ErrorIs(t, err, errConflict)
+
+		attempts, ok := retry.Attempts(err)
+		test.True(t, ok)
+		test.EqOp(t, uint(2), attempts)
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	T.Run("runs once without the option, returning the conflict unwrapped", func(t *testing.T) {
+		t.Parallel()
+
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+
+		var runs int
+
+		err = WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+
+			return errConflict
+		})
+
+		test.EqOp(t, 1, runs)
+		test.ErrorIs(t, err, errConflict)
+		test.False(t, stderrors.Is(err, retry.ErrExhausted))
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	T.Run("treats zero attempts as a single attempt", func(t *testing.T) {
+		t.Parallel()
+
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+
+		var runs int
+
+		err = WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+
+			return errConflict
+		}, database.RetryOnConflict(0))
+
+		test.EqOp(t, 1, runs)
+		test.ErrorIs(t, err, errConflict)
+		test.False(t, stderrors.Is(err, retry.ErrExhausted))
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	T.Run("does not retry an error that is not a conflict", func(t *testing.T) {
+		t.Parallel()
+
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+
+		cause := errors.New("unique constraint violated")
+
+		var runs int
+
+		err = WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+
+			return cause
+		}, database.RetryOnConflict(3))
+
+		test.EqOp(t, 1, runs)
+		test.ErrorIs(t, err, cause)
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	T.Run("retries nothing when the client recognizes no conflicts", func(t *testing.T) {
+		t.Parallel()
+
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+
+		var runs int
+
+		err = WithTransaction(t.Context(), observability.NewObserver("test", nil, nil), db, noopRollback, nil, func(database.Tx) error {
+			runs++
+
+			return errConflict
+		}, database.RetryOnConflict(3))
+
+		test.EqOp(t, 1, runs)
+		test.ErrorIs(t, err, errConflict)
+		test.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	T.Run("stops retrying once the context is canceled", func(t *testing.T) {
+		t.Parallel()
+
+		// Canceling ctx makes database/sql roll the transaction back itself, on a
+		// goroutine of its own, so whether the rollback has reached the mock by
+		// the time WithTransaction returns is a race. Expectations are not
+		// checked here for that reason.
+		db, mock, err := sqlmock.New()
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		mock.ExpectBegin()
+		mock.ExpectRollback()
+
+		ctx, cancel := context.WithCancel(t.Context())
+
+		var runs int
+
+		err = WithTransaction(ctx, observability.NewObserver("test", nil, nil), db, noopRollback, isConflict, func(database.Tx) error {
+			runs++
+
+			cancel()
+
+			return errConflict
+		}, database.RetryOnConflict(3))
+
+		test.EqOp(t, 1, runs)
+		test.ErrorIs(t, err, errConflict)
+		test.False(t, stderrors.Is(err, retry.ErrExhausted))
+	})
+}
+
+func TestConflictDelay(T *testing.T) {
+	T.Parallel()
+
+	T.Run("doubles from the initial ceiling", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := database.NewTxConfig(database.ConflictBackoff(5*time.Millisecond, time.Second))
+
+		test.EqOp(t, 5*time.Millisecond, conflictDelay(cfg, 1))
+		test.EqOp(t, 10*time.Millisecond, conflictDelay(cfg, 2))
+		test.EqOp(t, 20*time.Millisecond, conflictDelay(cfg, 3))
+	})
+
+	T.Run("stops at the cap", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := database.NewTxConfig(database.ConflictBackoff(5*time.Millisecond, 30*time.Millisecond))
+
+		test.EqOp(t, 30*time.Millisecond, conflictDelay(cfg, 4))
+		test.EqOp(t, 30*time.Millisecond, conflictDelay(cfg, 5))
+	})
+
+	T.Run("holds the cap past where a shift would overflow", func(t *testing.T) {
+		t.Parallel()
+
+		// 5ms shifted left overflows an int64 of nanoseconds from about the
+		// 42nd attempt, which is what the cap exists to rule out.
+		cfg := database.NewTxConfig()
+
+		for _, attempt := range []uint{41, 42, 64, 1000} {
+			test.EqOp(t, database.DefaultConflictBackoffMax, conflictDelay(cfg, attempt))
+		}
 	})
 }
 

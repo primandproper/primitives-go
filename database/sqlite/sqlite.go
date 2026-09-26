@@ -32,8 +32,9 @@ type Client struct {
 }
 
 var (
-	_ database.Client    = (*Client)(nil)
-	_ database.RawAccess = (*Client)(nil)
+	_ database.Client          = (*Client)(nil)
+	_ database.RawAccess       = (*Client)(nil)
+	_ database.TxOptionsAccess = (*Client)(nil)
 )
 
 // NewDatabaseClient provides a new DataManager client.
@@ -222,7 +223,16 @@ func (q *Client) Writer() database.SQLQueryExecutor {
 // WithTransaction runs fn inside a transaction on the write database, committing on a
 // nil return and rolling back on error or panic. See database.RunInTransaction.
 func (q *Client) WithTransaction(ctx context.Context, fn func(tx database.Tx) error) error {
-	return sqlclient.WithTransaction(ctx, q.o11y, q.writeDB, q.RollbackTransaction, fn)
+	return q.WithTransactionOptions(ctx, fn)
+}
+
+// WithTransactionOptions is WithTransaction configured by opts, which satisfies
+// database.TxOptionsAccess. Callers reach it through database.WithTransaction.
+//
+// SQLite has one writer, so there is no conflict for database.RetryOnConflict to
+// retry: it is accepted and runs fn once.
+func (q *Client) WithTransactionOptions(ctx context.Context, fn func(tx database.Tx) error, opts ...database.TxOption) error {
+	return sqlclient.WithTransaction(ctx, q.o11y, q.writeDB, q.RollbackTransaction, nil, fn, opts...)
 }
 
 // Close closes the database connection.

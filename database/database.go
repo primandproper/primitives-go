@@ -91,6 +91,11 @@ type (
 		// the second name to protect. Per-store WithTransaction wrappers are rejected on the
 		// same ground, and RunInTransaction is the engine rather than the entry point: it
 		// takes a raw *sql.DB and a rollback function, and skips this method's observability.
+		//
+		// A transaction that takes options, RetryOnConflict among them, goes through the
+		// package-level WithTransaction instead. That one is not an alias: it carries the
+		// options this method cannot take without breaking every implementer, and runs fn
+		// through TxOptionsAccess where the client has it.
 		WithTransaction(ctx context.Context, fn func(querier Tx) error) error
 		Close() error
 		CurrentTime() time.Time
@@ -110,5 +115,17 @@ type (
 	RawAccess interface {
 		ReadDB() *sql.DB
 		WriteDB() *sql.DB
+	}
+
+	// TxOptionsAccess is an optional capability: a Client whose transactions take
+	// TxOptions. The postgres, mysql, and sqlite clients have it. It is a capability
+	// rather than a parameter on Client.WithTransaction because adding one there breaks
+	// every Client implementation, test doubles included, for a feature none of them has
+	// to support.
+	//
+	// Callers reach it through the package-level WithTransaction rather than by
+	// asserting for it, so the fallback for a client without it is decided once.
+	TxOptionsAccess interface {
+		WithTransactionOptions(ctx context.Context, fn func(querier Tx) error, opts ...TxOption) error
 	}
 )

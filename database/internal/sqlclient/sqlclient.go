@@ -23,6 +23,8 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/retry"
+	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
 )
 
 // ClosePools releases whatever was opened, for the failure paths after a
@@ -132,20 +134,69 @@ func WaitForPing(
 	return false
 }
 
+// conflictDelay is the ceiling on the pause after attempt conflicted, before
+// jitter. The schedule is retrycfg's, so it clamps at the cap rather than
+// overflowing however many attempts were asked for.
+func conflictDelay(cfg database.TxConfig, attempt uint) time.Duration {
+	return retrycfg.DelayFor(retrycfg.Config{
+		InitialDelay: cfg.ConflictBackoffInitial,
+		MaxDelay:     cfg.ConflictBackoffMax,
+		Multiplier:   2,
+	}, attempt)
+}
+
 // WithTransaction runs fn inside a transaction on writeDB under a span of its
 // own, committing on a nil return and rolling back on error or panic. See
 // database.RunInTransaction.
+//
+// isConflict is the client's answer to which errors database.RetryOnConflict
+// re-runs fn for. It belongs to the client because reading one means unwrapping
+// its driver's error type. A nil isConflict retries nothing, whatever opts say.
 func WithTransaction(
 	ctx context.Context,
 	o11y observability.Observer,
 	writeDB *sql.DB,
 	rollback func(ctx context.Context, tx database.SQLQueryExecutorAndTransactionManager),
+	isConflict func(error) bool,
 	fn func(tx database.Tx) error,
+	opts ...database.TxOption,
 ) error {
 	ctx, op := o11y.Begin(ctx)
 	defer op.End()
 
-	return database.RunInTransaction(ctx, writeDB, rollback, fn)
+	cfg := database.NewTxConfig(opts...)
+	jitter := retry.Full(nil)
+
+	for attempt := uint(1); ; attempt++ {
+		err := database.RunInTransaction(ctx, writeDB, rollback, fn)
+		if err == nil {
+			op.Set("db.transaction.attempts", attempt)
+
+			return nil
+		}
+
+		if isConflict == nil || !isConflict(err) || retry.IsTerminal(ctx, err) {
+			return err
+		}
+
+		if attempt >= cfg.ConflictAttempts {
+			if attempt == 1 {
+				return err
+			}
+
+			op.Set("db.transaction.attempts", attempt)
+
+			return retry.Exhausted(attempt, err)
+		}
+
+		op.Logger().WithValue("attempt", attempt).Info("retrying transaction after a conflict")
+
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(jitter(conflictDelay(cfg, attempt))):
+		}
+	}
 }
 
 // RollbackTransaction rolls tx back, recording a failure on the span rather
