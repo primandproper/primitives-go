@@ -2,223 +2,163 @@ package database
 
 import (
 	"database/sql"
-	"strconv"
 	"time"
+
+	"github.com/primandproper/primitives-go/v2/database/nullable"
 )
 
+// The conversions between Go values and the sql.Null types live in nullable,
+// which imports only the standard library, so a package that needs them does
+// not have to depend on database for them. These delegate, and cannot drift.
+
+// TimeFromNullTime is nullable.TimeFromNullTime.
 func TimeFromNullTime(nt sql.NullTime) time.Time {
-	if nt.Valid {
-		return nt.Time
-	}
-
-	return time.Time{}
+	return nullable.TimeFromNullTime(nt)
 }
 
+// TimePointerFromNullTime is nullable.TimePointerFromNullTime.
 func TimePointerFromNullTime(nt sql.NullTime) *time.Time {
-	if nt.Valid {
-		return &nt.Time
-	}
-
-	return nil
+	return nullable.TimePointerFromNullTime(nt)
 }
 
+// StringPointerFromNullString is nullable.StringPointerFromNullString.
 func StringPointerFromNullString(nt sql.NullString) *string {
-	if nt.Valid {
-		return &nt.String
-	}
-
-	return nil
+	return nullable.StringPointerFromNullString(nt)
 }
 
+// StringFromNullString is nullable.StringFromNullString.
 func StringFromNullString(nt sql.NullString) string {
-	if nt.Valid {
-		return nt.String
-	}
-
-	return ""
+	return nullable.StringFromNullString(nt)
 }
 
+// NullStringFromString is nullable.NullStringFromString.
 func NullStringFromString(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: true}
+	return nullable.NullStringFromString(s)
 }
 
+// NullStringFromStringPointer is nullable.NullStringFromStringPointer.
 func NullStringFromStringPointer(s *string) sql.NullString {
-	if s == nil {
-		return sql.NullString{}
-	}
-
-	return sql.NullString{String: *s, Valid: true}
+	return nullable.NullStringFromStringPointer(s)
 }
 
+// NullTimeFromTime is nullable.NullTimeFromTime.
 func NullTimeFromTime(t time.Time) sql.NullTime {
-	return sql.NullTime{Time: t, Valid: true}
+	return nullable.NullTimeFromTime(t)
 }
 
+// NullTimeFromTimePointer is nullable.NullTimeFromTimePointer.
 func NullTimeFromTimePointer(t *time.Time) sql.NullTime {
-	if t == nil {
-		return sql.NullTime{}
-	}
-
-	return sql.NullTime{Time: *t, Valid: true}
+	return nullable.NullTimeFromTimePointer(t)
 }
 
+// NullInt32FromUint8Pointer is nullable.NullInt32FromUint8Pointer.
 func NullInt32FromUint8Pointer(i *uint8) sql.NullInt32 {
-	if i == nil {
-		return sql.NullInt32{}
-	}
-
-	return sql.NullInt32{Int32: int32(*i), Valid: true}
+	return nullable.NullInt32FromUint8Pointer(i)
 }
 
+// NullInt32FromUint16Pointer is nullable.NullInt32FromUint16Pointer.
 func NullInt32FromUint16Pointer(i *uint16) sql.NullInt32 {
-	if i == nil {
-		return sql.NullInt32{}
-	}
-
-	return sql.NullInt32{Int32: int32(*i), Valid: true}
+	return nullable.NullInt32FromUint16Pointer(i)
 }
 
+// NullInt32FromUint16 is nullable.NullInt32FromUint16.
 func NullInt32FromUint16(i uint16) sql.NullInt32 {
-	return sql.NullInt32{Int32: int32(i), Valid: true}
+	return nullable.NullInt32FromUint16(i)
 }
 
+// NullBoolFromBool is nullable.NullBoolFromBool.
 func NullBoolFromBool(b bool) sql.NullBool {
-	return sql.NullBool{Bool: b, Valid: true}
+	return nullable.NullBoolFromBool(b)
 }
 
+// NullBoolFromBoolPointer is nullable.NullBoolFromBoolPointer.
 func NullBoolFromBoolPointer(b *bool) sql.NullBool {
-	if b == nil {
-		return sql.NullBool{Valid: false}
-	}
-	return sql.NullBool{Bool: *b, Valid: true}
+	return nullable.NullBoolFromBoolPointer(b)
 }
 
+// BoolFromNullBool is nullable.BoolFromNullBool.
 func BoolFromNullBool(b sql.NullBool) bool {
-	if b.Valid {
-		return b.Bool
-	}
-
-	return false
+	return nullable.BoolFromNullBool(b)
 }
 
+// NullInt32FromInt32Pointer is nullable.NullInt32FromInt32Pointer.
 func NullInt32FromInt32Pointer(i *int32) sql.NullInt32 {
-	if i == nil {
-		return sql.NullInt32{}
-	}
-
-	return sql.NullInt32{Int32: *i, Valid: true}
+	return nullable.NullInt32FromInt32Pointer(i)
 }
 
+// NullInt32FromUint32Pointer is nullable.NullInt32FromUint32Pointer.
 func NullInt32FromUint32Pointer(i *uint32) sql.NullInt32 {
-	if i == nil {
-		return sql.NullInt32{}
-	}
-
-	return sql.NullInt32{Int32: int32(*i), Valid: true}
+	return nullable.NullInt32FromUint32Pointer(i)
 }
 
+// Int32PointerFromNullInt32 is nullable.Int32PointerFromNullInt32.
 func Int32PointerFromNullInt32(i sql.NullInt32) *int32 {
-	if i.Valid {
-		return &i.Int32
-	}
-
-	return nil
+	return nullable.Int32PointerFromNullInt32(i)
 }
 
+// Float32PointerFromNullString is nullable.Float32PointerFromNullString.
 func Float32PointerFromNullString(f sql.NullString) *float32 {
-	if f.Valid {
-		if parsedFloat, err := strconv.ParseFloat(f.String, 64); err == nil {
-			return new(float32(parsedFloat))
-		}
-	}
-
-	return nil
+	return nullable.Float32PointerFromNullString(f)
 }
 
+// Float64PointerFromNullString is nullable.Float64PointerFromNullString.
 func Float64PointerFromNullString(f sql.NullString) *float64 {
-	if f.Valid {
-		if parsedFloat, err := strconv.ParseFloat(f.String, 64); err == nil {
-			return &parsedFloat
-		}
-	}
-
-	return nil
+	return nullable.Float64PointerFromNullString(f)
 }
 
+// StringFromFloat32 is nullable.StringFromFloat32.
 func StringFromFloat32(f float32) string {
-	return strconv.FormatFloat(float64(f), 'f', -1, 32)
+	return nullable.StringFromFloat32(f)
 }
 
+// Float32FromString is nullable.Float32FromString.
 func Float32FromString(s string) float32 {
-	if parsedFloat, err := strconv.ParseFloat(s, 64); err == nil {
-		return float32(parsedFloat)
-	}
-
-	return 0
+	return nullable.Float32FromString(s)
 }
 
+// Float32FromNullString is nullable.Float32FromNullString.
 func Float32FromNullString(s sql.NullString) float32 {
-	if s.Valid {
-		return Float32FromString(s.String)
-	}
-
-	return 0
+	return nullable.Float32FromNullString(s)
 }
 
+// NullStringFromFloat32Pointer is nullable.NullStringFromFloat32Pointer.
 func NullStringFromFloat32Pointer(f *float32) sql.NullString {
-	if f == nil {
-		return sql.NullString{}
-	}
-
-	return sql.NullString{String: StringFromFloat32(*f), Valid: true}
+	return nullable.NullStringFromFloat32Pointer(f)
 }
 
+// NullStringFromFloat32 is nullable.NullStringFromFloat32.
 func NullStringFromFloat32(f float32) sql.NullString {
-	return sql.NullString{String: StringFromFloat32(f), Valid: true}
+	return nullable.NullStringFromFloat32(f)
 }
 
+// StringFromFloat64 is nullable.StringFromFloat64.
 func StringFromFloat64(f float64) string {
-	return strconv.FormatFloat(f, 'f', -1, 64)
+	return nullable.StringFromFloat64(f)
 }
 
+// NullStringFromFloat64Pointer is nullable.NullStringFromFloat64Pointer.
 func NullStringFromFloat64Pointer(f *float64) sql.NullString {
-	if f == nil {
-		return sql.NullString{}
-	}
-
-	return sql.NullString{String: StringFromFloat64(*f), Valid: true}
+	return nullable.NullStringFromFloat64Pointer(f)
 }
 
+// NullInt64FromUint32Pointer is nullable.NullInt64FromUint32Pointer.
 func NullInt64FromUint32Pointer(f *uint32) sql.NullInt64 {
-	if f == nil {
-		return sql.NullInt64{}
-	}
-
-	return sql.NullInt64{Int64: int64(*f), Valid: true}
+	return nullable.NullInt64FromUint32Pointer(f)
 }
 
+// Uint16PointerFromNullInt32 is nullable.Uint16PointerFromNullInt32.
 func Uint16PointerFromNullInt32(f sql.NullInt32) *uint16 {
-	if f.Valid {
-		return new(uint16(f.Int32))
-	}
-
-	return nil
+	return nullable.Uint16PointerFromNullInt32(f)
 }
 
+// Uint32PointerFromNullInt32 is nullable.Uint32PointerFromNullInt32.
 func Uint32PointerFromNullInt32(f sql.NullInt32) *uint32 {
-	if f.Valid {
-		return new(uint32(f.Int32))
-	}
-
-	return nil
+	return nullable.Uint32PointerFromNullInt32(f)
 }
 
+// Uint32PointerFromNullInt64 is nullable.Uint32PointerFromNullInt64.
 func Uint32PointerFromNullInt64(f sql.NullInt64) *uint32 {
-	if f.Valid {
-		return new(uint32(f.Int64))
-	}
-
-	return nil
+	return nullable.Uint32PointerFromNullInt64(f)
 }
 
 // CoerceTime normalizes whatever a driver hands back for a timestamp read as

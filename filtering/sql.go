@@ -3,7 +3,7 @@ package filtering
 import (
 	"database/sql"
 
-	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/nullable"
 )
 
 // The SQL-side spelling of QueryFilter: the argument names a filtered read
@@ -147,13 +147,13 @@ func ToSQLArgs(filter *QueryFilter) SQLArgs {
 	}
 
 	return SQLArgs{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16(boundResponseSize(filter.MaxResponseSize)),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    nullable.NullTimeFromTimePointer(filter.CreatedAfter),
+		CreatedBefore:   nullable.NullTimeFromTimePointer(filter.CreatedBefore),
+		UpdatedAfter:    nullable.NullTimeFromTimePointer(filter.UpdatedAfter),
+		UpdatedBefore:   nullable.NullTimeFromTimePointer(filter.UpdatedBefore),
+		Cursor:          nullable.NullStringFromStringPointer(filter.Cursor),
+		ResultLimit:     nullable.NullInt32FromUint16(boundResponseSize(filter.MaxResponseSize)),
+		IncludeArchived: nullable.NullBoolFromBoolPointer(filter.IncludeArchived),
 	}
 }
 
