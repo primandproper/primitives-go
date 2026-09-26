@@ -37,6 +37,44 @@ func TestDefaultQueryFilter(T *testing.T) {
 	})
 }
 
+func TestQueryFilter_ObservabilityValues(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		qf := fullyPopulatedQueryFilter(t)
+
+		// Dereferenced, as AttachToLogger's are: an any holding a *string is not
+		// equal to one holding a string, so this also says the pointers stayed
+		// behind.
+		test.MapEq(t, map[string]any{
+			keys.FilterCursorKey:          *qf.Cursor,
+			keys.FilterLimitKey:           *qf.MaxResponseSize,
+			keys.FilterSortByKey:          *qf.SortBy,
+			keys.FilterCreatedBeforeKey:   *qf.CreatedBefore,
+			keys.FilterCreatedAfterKey:    *qf.CreatedAfter,
+			keys.FilterUpdatedBeforeKey:   *qf.UpdatedBefore,
+			keys.FilterUpdatedAfterKey:    *qf.UpdatedAfter,
+			keys.FilterIncludeArchivedKey: *qf.IncludeArchived,
+		}, qf.ObservabilityValues())
+	})
+
+	T.Run("leaves out unset fields", func(t *testing.T) {
+		t.Parallel()
+
+		test.MapEmpty(t, (&QueryFilter{}).ObservabilityValues())
+	})
+
+	T.Run("with nil", func(t *testing.T) {
+		t.Parallel()
+
+		var qf *QueryFilter
+
+		test.MapEq(t, map[string]any{keys.FilterIsNilKey: true}, qf.ObservabilityValues())
+	})
+}
+
 func TestQueryFilter_AttachToLogger(T *testing.T) {
 	T.Parallel()
 

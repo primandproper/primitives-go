@@ -43,6 +43,8 @@ const (
 	FilterLimitKey = "query_filter.limit"
 	// FilterIsNilKey is the standard key for referring to a types.QueryFilter's null status.
 	FilterIsNilKey = "query_filter.is_nil"
+	// FilterIncludeArchivedKey is the standard key for referring to a types.QueryFilter's IncludeArchived field.
+	FilterIncludeArchivedKey = "query_filter.include_archived"
 	// URLKey is the standard key for referring to a URL.
 	URLKey = "url"
 	// RequestHeadersKey is the standard key for referring to a http.Request's Headers.

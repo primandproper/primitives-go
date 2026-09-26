@@ -182,37 +182,14 @@ func AttachErrorToSpan(span trace.Span, description string, err error) {
 }
 
 // AttachQueryFilterToSpan attaches a given query filter to a span.
+//
+// Deprecated: record the filter on the Operation instead, with
+// op.SetValues(filter.ObservabilityValues()), which reaches the running logger
+// as well as the span. This helper is the reason tracing imports filtering, and
+// it goes at the next major version.
 func AttachQueryFilterToSpan(span trace.Span, filter *filtering.QueryFilter) {
-	if filter != nil {
-		if filter.MaxResponseSize != nil {
-			AttachToSpan(span, keys.FilterLimitKey, *filter.MaxResponseSize)
-		}
-
-		if filter.Cursor != nil {
-			AttachToSpan(span, keys.FilterCursorKey, *filter.Cursor)
-		}
-
-		if filter.CreatedAfter != nil {
-			AttachToSpan(span, keys.FilterCreatedAfterKey, *filter.CreatedAfter)
-		}
-
-		if filter.CreatedBefore != nil {
-			AttachToSpan(span, keys.FilterCreatedBeforeKey, *filter.CreatedBefore)
-		}
-
-		if filter.UpdatedAfter != nil {
-			AttachToSpan(span, keys.FilterUpdatedAfterKey, *filter.UpdatedAfter)
-		}
-
-		if filter.UpdatedBefore != nil {
-			AttachToSpan(span, keys.FilterUpdatedBeforeKey, *filter.UpdatedBefore)
-		}
-
-		if filter.SortBy != nil {
-			AttachToSpan(span, keys.FilterSortByKey, *filter.SortBy)
-		}
-	} else {
-		AttachToSpan(span, keys.FilterIsNilKey, true)
+	for key, value := range filter.ObservabilityValues() {
+		AttachToSpan(span, key, value)
 	}
 }
 

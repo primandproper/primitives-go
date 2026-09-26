@@ -352,6 +352,62 @@ func (qf *QueryFilter) AttachToLogger(logger logging.Logger) logging.Logger {
 	return l
 }
 
+// ObservabilityValues is the filter as an observability.Operation records it,
+// under the query_filter-namespaced keys a span has always carried it by. Hand
+// it to Operation.SetValues and the filter lands on the span and the running
+// logger both, which AttachToLogger cannot do for a caller holding an
+// Operation: it returns a new logger, and there is nowhere to put that back.
+//
+//	op.SetValues(filter.ObservabilityValues())
+//
+// The fields are AttachToLogger's, dereferenced for the same reason. A nil
+// filter is query_filter.is_nil and nothing else.
+//
+// It returns values rather than taking the Operation because observability
+// sits above this package: observability/tracing imports filtering for
+// AttachQueryFilterToSpan, so an import back would be a cycle.
+func (qf *QueryFilter) ObservabilityValues() map[string]any {
+	if qf == nil {
+		return map[string]any{keys.FilterIsNilKey: true}
+	}
+
+	values := map[string]any{}
+
+	if qf.Cursor != nil {
+		values[keys.FilterCursorKey] = *qf.Cursor
+	}
+
+	if qf.MaxResponseSize != nil {
+		values[keys.FilterLimitKey] = *qf.MaxResponseSize
+	}
+
+	if qf.SortBy != nil {
+		values[keys.FilterSortByKey] = *qf.SortBy
+	}
+
+	if qf.CreatedBefore != nil {
+		values[keys.FilterCreatedBeforeKey] = *qf.CreatedBefore
+	}
+
+	if qf.CreatedAfter != nil {
+		values[keys.FilterCreatedAfterKey] = *qf.CreatedAfter
+	}
+
+	if qf.UpdatedBefore != nil {
+		values[keys.FilterUpdatedBeforeKey] = *qf.UpdatedBefore
+	}
+
+	if qf.UpdatedAfter != nil {
+		values[keys.FilterUpdatedAfterKey] = *qf.UpdatedAfter
+	}
+
+	if qf.IncludeArchived != nil {
+		values[keys.FilterIncludeArchivedKey] = *qf.IncludeArchived
+	}
+
+	return values
+}
+
 // FromParams overrides the core QueryFilter values with values retrieved from
 // url.Params, reporting any parameter that was supplied and could not be read.
 //
