@@ -11,6 +11,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.31.0
 	github.com/XSAM/otelsql v0.41.0
+	github.com/ably/ably-go v1.3.0
 	github.com/alexedwards/argon2id v1.0.0
 	github.com/algolia/algoliasearch-client-go/v3 v3.32.1
 	github.com/aws/aws-sdk-go-v2 v1.43.4
@@ -64,6 +65,7 @@ require (
 	github.com/posthog/posthog-go v1.11.1
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.3
+	github.com/pusher/pusher-http-go/v5 v5.1.1
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/resend/resend-go/v3 v3.2.0
 	github.com/riandyrn/otelchi v0.12.2
@@ -118,7 +120,7 @@ require (
 	k8s.io/api v0.35.3
 	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.3
-	modernc.org/sqlite v1.54.0
+	modernc.org/sqlite v1.57.0
 )
 
 require (
@@ -143,7 +145,6 @@ require (
 	github.com/KimMachineGun/automemlimit v0.7.5 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/ably/ably-go v1.3.0 // indirect
 	github.com/ably/vcdiff-go v0.0.2 // indirect
 	github.com/alfatraining/structtag v1.0.0 // indirect
 	github.com/anthropics/anthropic-sdk-go v1.27.1 // indirect
@@ -248,7 +249,7 @@ require (
 	github.com/mailru/easyjson v0.9.2 // indirect
 	github.com/matryer/moq v0.7.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.23 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mdelapenya/tlscert v0.2.0 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
@@ -277,7 +278,6 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/pusher/pusher-http-go/v5 v5.1.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -337,7 +337,7 @@ require (
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
-	modernc.org/libc v1.74.3 // indirect
+	modernc.org/libc v1.74.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
