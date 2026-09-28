@@ -1,4 +1,4 @@
-package webauthn
+package webauthntest
 
 import (
 	"crypto/ecdsa"
@@ -8,7 +8,11 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"slices"
+	"sync"
 	"testing"
+
+	"github.com/primandproper/primitives-go/v2/authentication/webauthn"
 
 	"github.com/fxamacker/cbor/v2"
 	gowebauthn "github.com/go-webauthn/webauthn/webauthn"
@@ -18,12 +22,12 @@ import (
 // A virtual authenticator, because the alternative is not testing the
 // ceremonies.
 //
-// Everything this package does sits either side of a signature made by a
+// Everything a relying party does sits either side of a signature made by a
 // security key: the ceremony is begun, a device signs the challenge, and the
 // ceremony is finished by verifying that signature. Stubbing the library out
-// would leave the halves this package actually owns — the challenge going into
-// the store and coming back out exactly once — asserted against nothing, since
-// they are only observable through a ceremony that completes.
+// would leave the halves a caller actually owns — the challenge going into the
+// store and coming back out exactly once — asserted against nothing, since they
+// are only observable through a ceremony that completes.
 //
 // So this is a real ES256 authenticator: a P-256 key, a COSE public key, an
 // authenticator data structure, and a signature over the bytes the
@@ -35,7 +39,7 @@ const (
 	// authenticator does not set — backup eligible and backup state — are
 	// deliberately absent in both ceremonies: a credential registered with one
 	// answer and asserted with the other is refused by the library for an
-	// inconsistency that is real, and would look here like a flaky test.
+	// inconsistency that is real, and would look like a flaky test.
 	flagUserPresent            = 0x01
 	flagUserVerified           = 0x04
 	flagAttestedCredentialData = 0x40
@@ -53,44 +57,123 @@ const (
 
 	// coordinateLength is the width of one P-256 coordinate.
 	coordinateLength = 32
+
+	// credentialIDLength is how many random bytes name the credential.
+	credentialIDLength = 32
 )
 
-// virtualAuthenticator is one passkey on one device.
-type virtualAuthenticator struct {
+// Authenticator is one passkey on one device, speaking the WebAuthn protocol
+// well enough to register with a relying party and log in to it.
+//
+// It is safe for concurrent use: the sign count is the only thing a ceremony
+// changes, and it is guarded.
+type Authenticator struct {
 	key          *ecdsa.PrivateKey
 	rpID         string
 	origin       string
 	credentialID []byte
 	signCount    uint32
+	mu           sync.Mutex
+	unverified   bool
 }
 
-// newAuthenticator mints a device with one credential.
-func newAuthenticator(tb testing.TB, rpID, origin string) *virtualAuthenticator {
+// AuthenticatorOption configures an Authenticator.
+type AuthenticatorOption func(*Authenticator)
+
+// WithoutUserVerification makes a device that proves presence and nothing more:
+// a key tapped by whoever is holding it, with no PIN or biometric behind the
+// tap. Both ceremonies then leave the user-verified flag unset.
+//
+// It is what a test of a relying party's user-verification requirement needs.
+// A relying party configured to prefer verification accepts such a device, so a
+// caller that treats a passkey as two factors has to check the flag itself, and
+// this is the device that shows whether it did.
+func WithoutUserVerification() AuthenticatorOption {
+	return func(a *Authenticator) {
+		a.unverified = true
+	}
+}
+
+// NewAuthenticator mints a device with one credential, for the relying party
+// identified by rpID, whose ceremonies it answers as though from origin.
+//
+// A test of the origin check wants an authenticator whose origin is not one the
+// relying party is configured with; otherwise the two are the same values the
+// relying party was built from.
+func NewAuthenticator(tb testing.TB, rpID, origin string, opts ...AuthenticatorOption) *Authenticator {
 	tb.Helper()
 
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	must.NoError(tb, err)
 
-	credentialID := make([]byte, 32)
+	credentialID := make([]byte, credentialIDLength)
 	_, err = rand.Read(credentialID)
 	must.NoError(tb, err)
 
-	return &virtualAuthenticator{
+	a := &Authenticator{
 		key:          key,
 		credentialID: credentialID,
 		rpID:         rpID,
 		origin:       origin,
 		signCount:    1,
 	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(a)
+		}
+	}
+
+	return a
 }
 
-// register produces the attestation response a browser would POST to finish a
+// Clone copies the device, key and counter both, as an attacker who extracted
+// the private key would.
+//
+// The copy and the original then count independently from the same place, so
+// once the original has asserted, the copy's next assertion carries a counter
+// no higher than the one the relying party last stored. That is the signal a
+// relying party reads as a cloned authenticator, and go-webauthn reports it as
+// Authenticator.CloneWarning on the credential FinishLogin returns.
+func (a *Authenticator) Clone() *Authenticator {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	return &Authenticator{
+		key:          a.key,
+		credentialID: slices.Clone(a.credentialID),
+		rpID:         a.rpID,
+		origin:       a.origin,
+		signCount:    a.signCount,
+		unverified:   a.unverified,
+	}
+}
+
+// CredentialID is the ID of the device's one credential, which is what a
+// relying party hands back on the credential it registered.
+func (a *Authenticator) CredentialID() []byte {
+	return slices.Clone(a.credentialID)
+}
+
+// SignCount is the counter the device last signed with, which is what a
+// relying party hands back on the credential a login returned.
+func (a *Authenticator) SignCount() uint32 {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	return a.signCount
+}
+
+// Register produces the attestation response a browser would POST to finish a
 // registration ceremony for challenge.
-func (a *virtualAuthenticator) register(tb testing.TB, challenge string) []byte {
+func (a *Authenticator) Register(tb testing.TB, challenge string) []byte {
 	tb.Helper()
 
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	clientData := a.clientData(tb, "webauthn.create", challenge)
-	authData := a.authenticatorData(tb, flagUserPresent|flagUserVerified|flagAttestedCredentialData, a.attestedCredentialData(tb))
+	authData := a.authenticatorData(a.presenceFlags()|flagAttestedCredentialData, a.attestedCredentialData(tb))
 
 	attestation, err := cbor.Marshal(map[string]any{
 		"fmt":      "none",
@@ -105,16 +188,20 @@ func (a *virtualAuthenticator) register(tb testing.TB, challenge string) []byte 
 	})
 }
 
-// assert produces the assertion response a browser would POST to finish a login
-// ceremony for challenge. userHandle is echoed back by the authenticator, and is
-// what a discoverable login identifies the user by.
-func (a *virtualAuthenticator) assert(tb testing.TB, challenge string, userHandle []byte) []byte {
+// Assert produces the assertion response a browser would POST to finish a
+// login ceremony for challenge, advancing the sign count as it does. userHandle
+// is echoed back by the authenticator, and is what a discoverable login
+// identifies the user by; nil leaves it out.
+func (a *Authenticator) Assert(tb testing.TB, challenge string, userHandle []byte) []byte {
 	tb.Helper()
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	a.signCount++
 
 	clientData := a.clientData(tb, "webauthn.get", challenge)
-	authData := a.authenticatorData(tb, flagUserPresent|flagUserVerified, nil)
+	authData := a.authenticatorData(a.presenceFlags(), nil)
 
 	// The signature covers the authenticator data followed by the hash of the
 	// client data, which is what ties one signature to one challenge from one
@@ -138,25 +225,39 @@ func (a *virtualAuthenticator) assert(tb testing.TB, challenge string, userHandl
 	return marshalResponse(tb, a.credentialID, response)
 }
 
-// credential is the registered passkey as this package's callers store it, for
-// the tests that need a user who already has one.
-func (a *virtualAuthenticator) credential(tb testing.TB) Credential {
+// Credential is the device's passkey as a relying party's caller stores it, for
+// a test that needs a user who already has one without running a registration
+// ceremony to get it.
+func (a *Authenticator) Credential(tb testing.TB) webauthn.Credential {
 	tb.Helper()
 
-	return Credential{
-		ID:              a.credentialID,
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	return webauthn.Credential{
+		ID:              slices.Clone(a.credentialID),
 		PublicKey:       a.coseKey(tb),
 		AttestationType: "none",
 		Flags: gowebauthn.CredentialFlags{
 			UserPresent:  true,
-			UserVerified: true,
+			UserVerified: !a.unverified,
 		},
 		Authenticator: gowebauthn.Authenticator{SignCount: a.signCount},
 	}
 }
 
+// presenceFlags are the flags every ceremony carries: the user was present,
+// and — unless the device was built WithoutUserVerification — verified.
+func (a *Authenticator) presenceFlags() byte {
+	if a.unverified {
+		return flagUserPresent
+	}
+
+	return flagUserPresent | flagUserVerified
+}
+
 // clientData renders the collected client data for one ceremony step.
-func (a *virtualAuthenticator) clientData(tb testing.TB, ceremony, challenge string) []byte {
+func (a *Authenticator) clientData(tb testing.TB, ceremony, challenge string) []byte {
 	tb.Helper()
 
 	data, err := json.Marshal(map[string]any{
@@ -173,9 +274,7 @@ func (a *virtualAuthenticator) clientData(tb testing.TB, ceremony, challenge str
 // authenticatorData renders the authenticator data structure: the relying
 // party's hash, the flags, the counter, and — for a registration — the
 // credential itself.
-func (a *virtualAuthenticator) authenticatorData(tb testing.TB, flags byte, attested []byte) []byte {
-	tb.Helper()
-
+func (a *Authenticator) authenticatorData(flags byte, attested []byte) []byte {
 	rpIDHash := sha256.Sum256([]byte(a.rpID))
 
 	data := make([]byte, 0, sha256.Size+1+4+len(attested))
@@ -188,7 +287,7 @@ func (a *virtualAuthenticator) authenticatorData(tb testing.TB, flags byte, atte
 
 // attestedCredentialData renders the credential a registration announces: the
 // authenticator's AAGUID, the credential ID, and the public key.
-func (a *virtualAuthenticator) attestedCredentialData(tb testing.TB) []byte {
+func (a *Authenticator) attestedCredentialData(tb testing.TB) []byte {
 	tb.Helper()
 
 	data := make([]byte, aaguidLength)
@@ -201,7 +300,7 @@ func (a *virtualAuthenticator) attestedCredentialData(tb testing.TB) []byte {
 
 // coseKey renders the public key in the COSE encoding the specification
 // requires, deterministically so that the same key renders the same bytes.
-func (a *virtualAuthenticator) coseKey(tb testing.TB) []byte {
+func (a *Authenticator) coseKey(tb testing.TB) []byte {
 	tb.Helper()
 
 	encoder, encErr := cbor.CanonicalEncOptions().EncMode()
