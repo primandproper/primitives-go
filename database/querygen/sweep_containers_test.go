@@ -107,6 +107,18 @@ func leaseQueries(d dialect.Dialect) []*Query {
 			Sweep{Order: byExpiry(), Projection: []string{IDColumn}},
 			Match{Column: "state"}, dueByNow()),
 
+		// The same read taken as a claim: each of a pool of workers locks a
+		// batch and steps over the ones the others hold.
+		g.SweepQuery("ClaimDueLeases", sweepTable, leasesColumns(),
+			Sweep{Order: byExpiry(), Projection: []string{IDColumn}, Lock: LockExclusiveSkipLocked},
+			Match{Column: "state"}, dueByNow()),
+
+		// The keyed read under each lock a transaction reads before it writes.
+		g.ReadQuery("GetLeaseForUpdate", sweepTable, leasesColumns(),
+			Read{Projection: []string{IDColumn}, Lock: LockExclusive}),
+		g.ReadQuery("GetLeaseForShare", sweepTable, leasesColumns(),
+			Read{Projection: []string{IDColumn}, Lock: LockShared}),
+
 		// The bounded stamp, guarded on the state it is replacing so a pass
 		// cannot move a lease somebody else has already dealt with.
 		g.SweepUpdateQuery("ExpireDueLeases", sweepTable, leasesColumns(),
@@ -160,13 +172,34 @@ func dueLeases(
 ) []string {
 	tb.Helper()
 
-	statement, arguments := leaseQuery(tb, d, "ListDueLeases", map[string]any{
+	return leaseIDs(tb, ctx, d, db, "ListDueLeases", state, at, limit)
+}
+
+// leaseQuerier is what leaseIDs reads through: the pool, or one transaction
+// holding the locks a claim took.
+type leaseQuerier interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+// leaseIDs runs one of the sweep reads and returns the ids it named, in order.
+func leaseIDs(
+	tb testing.TB,
+	ctx context.Context,
+	d dialect.Dialect,
+	q leaseQuerier,
+	name, state string,
+	at time.Time,
+	limit int64,
+) []string {
+	tb.Helper()
+
+	statement, arguments := leaseQuery(tb, d, name, map[string]any{
 		"state":          state,
 		expiresBeforeArg: timeArg(d, at),
 		LimitArg:         limit,
 	})
 
-	rows, err := db.QueryContext(ctx, statement, arguments...)
+	rows, err := q.QueryContext(ctx, statement, arguments...)
 	must.NoError(tb, err)
 
 	defer func() { must.NoError(tb, rows.Close()) }()
@@ -258,6 +291,37 @@ func runSweepSuite(t *testing.T, ctx context.Context, d dialect.Dialect, db *sql
 		// falls on.
 		test.SliceContains(t, dueLeases(t, ctx, d, db, "held", now, 10), "l_004")
 		test.SliceNotContains(t, dueLeases(t, ctx, d, db, "held", now, 10), "l_005")
+	})
+
+	t.Run("a skip-locked claim steps over the rows another transaction holds", func(t *testing.T) {
+		if !d.SupportsSkipLocked() {
+			t.Skipf("%s has no row locks to skip; its single writer serializes the claim", d)
+		}
+
+		// Neither claim may wait on the other, so a hang here is a lock
+		// clause that did not render its SKIP LOCKED.
+		claimCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+
+		first, beginErr := db.BeginTx(claimCtx, nil)
+		must.NoError(t, beginErr)
+
+		defer func() { must.NoError(t, first.Rollback()) }()
+
+		second, beginErr := db.BeginTx(claimCtx, nil)
+		must.NoError(t, beginErr)
+
+		defer func() { must.NoError(t, second.Rollback()) }()
+
+		firstClaim := leaseIDs(t, claimCtx, d, first, "ClaimDueLeases", "held", now, 2)
+		test.Eq(t, []string{"l_001", "l_002"}, firstClaim)
+
+		// Disjoint is the contract. How many rows the second claim gets beside
+		// that is the server's business: InnoDB may hold every row the first
+		// claim's scan examined, not only the two it returned.
+		for _, id := range leaseIDs(t, claimCtx, d, second, "ClaimDueLeases", "held", now, 2) {
+			test.SliceNotContains(t, firstClaim, id)
+		}
 	})
 
 	t.Run("the bounded update moves the rows the read named", func(t *testing.T) {

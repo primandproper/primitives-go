@@ -455,11 +455,12 @@ func createStatement(table string, insertColumns, nullable []string) string {
 // every keyed read that returns one column, or that projects an id it does not
 // key on.
 func (g *Generator) getStatement(table string, columns []string, ownership string, read Read, extra ...Match) string {
-	return fmt.Sprintf("SELECT\n\t%s\nFROM %s\nWHERE %s%s;",
+	return fmt.Sprintf("SELECT\n\t%s\nFROM %s\nWHERE %s%s%s;",
 		strings.Join(QualifyAll(table, read.projecting(columns)), ",\n\t"),
 		table,
 		joinPredicates(g.singleRowPredicates(table, columns, ownership, true, extra...), "\t"),
 		orderClause(table, read.Order),
+		g.lockClause(read.Lock),
 	)
 }
 

@@ -57,6 +57,20 @@ func (d Dialect) SupportsSkipLocked() bool {
 	return d == Postgres || d == MySQL
 }
 
+// SupportsRowLocking reports whether a SELECT on the dialect can take row locks
+// with FOR UPDATE or FOR SHARE.
+//
+// It is a separate question from SupportsSkipLocked, and the two agree today
+// only because no supported dialect has one without the other. Reading one as
+// the other is how the copies of a hand-appended lock clause came to disagree:
+// a dialect that locks but cannot skip still wants the lock, and a caller
+// asking "may I skip" to learn "may I lock" gets the wrong answer the day that
+// dialect arrives. SQLite has neither, because one writer at a time is its
+// storage model and there is no second transaction a row lock would hold off.
+func (d Dialect) SupportsRowLocking() bool {
+	return d == Postgres || d == MySQL
+}
+
 // SupportsWriteLimit reports whether the dialect caps a DELETE or an UPDATE
 // with that statement's own ORDER BY and LIMIT.
 //

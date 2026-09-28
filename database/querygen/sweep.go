@@ -47,6 +47,14 @@ type Sweep struct {
 	// the id and nothing else, and that one is [Generator.SweepDeleteQuery] or
 	// [Generator.SweepUpdateQuery] rather than a scan a caller loops over.
 	Projection []string
+	// Lock is the row lock the scan takes on the rows it returns, rendered
+	// after the limit. The zero value takes none; see [LockMode].
+	//
+	// [LockExclusiveSkipLocked] is the one a claim wants: a pool of workers
+	// each scanning the same predicate, each taking a batch the others are not
+	// holding. It applies to this read alone — the bounded writes name their
+	// rows through a subquery and lock what they write by writing it.
+	Lock LockMode
 }
 
 // SweepQuery renders the bounded read a background pass runs: the rows a
@@ -78,7 +86,7 @@ type Sweep struct {
 func (g *Generator) SweepQuery(name, table string, columns []string, sweep Sweep, matches ...Match) *Query {
 	return &Query{
 		Annotation: QueryAnnotation{Name: name, Type: ManyType},
-		Content:    g.sweepStatement(table, columns, sweep.Projection, sweep.Order, matches),
+		Content:    g.sweepStatement(table, columns, sweep.Projection, sweep.Order, matches) + g.lockClause(sweep.Lock),
 	}
 }
 
