@@ -229,11 +229,12 @@ func (g *Generator) setReadStatement(table string, columns []string, read Read, 
 	// expanded set collides with.
 	predicates = append(predicates, g.setPredicate(Qualify(table, key.Column), key.argument()))
 
-	return fmt.Sprintf("SELECT\n\t%s\nFROM %s\nWHERE %s%s;",
+	return fmt.Sprintf("SELECT\n\t%s\nFROM %s\nWHERE %s%s%s;",
 		strings.Join(QualifyAll(table, read.projecting(columns)), ",\n\t"),
 		table,
 		joinPredicates(predicates, "\t"),
 		listOrderClause(table, setReadOrder(key, read)),
+		g.lockClause(read.Lock),
 	)
 }
 

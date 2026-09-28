@@ -327,6 +327,13 @@ type Read struct {
 	// Projection is the columns the SELECT lists, in order. Empty projects the
 	// column list the statement was rendered from.
 	Projection []string
+	// Lock is the row lock the read takes on what it returns. The zero value
+	// takes none; see [LockMode] for what each mode renders on each dialect.
+	//
+	// It is the read a transaction then writes on the strength of: the row
+	// whose current value decides the update that follows, which another
+	// transaction must not replace in between.
+	Lock LockMode
 }
 
 // projecting returns the columns this read lists, which is the statement's own

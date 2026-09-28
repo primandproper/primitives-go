@@ -518,11 +518,37 @@ things — the alias where the bound is on a read, the table where the DELETE
 carries it — and a condition qualified with the wrong one resolves against its
 own subquery's table and dooms rows nobody chose.
 
+# Locking reads
+
+A keyed read and a sweep can lock the rows they return: [Read.Lock] and
+[Sweep.Lock] take a [LockMode], and the clause is rendered after the ORDER BY
+and the LIMIT and before the terminator — FOR UPDATE, FOR SHARE, or FOR UPDATE
+SKIP LOCKED — on the dialects that have row locks, and nothing on SQLite, whose
+single writer already serializes what the lock would.
+
+It is a field rather than a suffix a store appends because every store that
+appended one answered the per-dialect questions its own way: which servers get
+a clause, whether SKIP LOCKED is asked of the lock predicate or the other way
+round, and whether the clause goes before or after a terminator that some shapes
+render and others leave to [Query.Render]. The copies had drifted before anyone
+compared them. dialect.Dialect.SupportsRowLocking is the question the clause is
+keyed on, kept apart from SupportsSkipLocked so the two stop answering for each
+other; see [LockMode] for what a skip degrades to on a dialect that locks but
+cannot skip.
+
+The lock is on the read alone. The bounded writes lock what they write by
+writing it, and [Generator.PruneQuery]'s capped read carries its own Postgres
+SKIP LOCKED for the reasons "The bounded prune" gives.
+
 # The claim that is not here
 
 The queue stores' other statement is the claim — a bounded, ordered SELECT …
 FOR UPDATE SKIP LOCKED, leasing what it selected and returning it — and this
 package deliberately does not emit one.
+
+What it does emit is the read half: a [Sweep] with [LockExclusiveSkipLocked] is
+the bounded, ordered, locked SELECT. What is not here is the lease that makes it
+a claim.
 
 sqlc is not the obstacle: all three analyzers parse the shape, the Postgres one
 including the lock-ordering CTE, the interval arithmetic and the multi-column

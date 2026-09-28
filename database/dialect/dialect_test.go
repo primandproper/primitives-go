@@ -39,6 +39,24 @@ func TestDialect_SupportsSkipLocked(T *testing.T) {
 	})
 }
 
+func TestDialect_SupportsRowLocking(T *testing.T) {
+	T.Parallel()
+
+	T.Run("per dialect", func(t *testing.T) {
+		t.Parallel()
+
+		test.True(t, Postgres.SupportsRowLocking())
+		test.True(t, MySQL.SupportsRowLocking())
+		test.False(t, SQLite.SupportsRowLocking())
+	})
+
+	T.Run("an unsupported dialect claims nothing", func(t *testing.T) {
+		t.Parallel()
+
+		test.False(t, Dialect("oracle").SupportsRowLocking())
+	})
+}
+
 func TestDialect_SupportsWriteLimit(T *testing.T) {
 	T.Parallel()
 
