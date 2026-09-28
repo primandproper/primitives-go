@@ -15,8 +15,8 @@ func TestNewOptions(T *testing.T) {
 	T.Parallel()
 
 	// Absent means noop, in all three pillars: a caller that wants none of them
-	// names none of them, and gets a relying party that runs ceremonies and
-	// reports nothing.
+	// names none of them. That such a relying party still runs a ceremony is
+	// asserted beside the other ceremonies, in TestNewRelyingParty.
 	T.Run("wants nothing", func(t *testing.T) {
 		t.Parallel()
 
@@ -25,16 +25,6 @@ func TestNewOptions(T *testing.T) {
 		must.Nil(t, o.logger)
 		must.Nil(t, o.tracerProvider)
 		must.Nil(t, o.metricsProvider)
-
-		rp, err := NewRelyingParty(t.Context(), &Config{
-			RPID:          testRPID,
-			RPDisplayName: "Example",
-			RPOrigins:     []string{testOrigin},
-		}, newMemoryStore())
-		must.NoError(t, err)
-
-		_, err = rp.BeginRegistration(t.Context(), newTestUser("user-one"))
-		must.NoError(t, err)
 	})
 
 	T.Run("ignores a nil option", func(t *testing.T) {
