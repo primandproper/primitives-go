@@ -74,6 +74,24 @@ type Authenticator struct {
 	credentialID []byte
 	signCount    uint32
 	mu           sync.Mutex
+	unverified   bool
+}
+
+// AuthenticatorOption configures an Authenticator.
+type AuthenticatorOption func(*Authenticator)
+
+// WithoutUserVerification makes a device that proves presence and nothing more:
+// a key tapped by whoever is holding it, with no PIN or biometric behind the
+// tap. Both ceremonies then leave the user-verified flag unset.
+//
+// It is what a test of a relying party's user-verification requirement needs.
+// A relying party configured to prefer verification accepts such a device, so a
+// caller that treats a passkey as two factors has to check the flag itself, and
+// this is the device that shows whether it did.
+func WithoutUserVerification() AuthenticatorOption {
+	return func(a *Authenticator) {
+		a.unverified = true
+	}
 }
 
 // NewAuthenticator mints a device with one credential, for the relying party
@@ -82,7 +100,7 @@ type Authenticator struct {
 // A test of the origin check wants an authenticator whose origin is not one the
 // relying party is configured with; otherwise the two are the same values the
 // relying party was built from.
-func NewAuthenticator(tb testing.TB, rpID, origin string) *Authenticator {
+func NewAuthenticator(tb testing.TB, rpID, origin string, opts ...AuthenticatorOption) *Authenticator {
 	tb.Helper()
 
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -92,13 +110,21 @@ func NewAuthenticator(tb testing.TB, rpID, origin string) *Authenticator {
 	_, err = rand.Read(credentialID)
 	must.NoError(tb, err)
 
-	return &Authenticator{
+	a := &Authenticator{
 		key:          key,
 		credentialID: credentialID,
 		rpID:         rpID,
 		origin:       origin,
 		signCount:    1,
 	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(a)
+		}
+	}
+
+	return a
 }
 
 // Clone copies the device, key and counter both, as an attacker who extracted
@@ -119,6 +145,7 @@ func (a *Authenticator) Clone() *Authenticator {
 		rpID:         a.rpID,
 		origin:       a.origin,
 		signCount:    a.signCount,
+		unverified:   a.unverified,
 	}
 }
 
@@ -146,7 +173,7 @@ func (a *Authenticator) Register(tb testing.TB, challenge string) []byte {
 	defer a.mu.Unlock()
 
 	clientData := a.clientData(tb, "webauthn.create", challenge)
-	authData := a.authenticatorData(flagUserPresent|flagUserVerified|flagAttestedCredentialData, a.attestedCredentialData(tb))
+	authData := a.authenticatorData(a.presenceFlags()|flagAttestedCredentialData, a.attestedCredentialData(tb))
 
 	attestation, err := cbor.Marshal(map[string]any{
 		"fmt":      "none",
@@ -174,7 +201,7 @@ func (a *Authenticator) Assert(tb testing.TB, challenge string, userHandle []byt
 	a.signCount++
 
 	clientData := a.clientData(tb, "webauthn.get", challenge)
-	authData := a.authenticatorData(flagUserPresent|flagUserVerified, nil)
+	authData := a.authenticatorData(a.presenceFlags(), nil)
 
 	// The signature covers the authenticator data followed by the hash of the
 	// client data, which is what ties one signature to one challenge from one
@@ -213,10 +240,20 @@ func (a *Authenticator) Credential(tb testing.TB) webauthn.Credential {
 		AttestationType: "none",
 		Flags: gowebauthn.CredentialFlags{
 			UserPresent:  true,
-			UserVerified: true,
+			UserVerified: !a.unverified,
 		},
 		Authenticator: gowebauthn.Authenticator{SignCount: a.signCount},
 	}
+}
+
+// presenceFlags are the flags every ceremony carries: the user was present,
+// and — unless the device was built WithoutUserVerification — verified.
+func (a *Authenticator) presenceFlags() byte {
+	if a.unverified {
+		return flagUserPresent
+	}
+
+	return flagUserPresent | flagUserVerified
 }
 
 // clientData renders the collected client data for one ceremony step.

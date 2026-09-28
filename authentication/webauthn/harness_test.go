@@ -119,10 +119,24 @@ func (s *memoryStore) count() int {
 func newTestRelyingParty(tb testing.TB, store webauthn.SessionStore, opts ...webauthn.Option) *webauthn.RelyingParty {
 	tb.Helper()
 
+	return newTestRelyingPartyVerifying(tb, "", store, opts...)
+}
+
+// newTestRelyingParty's twin for a test of the user-verification policy, which
+// is the one Config field a test varies; the empty string is the default.
+func newTestRelyingPartyVerifying(
+	tb testing.TB,
+	userVerification string,
+	store webauthn.SessionStore,
+	opts ...webauthn.Option,
+) *webauthn.RelyingParty {
+	tb.Helper()
+
 	rp, err := webauthn.NewRelyingParty(tb.Context(), &webauthn.Config{
-		RPID:          testRPID,
-		RPDisplayName: "Example",
-		RPOrigins:     []string{testOrigin},
+		RPID:             testRPID,
+		RPDisplayName:    "Example",
+		RPOrigins:        []string{testOrigin},
+		UserVerification: userVerification,
 	}, store, append([]webauthn.Option{
 		webauthn.WithLogger(loggingnoop.NewLogger()),
 		webauthn.WithTracerProvider(tracingnoop.NewTracerProvider()),

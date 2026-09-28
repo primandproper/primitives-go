@@ -673,3 +673,41 @@ func handlerFor(user *testUser) webauthn.DiscoverableUserHandler {
 
 // errStoreDown is the failure the store double injects.
 var errStoreDown = platformerrors.New("session store is having a day")
+
+// A device that proves presence without verifying the user is accepted or
+// refused by the relying party's verification policy, and when it is accepted
+// the credential says so, which is what a caller treating a passkey as two
+// factors has to read.
+func TestRelyingParty_UserVerification(T *testing.T) {
+	T.Parallel()
+
+	login := func(t *testing.T, rp *webauthn.RelyingParty) (*webauthn.Credential, error) {
+		t.Helper()
+
+		authenticator := webauthntest.NewAuthenticator(t, testRPID, testOrigin, webauthntest.WithoutUserVerification())
+		user := newTestUser("user-one")
+		stored := authenticator.Credential(t)
+		user.add(&stored)
+
+		assertion, err := rp.BeginLogin(t.Context(), user)
+		must.NoError(t, err)
+
+		return rp.FinishLogin(t.Context(), user,
+			post(t, authenticator.Assert(t, assertion.Response.Challenge.String(), user.handle)))
+	}
+
+	T.Run("preferred accepts an unverified login and reports it", func(t *testing.T) {
+		t.Parallel()
+
+		credential, err := login(t, newTestRelyingPartyVerifying(t, webauthn.UserVerificationPreferred, newMemoryStore()))
+		must.NoError(t, err)
+		test.False(t, credential.Flags.UserVerified)
+	})
+
+	T.Run("required refuses an unverified login", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := login(t, newTestRelyingPartyVerifying(t, webauthn.UserVerificationRequired, newMemoryStore()))
+		test.Error(t, err)
+	})
+}

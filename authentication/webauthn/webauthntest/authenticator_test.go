@@ -170,3 +170,50 @@ func signedCounter(tb testing.TB, body []byte) uint32 {
 
 	return binary.BigEndian.Uint32(authData[sha256.Size+1:])
 }
+
+func TestWithoutUserVerification(T *testing.T) {
+	T.Parallel()
+
+	// The flags byte follows the relying party's hash in authenticator data.
+	const flagsAt, userPresent, userVerified = sha256.Size, 0x01, 0x04
+
+	T.Run("verifies by default", func(t *testing.T) {
+		t.Parallel()
+
+		authenticator := webauthntest.NewAuthenticator(t, testRPID, testOrigin)
+		flags := authenticatorData(t, authenticator.Assert(t, "a-challenge", nil))[flagsAt]
+
+		test.EqOp(t, byte(userPresent|userVerified), flags&(userPresent|userVerified))
+		test.True(t, authenticator.Credential(t).Flags.UserVerified)
+	})
+
+	T.Run("asserts presence without verification", func(t *testing.T) {
+		t.Parallel()
+
+		authenticator := webauthntest.NewAuthenticator(t, testRPID, testOrigin, webauthntest.WithoutUserVerification())
+		flags := authenticatorData(t, authenticator.Assert(t, "a-challenge", nil))[flagsAt]
+
+		test.EqOp(t, byte(userPresent), flags&(userPresent|userVerified))
+		test.False(t, authenticator.Credential(t).Flags.UserVerified)
+		test.True(t, authenticator.Credential(t).Flags.UserPresent)
+	})
+
+	T.Run("registers without verification", func(t *testing.T) {
+		t.Parallel()
+
+		authenticator := webauthntest.NewAuthenticator(t, testRPID, testOrigin, webauthntest.WithoutUserVerification())
+		registration := authenticator.Register(t, "a-challenge")
+
+		must.SliceNotEmpty(t, attestationObject(t, registration))
+		test.False(t, authenticator.Credential(t).Flags.UserVerified)
+	})
+
+	T.Run("survives a clone", func(t *testing.T) {
+		t.Parallel()
+
+		authenticator := webauthntest.NewAuthenticator(t, testRPID, testOrigin, webauthntest.WithoutUserVerification())
+		flags := authenticatorData(t, authenticator.Clone().Assert(t, "a-challenge", nil))[flagsAt]
+
+		test.EqOp(t, byte(0), flags&userVerified)
+	})
+}
