@@ -106,7 +106,13 @@ var (
 	// one with a challenge carrying no error code, because a client that has
 	// not tried yet has not got anything wrong — it is being told where to go
 	// and register, which is the entire discovery chain RFC 9728 exists for.
-	ErrNoBearerToken = platformerrors.Wrap(platformerrors.ErrEmptyInputParameter, "request carries no bearer token")
+	//
+	// It does not wrap platformerrors.ErrEmptyInputParameter, though it once did.
+	// Both transports' PlatformMapper answer that sentinel before any registered
+	// mapper is asked, so the wrap turned a missing credential into a 400 and an
+	// InvalidArgument, and a client told its input was malformed does not go
+	// looking for an authorization server.
+	ErrNoBearerToken = platformerrors.New("request carries no bearer token")
 
 	// ErrTokenAudienceMismatch indicates a live token whose RFC 8707 audience
 	// does not name this resource.

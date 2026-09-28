@@ -137,6 +137,13 @@ refusal — status and WWW-Authenticate — for one that only wants the header
 right. A handler underneath Middleware reads what was verified with
 TokenFromContext instead of looking it up again.
 
+A gRPC service puts authentication/oauth2server/grpc's interceptors where an
+HTTP one mounts Middleware; they read the authorization metadata entry, call
+Verify, and leave the token for TokenFromContext the same way. HTTPMapper and
+GRPCMapper answer Verify's refusals on the two transports' envelopes — 401 and
+Unauthenticated for everything but a missing scope, which is 403 and
+PermissionDenied — once a composition root has registered them.
+
 # The decision with the most reach: what an access token is
 
 An access token here is opaque, and every resource-server request that carries
