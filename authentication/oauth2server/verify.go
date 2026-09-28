@@ -377,16 +377,13 @@ func (v *Verifier) challengeFor(err error) (status int, challenge string) {
 			required = scoped.required
 		}
 
-		return http.StatusForbidden, v.metadata.ScopeChallenge(
-			"the token does not carry the required scope", required)
+		return http.StatusForbidden, v.metadata.ScopeChallenge(descriptionInsufficient, required)
 
 	case stderrors.Is(err, ErrTokenAudienceMismatch):
-		return http.StatusUnauthorized, v.metadata.Challenge(ErrorCodeInvalidToken,
-			"the token was not issued for this resource")
+		return http.StatusUnauthorized, v.metadata.Challenge(ErrorCodeInvalidToken, descriptionAudienceMismatch)
 
 	case stderrors.Is(err, ErrNotFound):
-		return http.StatusUnauthorized, v.metadata.Challenge(ErrorCodeInvalidToken,
-			"the token is expired, revoked, or unknown")
+		return http.StatusUnauthorized, v.metadata.Challenge(ErrorCodeInvalidToken, descriptionTokenUnusable)
 
 	default:
 		// A store that is actually broken. No challenge: the client's
@@ -411,8 +408,20 @@ func BearerFromRequest(req *http.Request) string {
 		return ""
 	}
 
-	header := req.Header.Get("Authorization")
+	return BearerFromAuthorization(req.Header.Get("Authorization"))
+}
 
+// BearerFromAuthorization reads the credential out of the value of an
+// Authorization header, wherever that header arrived: BearerFromRequest reads
+// one from net/http, and authentication/oauth2server/grpc reads one from
+// incoming metadata.
+//
+// It is one function rather than a parse per transport because the parse is
+// the part that can be got wrong — the scheme is case-insensitive, and a
+// transport that compared it exactly would refuse clients the other admits.
+//
+// A value that is not "Bearer <credential>" yields the empty string.
+func BearerFromAuthorization(header string) string {
 	scheme, credential, found := strings.Cut(header, " ")
 	if !found || !strings.EqualFold(scheme, bearerScheme) {
 		return ""
