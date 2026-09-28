@@ -8,6 +8,15 @@ and gets back a *Server with tracing and request logging already in the chain.
 The platform's own interceptors are chained first, so an application interceptor
 runs inside them and its work is inside the span.
 
+# A panicking handler does not take the process with it
+
+grpc-go does not recover on a handler's behalf. NewGRPCServer installs
+RecoveryInterceptor and StreamRecoveryInterceptor outermost, ahead of the
+logging interceptors, so a panic anywhere in the chain becomes a codes.Internal
+status whose message is the code's name. The panic value and its stack go to
+the log, never to the client. WithoutRecovery opts out, for a deployment that
+installs its own.
+
 # TLS is on only when both files are named
 
 The server enables TLS when a certificate and its key are both configured, and

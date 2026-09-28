@@ -19,6 +19,7 @@ type options struct {
 	maxReceiveMessageSize int
 	maxSendMessageSize    int
 	reflection            bool
+	withoutRecovery       bool
 }
 
 func newOptions(opts []Option) *options {
@@ -99,4 +100,14 @@ func WithMaxReceiveMessageSize(size int) Option {
 // calling client's receive bound, which is the one that actually breaks.
 func WithMaxSendMessageSize(size int) Option {
 	return func(o *options) { o.maxSendMessageSize = size }
+}
+
+// WithoutRecovery leaves RecoveryInterceptor and StreamRecoveryInterceptor out
+// of the chain NewGRPCServer builds.
+//
+// Recovery is on by default because a panicking handler otherwise kills the
+// process, and every RPC in flight with it. Opt out only to install a recovery
+// interceptor of your own, and install it outermost.
+func WithoutRecovery() Option {
+	return func(o *options) { o.withoutRecovery = true }
 }

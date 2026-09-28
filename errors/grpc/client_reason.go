@@ -1,9 +1,11 @@
 package grpc
 
 import (
+	"context"
 	"sync"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -264,4 +266,38 @@ func StripEncodedErrorDetail(err error) error {
 	proto.Details = kept
 
 	return status.FromProto(proto).Err()
+}
+
+// StripEncodedErrorDetailUnaryServerInterceptor applies StripEncodedErrorDetail
+// to every error a unary RPC returns, which is how a server reachable by
+// untrusted clients strips at its own edge.
+//
+// Chain it outside UnaryErrorEncodingInterceptor — earlier in the list, since
+// grpc-go runs the first interceptor outermost — or there is nothing yet to
+// strip when it runs. Everything inside it still sees the full chain.
+func StripEncodedErrorDetailUnaryServerInterceptor() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req any,
+		_ *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (any, error) {
+		resp, err := handler(ctx, req)
+
+		return resp, StripEncodedErrorDetail(err)
+	}
+}
+
+// StripEncodedErrorDetailStreamServerInterceptor is
+// StripEncodedErrorDetailUnaryServerInterceptor for streaming RPCs, and goes
+// outside StreamErrorEncodingInterceptor on the same terms.
+func StripEncodedErrorDetailStreamServerInterceptor() grpc.StreamServerInterceptor {
+	return func(
+		srv any,
+		ss grpc.ServerStream,
+		_ *grpc.StreamServerInfo,
+		handler grpc.StreamHandler,
+	) error {
+		return StripEncodedErrorDetail(handler(srv, ss))
+	}
 }

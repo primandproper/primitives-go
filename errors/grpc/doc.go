@@ -74,6 +74,9 @@ untrusted clients needs that detail stripped at the edge — otherwise the inter
 error text this package took care to keep out of the message is available in the
 details of the same response. StripEncodedErrorDetail is that edge's spelling: it
 removes exactly the encoded detail and leaves the rest of the response alone.
+StripEncodedErrorDetailUnaryServerInterceptor and
+StripEncodedErrorDetailStreamServerInterceptor apply it to everything a server
+returns; chain them outside the encoding interceptors.
 
 # The third channel
 
