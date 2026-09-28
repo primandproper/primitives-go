@@ -18,6 +18,11 @@ var (
 	ErrNoPermissionsRequired = errors.New("method required with no permissions")
 	// ErrEmptyPermission indicates a requirement listed an empty permission.
 	ErrEmptyPermission = errors.New("empty permission required")
+	// ErrOverrideUndeclared indicates Override named a method that nothing
+	// declared, which is almost always a typo or a method the surface renamed.
+	ErrOverrideUndeclared = errors.New("override of a method nothing declared")
+	// ErrDuplicateOverride indicates the same method was overridden more than once.
+	ErrDuplicateOverride = errors.New("method overridden more than once")
 )
 
 // Requirements is the frozen table of what each RPC method demands.
@@ -33,18 +38,22 @@ type Requirements struct {
 // RequirementsBuilder accumulates method requirements and validates them as a
 // whole.
 type RequirementsBuilder struct {
-	byMethod map[string][]authorization.Permission
-	public   map[string]struct{}
-	declared map[string]int
-	errs     []error
+	byMethod   map[string][]authorization.Permission
+	public     map[string]struct{}
+	declared   map[string]int
+	overrides  map[string][]authorization.Permission
+	overridden map[string]int
+	errs       []error
 }
 
 // NewRequirements returns a builder for a Requirements table.
 func NewRequirements() *RequirementsBuilder {
 	return &RequirementsBuilder{
-		byMethod: map[string][]authorization.Permission{},
-		public:   map[string]struct{}{},
-		declared: map[string]int{},
+		byMethod:   map[string][]authorization.Permission{},
+		public:     map[string]struct{}{},
+		declared:   map[string]int{},
+		overrides:  map[string][]authorization.Permission{},
+		overridden: map[string]int{},
 	}
 }
 
@@ -108,6 +117,45 @@ func (b *RequirementsBuilder) Public(fullMethod string) *RequirementsBuilder {
 	return b
 }
 
+// Override replaces what an already-declared fullMethod demands with perms.
+//
+// It is how a deployment amends a surface's fragment rather than rebuilding
+// it: reserving one method for operators is a line against the fragment the
+// surface exports, and a method the surface adds later still arrives through
+// that fragment instead of being silently absent from a hand-copied table.
+//
+// Overrides apply at Build, after every declaration, so it does not matter
+// whether Override is called before or after the fragment that declares the
+// method. Overriding a Public method makes it require perms instead.
+//
+// An override of a method nothing declared is ErrOverrideUndeclared, because
+// the likeliest cause is a typo or a method the surface renamed, and quietly
+// declaring it would leave the real method on its default. Overriding a method
+// twice is ErrDuplicateOverride, for the same reason declaring it twice is an
+// error. Zero permissions and empty ones are refused as they are by Require.
+func (b *RequirementsBuilder) Override(fullMethod string, perms ...authorization.Permission) *RequirementsBuilder {
+	b.overridden[fullMethod]++
+
+	switch {
+	case fullMethod == "":
+		b.errs = append(b.errs, ErrEmptyMethod)
+	case len(perms) == 0:
+		b.errs = append(b.errs, errors.Wrapf(ErrNoPermissionsRequired, "override of method %q", fullMethod))
+	}
+
+	for _, p := range perms {
+		if p == "" {
+			b.errs = append(b.errs, errors.Wrapf(ErrEmptyPermission, "override of method %q", fullMethod))
+		}
+	}
+
+	if fullMethod != "" && len(perms) > 0 {
+		b.overrides[fullMethod] = slices.Clone(perms)
+	}
+
+	return b
+}
+
 // Build validates the accumulated declarations and freezes them.
 //
 // It reports every problem it found rather than the first, because a table
@@ -120,13 +168,32 @@ func (b *RequirementsBuilder) Build() (*Requirements, error) {
 		}
 	}
 
+	for _, method := range slices.Sorted(maps.Keys(b.overridden)) {
+		switch {
+		case method == "":
+			// Already reported as ErrEmptyMethod.
+		case b.declared[method] == 0:
+			b.errs = append(b.errs, errors.Wrapf(ErrOverrideUndeclared, "method %q", method))
+		case b.overridden[method] > 1:
+			b.errs = append(b.errs, errors.Wrapf(ErrDuplicateOverride, "method %q", method))
+		}
+	}
+
 	if err := errors.Join(b.errs...); err != nil {
 		return nil, err
 	}
 
+	byMethod := maps.Clone(b.byMethod)
+	public := maps.Clone(b.public)
+
+	for method, perms := range b.overrides {
+		byMethod[method] = slices.Clone(perms)
+		delete(public, method)
+	}
+
 	return &Requirements{
-		byMethod: maps.Clone(b.byMethod),
-		public:   maps.Clone(b.public),
+		byMethod: byMethod,
+		public:   public,
 	}, nil
 }
 
@@ -152,4 +219,43 @@ func (r *Requirements) Methods() []string {
 	slices.Sort(out)
 
 	return out
+}
+
+// UngrantablePermissions reports every permission some method requires that no
+// role in roles grants, mapped to the sorted methods that require it. An empty
+// result means every requirement is satisfiable by some combination of roles.
+//
+// roles is each role's effective permission set, inheritance already applied,
+// which is what authorization.ExpandInheritance returns. A permission missing
+// from all of them makes every method requiring it unreachable for everyone —
+// usually an Override naming a permission the role table never learned about —
+// and nothing at runtime distinguishes that from ordinary denials.
+//
+// It checks permissions individually rather than per method: a principal's
+// grants are the union of its roles, so a method requiring two permissions held
+// by two different roles is still reachable by someone holding both.
+func (r *Requirements) UngrantablePermissions(roles map[string]*authorization.PermissionSet) map[authorization.Permission][]string {
+	out := map[authorization.Permission][]string{}
+
+	for _, method := range slices.Sorted(maps.Keys(r.byMethod)) {
+		for _, perm := range r.byMethod[method] {
+			if grantedByAny(roles, perm) || slices.Contains(out[perm], method) {
+				continue
+			}
+
+			out[perm] = append(out[perm], method)
+		}
+	}
+
+	return out
+}
+
+func grantedByAny(roles map[string]*authorization.PermissionSet, perm authorization.Permission) bool {
+	for _, set := range roles {
+		if set.Has(perm) {
+			return true
+		}
+	}
+
+	return false
 }
