@@ -13,9 +13,16 @@ import (
 // JobConfig is one scheduled job's configuration: whether it runs, when, and
 // under what limits. The work itself is code, supplied to Job.
 //
-// Exactly one of Schedule and Interval is set on an enabled job. A job belongs
+// A job runs unless Disabled says otherwise. A job is configured because
+// somebody wants it run, so a zero value is a running job, and switching one off
+// is written down by name rather than left to a flag nobody set.
+//
+// Exactly one of Schedule and Interval is set on a job that runs. A job belongs
 // either at an hour or at a frequency, and one carrying both is rejected rather
-// than resolved by precedence.
+// than resolved by precedence. A running job with neither is rejected too, so
+// the embedding config's EnsureDefaults supplies a schedule for any job it
+// wants running out of the box, and a job with no sensible default fails
+// validation loudly instead of registering nothing.
 //
 // It carries no prefix of its own, because the name is the embedding struct's
 // to choose. A service with several jobs gives each field its own:
@@ -43,11 +50,10 @@ type JobConfig struct {
 	// must comfortably exceed the job's worst-case duration — past it, a second
 	// replica may start the same job.
 	LeaseTTL time.Duration `env:"LEASE_TTL" json:"leaseTTL,omitempty" yaml:"leaseTTL,omitempty"`
-	// Enabled says whether the job is registered at all. A disabled job is not
-	// validated, and Job does not consult it: the caller skips a disabled job
-	// rather than registering one that never fires, so it costs nothing and
-	// reports nothing.
-	Enabled bool `env:"ENABLED" json:"enabled" yaml:"enabled"`
+	// Disabled switches the job off. A disabled job is not validated, and Job
+	// does not consult it: the caller skips a disabled job rather than
+	// registering one that never fires, so it costs nothing and reports nothing.
+	Disabled bool `env:"DISABLED" json:"disabled,omitempty" yaml:"disabled,omitempty"`
 	// RunOnStart fires the job once when the Scheduler starts, instead of
 	// waiting a full interval or for the schedule's next fire time.
 	RunOnStart bool `env:"RUN_ON_START" json:"runOnStart,omitempty" yaml:"runOnStart,omitempty"`
@@ -56,13 +62,14 @@ type JobConfig struct {
 var _ validation.ValidatableWithContext = (*JobConfig)(nil)
 
 // ValidateWithContext validates a JobConfig. A disabled job is not validated:
-// it is never registered, so its schedule is inert.
+// it is never registered, so its schedule is inert. Every other job is,
+// including the zero value, which is a job that runs.
 //
 // The schedule is parsed here rather than left to Scheduler.Register so that a
 // bad expression fails config validation, where it is a red build, instead of
 // scheduler startup, where it is a crash loop.
 func (cfg *JobConfig) ValidateWithContext(ctx context.Context) error {
-	if !cfg.Enabled {
+	if cfg.Disabled {
 		return nil
 	}
 

@@ -20,7 +20,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("accepts an interval job", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Interval: time.Minute}
+		cfg := &JobConfig{Interval: time.Minute}
 
 		test.NoError(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -28,7 +28,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("accepts a scheduled job", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Schedule: "0 3 * * *", Timeout: time.Minute, LeaseTTL: time.Hour}
+		cfg := &JobConfig{Schedule: "0 3 * * *", Timeout: time.Minute, LeaseTTL: time.Hour}
 
 		test.NoError(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -36,7 +36,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("ignores a disabled job", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Schedule: "not a cron spec", Interval: -time.Second}
+		cfg := &JobConfig{Disabled: true, Schedule: "not a cron spec", Interval: -time.Second}
 
 		test.NoError(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -44,7 +44,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects both an interval and a schedule", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Schedule: "@hourly", Interval: time.Minute}
+		cfg := &JobConfig{Schedule: "@hourly", Interval: time.Minute}
 
 		test.ErrorIs(t, cfg.ValidateWithContext(t.Context()), jobs.ErrInvalidJob)
 	})
@@ -52,7 +52,17 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects neither an interval nor a schedule", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true}
+		cfg := &JobConfig{}
+
+		test.ErrorIs(t, cfg.ValidateWithContext(t.Context()), jobs.ErrInvalidJob)
+	})
+
+	T.Run("validates the zero value, which is a job that runs", func(t *testing.T) {
+		t.Parallel()
+
+		// A job nobody switched off is on, so a zero value is a running job with
+		// no schedule, and that is refused rather than skipped.
+		var cfg JobConfig
 
 		test.ErrorIs(t, cfg.ValidateWithContext(t.Context()), jobs.ErrInvalidJob)
 	})
@@ -60,7 +70,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects an unparseable schedule", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Schedule: "every tuesday"}
+		cfg := &JobConfig{Schedule: "every tuesday"}
 
 		test.ErrorIs(t, cfg.ValidateWithContext(t.Context()), jobs.ErrInvalidCronSpec)
 	})
@@ -68,7 +78,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects a sub-second interval", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Interval: time.Millisecond}
+		cfg := &JobConfig{Interval: time.Millisecond}
 
 		test.Error(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -76,7 +86,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects a negative interval", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Interval: -time.Minute}
+		cfg := &JobConfig{Interval: -time.Minute}
 
 		test.Error(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -84,7 +94,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects a negative timeout", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Interval: time.Minute, Timeout: -time.Second}
+		cfg := &JobConfig{Interval: time.Minute, Timeout: -time.Second}
 
 		test.Error(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -92,7 +102,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects a sub-second lease", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Interval: time.Minute, LeaseTTL: time.Millisecond}
+		cfg := &JobConfig{Interval: time.Minute, LeaseTTL: time.Millisecond}
 
 		test.Error(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -100,7 +110,7 @@ func TestJobConfig_ValidateWithContext(T *testing.T) {
 	T.Run("rejects a negative lease", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Interval: time.Minute, LeaseTTL: -time.Minute}
+		cfg := &JobConfig{Interval: time.Minute, LeaseTTL: -time.Minute}
 
 		test.Error(t, cfg.ValidateWithContext(t.Context()))
 	})
@@ -113,7 +123,6 @@ func TestJobConfig_Job(T *testing.T) {
 		t.Parallel()
 
 		cfg := &JobConfig{
-			Enabled:    true,
 			Interval:   time.Minute,
 			Timeout:    10 * time.Second,
 			LeaseTTL:   2 * time.Minute,
@@ -135,7 +144,7 @@ func TestJobConfig_Job(T *testing.T) {
 	T.Run("renders a scheduled job", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Schedule: "0 3 * * *"}
+		cfg := &JobConfig{Schedule: "0 3 * * *"}
 
 		job, err := cfg.Job("nightly", noopRun)
 		must.NoError(t, err)
@@ -150,7 +159,7 @@ func TestJobConfig_Job(T *testing.T) {
 	T.Run("renders a job the scheduler accepts", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Schedule: "@hourly"}
+		cfg := &JobConfig{Schedule: "@hourly"}
 
 		job, err := cfg.Job("hourly", noopRun)
 		must.NoError(t, err)
@@ -164,7 +173,7 @@ func TestJobConfig_Job(T *testing.T) {
 	T.Run("rejects an unparseable schedule", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Schedule: "every tuesday"}
+		cfg := &JobConfig{Schedule: "every tuesday"}
 
 		_, err := cfg.Job("broken", noopRun)
 		test.ErrorIs(t, err, jobs.ErrInvalidCronSpec)
@@ -182,7 +191,7 @@ func TestJobConfig_Job(T *testing.T) {
 	T.Run("rejects a nil function", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &JobConfig{Enabled: true, Interval: time.Minute}
+		cfg := &JobConfig{Interval: time.Minute}
 
 		_, err := cfg.Job("nothing", nil)
 		test.ErrorIs(t, err, errors.ErrNilInputParameter)
