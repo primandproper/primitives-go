@@ -112,11 +112,24 @@ func NewGRPCServer(
 		return nil, err
 	}
 
+	// Recovery goes first, which grpc-go's chaining makes outermost, so a panic
+	// in any interceptor after it is recovered as well as one in a handler.
+	var (
+		unary  []grpc.UnaryServerInterceptor
+		stream []grpc.StreamServerInterceptor
+	)
+	if !o.withoutRecovery {
+		unary = append(unary, RecoveryInterceptor(logger))
+		stream = append(stream, StreamRecoveryInterceptor(logger))
+	}
+	unary = append(append(unary, LoggingInterceptor(logger)), unaryServerInterceptors...)
+	stream = append(append(stream, StreamLoggingInterceptor(logger)), streamServerInterceptors...)
+
 	tp := tracing.EnsureTracerProvider(o.tracerProvider)
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(otelgrpc.NewServerHandler(otelgrpc.WithTracerProvider(tp))),
-		grpc.ChainUnaryInterceptor(append([]grpc.UnaryServerInterceptor{LoggingInterceptor(logger)}, unaryServerInterceptors...)...),
-		grpc.ChainStreamInterceptor(append([]grpc.StreamServerInterceptor{StreamLoggingInterceptor(logger)}, streamServerInterceptors...)...),
+		grpc.ChainUnaryInterceptor(unary...),
+		grpc.ChainStreamInterceptor(stream...),
 		grpc.MaxRecvMsgSize(maxReceive),
 		grpc.MaxSendMsgSize(maxSend),
 	}

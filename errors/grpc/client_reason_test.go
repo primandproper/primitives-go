@@ -422,3 +422,81 @@ func TestClientReason_OverTheWire(T *testing.T) {
 		test.EqOp(t, errSecondFactorRequired.Error(), status.Convert(forwarded).Message())
 	})
 }
+
+func TestStripEncodedErrorDetailInterceptors(T *testing.T) {
+	T.Parallel()
+
+	sentinel := platformerrors.New("a gadget refusal worth naming")
+	RegisterClientSafeReasons(ClientReason{Err: sentinel, Reason: "GADGET_REFUSED"})
+
+	fromTheStore := platformerrors.Wrap(sentinel, "scanning gadget_catalog_entries")
+
+	// assertStripped checks what an untrusted client receives: the reason, and
+	// no chain.
+	assertStripped := func(t *testing.T, err error) {
+		t.Helper()
+
+		must.Error(t, err)
+		test.SliceLen(t, 1, status.Convert(err).Proto().GetDetails())
+
+		info, ok := ClientReasonFromStatus(err)
+		must.True(t, ok)
+		test.EqOp(t, "GADGET_REFUSED", info.GetReason())
+		test.False(t, platformerrors.Is(DecodeErrorFromStatus(context.Background(), err), sentinel))
+	}
+
+	T.Run("unary, chained outside the encoding interceptor", func(t *testing.T) {
+		t.Parallel()
+
+		strip := StripEncodedErrorDetailUnaryServerInterceptor()
+		encode := UnaryErrorEncodingInterceptor()
+		info := &grpc.UnaryServerInfo{FullMethod: "/test/Method"}
+
+		_, err := strip(t.Context(), "request", info, func(ctx context.Context, req any) (any, error) {
+			return encode(ctx, req, info, func(context.Context, any) (any, error) {
+				return nil, fromTheStore
+			})
+		})
+
+		assertStripped(t, err)
+	})
+
+	T.Run("unary success is passed through", func(t *testing.T) {
+		t.Parallel()
+
+		strip := StripEncodedErrorDetailUnaryServerInterceptor()
+
+		resp, err := strip(t.Context(), "request", &grpc.UnaryServerInfo{}, func(context.Context, any) (any, error) {
+			return "result", nil
+		})
+
+		test.NoError(t, err)
+		test.EqOp(t, "result", resp.(string))
+	})
+
+	T.Run("stream, chained outside the encoding interceptor", func(t *testing.T) {
+		t.Parallel()
+
+		strip := StripEncodedErrorDetailStreamServerInterceptor()
+		encode := StreamErrorEncodingInterceptor()
+		info := &grpc.StreamServerInfo{FullMethod: "/test/Stream"}
+		ss := &mockServerStream{ctx: context.Background()}
+
+		err := strip(nil, ss, info, func(srv any, stream grpc.ServerStream) error {
+			return encode(srv, stream, info, func(any, grpc.ServerStream) error {
+				return fromTheStore
+			})
+		})
+
+		assertStripped(t, err)
+	})
+
+	T.Run("stream success is passed through", func(t *testing.T) {
+		t.Parallel()
+
+		strip := StripEncodedErrorDetailStreamServerInterceptor()
+		ss := &mockServerStream{ctx: context.Background()}
+
+		test.NoError(t, strip(nil, ss, &grpc.StreamServerInfo{}, func(any, grpc.ServerStream) error { return nil }))
+	})
+}
