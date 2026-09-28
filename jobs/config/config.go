@@ -6,6 +6,10 @@ executions under a distributed lock.
 The two are configured independently — most services run one or the other —
 so each has its own config type and builder rather than one struct with an
 unused half.
+
+JobConfig is the third, and the one a service has several of: one scheduled
+job's schedule, timeout and lease, rendered by JobConfig.Job into the jobs.Job
+a Scheduler registers.
 */
 package jobscfg
 
