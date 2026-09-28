@@ -172,3 +172,179 @@ func TestRequirements_Immutability(T *testing.T) {
 		test.Eq(t, []authorization.Permission{permRead}, got)
 	})
 }
+
+func TestRequirementsBuilder_Override(T *testing.T) {
+	T.Parallel()
+
+	const permOperator authorization.Permission = "operate.things"
+
+	fragment := func(b *RequirementsBuilder) *RequirementsBuilder {
+		return b.
+			RequireAll(map[string][]authorization.Permission{
+				methodRead:  {permRead},
+				methodWrite: {permWrite},
+			}).
+			Public(methodHealth)
+	}
+
+	T.Run("replaces what a fragment declared", func(t *testing.T) {
+		t.Parallel()
+
+		reqs, err := fragment(NewRequirements()).
+			Override(methodWrite, permOperator).
+			Build()
+		must.NoError(t, err)
+
+		got, public, declared := reqs.lookup(methodWrite)
+		test.True(t, declared)
+		test.False(t, public)
+		test.Eq(t, []authorization.Permission{permOperator}, got)
+
+		got, _, _ = reqs.lookup(methodRead)
+		test.Eq(t, []authorization.Permission{permRead}, got)
+	})
+
+	// Overrides apply at Build, so a deployment can state them before the
+	// fragment they amend without the order mattering.
+	T.Run("applies regardless of order", func(t *testing.T) {
+		t.Parallel()
+
+		reqs, err := fragment(NewRequirements().Override(methodWrite, permOperator)).Build()
+		must.NoError(t, err)
+
+		got, _, _ := reqs.lookup(methodWrite)
+		test.Eq(t, []authorization.Permission{permOperator}, got)
+	})
+
+	T.Run("turns a public method into a required one", func(t *testing.T) {
+		t.Parallel()
+
+		reqs, err := fragment(NewRequirements()).
+			Override(methodHealth, permOperator).
+			Build()
+		must.NoError(t, err)
+
+		got, public, declared := reqs.lookup(methodHealth)
+		test.True(t, declared)
+		test.False(t, public)
+		test.Eq(t, []authorization.Permission{permOperator}, got)
+		test.Eq(t, []string{methodHealth, methodRead, methodWrite}, reqs.Methods())
+	})
+
+	// A typo or a method the surface renamed would otherwise leave the real
+	// method on its default while the override looked applied.
+	T.Run("rejects an override of an undeclared method", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := fragment(NewRequirements()).
+			Override("/things.Things/Wirte", permOperator).
+			Build()
+
+		test.True(t, errors.Is(err, ErrOverrideUndeclared))
+	})
+
+	T.Run("rejects a method overridden twice", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := fragment(NewRequirements()).
+			Override(methodWrite, permOperator).
+			Override(methodWrite, permRead).
+			Build()
+
+		test.True(t, errors.Is(err, ErrDuplicateOverride))
+	})
+
+	T.Run("rejects an override with no permissions", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := fragment(NewRequirements()).Override(methodWrite).Build()
+
+		test.True(t, errors.Is(err, ErrNoPermissionsRequired))
+	})
+
+	T.Run("rejects an override with an empty permission", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := fragment(NewRequirements()).Override(methodWrite, permOperator, "").Build()
+
+		test.True(t, errors.Is(err, ErrEmptyPermission))
+	})
+
+	T.Run("rejects an override of an empty method name", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := fragment(NewRequirements()).Override("", permOperator).Build()
+
+		test.True(t, errors.Is(err, ErrEmptyMethod))
+		test.False(t, errors.Is(err, ErrOverrideUndeclared))
+	})
+
+	T.Run("a caller's permission slice cannot alter the table", func(t *testing.T) {
+		t.Parallel()
+
+		perms := []authorization.Permission{permOperator}
+
+		reqs, err := fragment(NewRequirements()).Override(methodWrite, perms...).Build()
+		must.NoError(t, err)
+
+		perms[0] = permRead
+
+		got, _, _ := reqs.lookup(methodWrite)
+		test.Eq(t, []authorization.Permission{permOperator}, got)
+	})
+}
+
+func TestRequirements_UngrantablePermissions(T *testing.T) {
+	T.Parallel()
+
+	const permOperator authorization.Permission = "operate.things"
+	const methodPurge = "/things.Things/Purge"
+
+	reqs, buildErr := NewRequirements().
+		Require(methodRead, permRead).
+		Require(methodWrite, permRead, permWrite).
+		Require(methodPurge, permOperator, permWrite).
+		Public(methodHealth).
+		Override(methodRead, permRead, permOperator).
+		Build()
+	must.NoError(T, buildErr)
+
+	T.Run("reports permissions no role grants", func(t *testing.T) {
+		t.Parallel()
+
+		roles, err := authorization.ExpandInheritance(
+			authorization.Role{Name: "reader", Permissions: []authorization.Permission{permRead}},
+			authorization.Role{Name: "writer", Permissions: []authorization.Permission{permWrite}},
+		)
+		must.NoError(t, err)
+
+		test.Eq(t, map[authorization.Permission][]string{
+			permOperator: {methodPurge, methodRead},
+		}, reqs.UngrantablePermissions(roles))
+	})
+
+	// Grants are the union of a principal's roles, so a method needing two
+	// permissions held by two roles is still reachable.
+	T.Run("is empty when every permission is held by some role", func(t *testing.T) {
+		t.Parallel()
+
+		roles, err := authorization.ExpandInheritance(
+			authorization.Role{Name: "reader", Permissions: []authorization.Permission{permRead}},
+			authorization.Role{Name: "writer", Permissions: []authorization.Permission{permWrite}},
+			authorization.Role{Name: "operator", Inherits: []string{"reader"}, Permissions: []authorization.Permission{permOperator}},
+		)
+		must.NoError(t, err)
+
+		test.MapEmpty(t, reqs.UngrantablePermissions(roles))
+	})
+
+	T.Run("reports everything when there are no roles", func(t *testing.T) {
+		t.Parallel()
+
+		test.Eq(t, map[authorization.Permission][]string{
+			permRead:     {methodRead, methodWrite},
+			permWrite:    {methodPurge, methodWrite},
+			permOperator: {methodPurge, methodRead},
+		}, reqs.UngrantablePermissions(nil))
+	})
+}

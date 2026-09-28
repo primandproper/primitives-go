@@ -56,6 +56,25 @@ and that gap is exactly where an authorization hole hides. Build also refuses a
 method declared twice, which is what happens when two service packages
 contribute overlapping tables and one silently wins.
 
+# Amending a fragment
+
+A surface usually exports its requirements as a fragment a deployment composes
+in. Override replaces what one already-declared method demands without
+rebuilding the fragment, so reserving a call for operators is one line and a
+method the surface adds later still arrives through it:
+
+	reqs, err := identitygrpc.Require(authzgrpc.NewRequirements()).
+		Override(identitypb.IdentityService_ListAccounts_FullMethodName, PermissionOperate).
+		Build()
+
+Overriding a method nothing declared is an error, as is overriding one twice.
+
+Once built, UngrantablePermissions checks the table against the deployment's
+roles (as authorization.ExpandInheritance returns them) and reports every
+required permission no role grants — a method nobody can ever call, which at
+runtime is indistinguishable from ordinary denials. Assert it is empty in a
+test.
+
 Requirements is immutable once built, so neither interceptor takes a lock. A
 mutable table guarded by a mutex costs an acquisition on every RPC to protect a
 map that is never written after startup.
