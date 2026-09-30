@@ -5,7 +5,23 @@ import (
 	"io"
 	"iter"
 	"time"
+
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
+
+// ErrSigningUnsupported is returned by URLSigner.SignedURL when the storage behind it cannot mint
+// signed URLs at all: a capability answer about the backend, not a failure of this call.
+//
+// It exists so a caller can tell the two apart without learning the provider's error vocabulary.
+// Before it, the only way to recognize the refusal from objectstorage was to import
+// gocloud.dev/gcerrors and compare codes, which put a storage driver's taxonomy inside whatever
+// package wanted to fall back to proxying bytes when a URL could not be had.
+//
+// Implementations join it with the provider's own error rather than replacing it, so errors.Is
+// matches this sentinel and an operator still reads what the backend said. Retrying is pointless:
+// the answer is a property of how the storage was configured, and it will not change until that
+// does.
+var ErrSigningUnsupported = platformerrors.New("storage provider cannot sign URLs")
 
 // The interfaces below are optional capabilities. The core UploadManager only guarantees
 // Save/Open/Delete/Exists; richer backends (e.g. objectstorage.Uploader) also implement these.
@@ -21,6 +37,12 @@ type (
 
 	// URLSigner can mint a signed URL granting temporary, direct access to an object, letting
 	// clients read or write storage without proxying bytes through the service.
+	//
+	// Satisfying the interface is not the same as being able to sign. A backend that has no way
+	// to mint a URL — objectstorage's memory and filesystem providers are the two this module
+	// ships — refuses at the call, and the refusal matches ErrSigningUnsupported under
+	// errors.Is. Any other error is a failure to sign that the backend could otherwise have
+	// performed.
 	URLSigner interface {
 		SignedURL(ctx context.Context, path string, opts *SignedURLOptions) (string, error)
 	}

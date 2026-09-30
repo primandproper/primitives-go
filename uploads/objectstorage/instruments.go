@@ -35,6 +35,9 @@ const (
 	reasonBackend = "backend"
 	// reasonCircuitOpen marks an operation the circuit breaker refused to attempt.
 	reasonCircuitOpen = "circuit_open"
+	// reasonUnsupported marks an operation the backend has no way to perform at
+	// all — today, SignedURL on a provider that cannot sign.
+	reasonUnsupported = "unsupported"
 )
 
 // The operations, as they appear in the operation attribute.
@@ -126,4 +129,17 @@ func (i *instruments) failed(ctx context.Context, operation string, startedAt ti
 // doing no uploads.
 func (i *instruments) rejected(ctx context.Context, operation string) {
 	i.errors.Add(ctx, 1, i.errAttrs(operation, reasonCircuitOpen))
+}
+
+// unsupported records an operation the backend answered by saying it cannot do
+// that kind of thing at all.
+//
+// It counts as an error, because the caller did not get what it asked for, but
+// under its own reason: filed under "backend" it would read as the storage
+// misbehaving, and a dashboard alerting on backend errors would page someone
+// over a development bucket doing exactly what it was configured to do. Like
+// rejected it records no latency — the refusal is decided in the driver before
+// any I/O, so its duration says nothing about the storage.
+func (i *instruments) unsupported(ctx context.Context, operation string) {
+	i.errors.Add(ctx, 1, i.errAttrs(operation, reasonUnsupported))
 }

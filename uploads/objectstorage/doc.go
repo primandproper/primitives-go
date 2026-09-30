@@ -33,6 +33,14 @@ signing: SignedURL fails on memory, and on filesystem, which is opened with no
 URL signer. A caller that needs signed URLs across environments needs to know
 that the development backend cannot mint them.
 
+It can know without reading gocloud's errors. That refusal matches
+uploads.ErrSigningUnsupported under errors.Is, with gocloud's error joined
+behind it, and it is kept away from the circuit breaker in both directions: it is
+not a failure, so asking a memory bucket to sign a thousand times does not open
+the breaker on Save and Open, and it is not a success, so it cannot close one a
+real outage opened. It is counted under the "unsupported" error reason, apart
+from "backend".
+
 # Construction does not touch the network
 
 No provider is probed for reachability at construction, GCP included. What

@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/circuitbreaking"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/uploads"
 
 	"gocloud.dev/blob"
+	"gocloud.dev/gcerrors"
 )
 
 var (
@@ -239,8 +241,19 @@ func (u *Uploader) List(ctx context.Context, prefix string) iter.Seq2[uploads.Ob
 	}
 }
 
-// SignedURL mints a signed URL granting temporary, direct access to the object at path. Not all
-// providers support signing (e.g. the in-memory and unsigned filesystem backends return an error).
+// SignedURL mints a signed URL granting temporary, direct access to the object at path.
+//
+// Not every provider can sign: memory cannot, and filesystem is opened with no URL signer. On
+// those the call returns an error matching uploads.ErrSigningUnsupported, joined with gocloud's
+// own, so a caller branches on the sentinel and never on gocloud.dev/gcerrors.
+//
+// That refusal is not held against the circuit breaker. It is a capability answer the driver
+// gives without touching storage, so counting it as a failure let a caller that asked a
+// development bucket for URLs trip the breaker and take Save and Open down with it — an outage
+// manufactured from a configuration fact. Nor is it counted as a success: the backend was not
+// reached, so the call is no evidence it is healthy, and letting it close a half-open breaker or
+// reset a run of real failures would be the breaker believing something nobody observed. Calling
+// neither leaves the breaker exactly where it was, which is the truth about what this call learned.
 func (u *Uploader) SignedURL(ctx context.Context, path string, opts *uploads.SignedURLOptions) (string, error) {
 	ctx, op := u.o11y.Begin(ctx, observability.WithValue(keys.FilenameKey, path))
 	defer op.End()
@@ -259,6 +272,10 @@ func (u *Uploader) SignedURL(ctx context.Context, path string, opts *uploads.Sig
 	startTime := time.Now()
 
 	signedURL, err := u.bucket.SignedURL(ctx, path, signOpts)
+	if gcerrors.Code(err) == gcerrors.Unimplemented {
+		u.instruments.unsupported(ctx, opSignedURL)
+		return "", op.Error(platformerrors.Join(uploads.ErrSigningUnsupported, err), "signing object URL")
+	}
 	if err != nil {
 		u.instruments.failed(ctx, opSignedURL, startTime)
 		u.circuitBreaker.Failed()
