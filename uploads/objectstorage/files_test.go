@@ -2,6 +2,8 @@ package objectstorage
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"testing"
 
@@ -10,13 +12,16 @@ import (
 	"github.com/primandproper/primitives-go/v2/circuitbreaking/noop"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/keys"
+	metricsmock "github.com/primandproper/primitives-go/v2/observability/metrics/mock"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	"github.com/primandproper/primitives-go/v2/uploads"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
+	"go.opentelemetry.io/otel/metric"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/memblob"
+	"gocloud.dev/gcerrors"
 )
 
 // newTestUploader builds an Uploader over the given bucket and observer with no-op metrics.
@@ -510,8 +515,103 @@ func TestUploader_SignedURL(T *testing.T) {
 		u := newTestUploader(t, memblob.OpenBucket(&memblob.Options{}), observability.NewObserverForTest(t.Name()), noop.NewCircuitBreaker())
 
 		signedURL, err := u.SignedURL(ctx, "greeting.txt", nil)
-		test.Error(t, err)
+		test.ErrorIs(t, err, uploads.ErrSigningUnsupported)
 		test.EqOp(t, "", signedURL)
+
+		// The sentinel is joined with gocloud's error, not substituted for it.
+		test.EqOp(t, gcerrors.Unimplemented, gcerrors.Code(err))
+	})
+
+	T.Run("filesystem provider does not support signing", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		u, err := NewUploadManager(ctx, &Config{
+			BucketName:       t.Name(),
+			Provider:         FilesystemProvider,
+			FilesystemConfig: &FilesystemConfig{RootDirectory: t.TempDir()},
+		})
+		must.NoError(t, err)
+		t.Cleanup(func() { test.NoError(t, u.Close()) })
+
+		signedURL, err := u.SignedURL(ctx, "greeting.txt", nil)
+		test.ErrorIs(t, err, uploads.ErrSigningUnsupported)
+		test.EqOp(t, "", signedURL)
+	})
+
+	T.Run("an unsupported refusal touches neither side of the breaker", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		// FailedFunc and SucceededFunc are deliberately unset: the mock panics if either is called.
+		cb := &circuitbreakingmock.CircuitBreakerMock{CannotProceedFunc: func() bool { return false }}
+		u := newTestUploader(t, memblob.OpenBucket(&memblob.Options{}), observability.NewObserverForTest(t.Name()), cb)
+
+		_, err := u.SignedURL(ctx, "greeting.txt", nil)
+		test.ErrorIs(t, err, uploads.ErrSigningUnsupported)
+		test.SliceEmpty(t, cb.FailedCalls())
+		test.SliceEmpty(t, cb.SucceededCalls())
+	})
+
+	T.Run("repeated unsupported refusals do not open the breaker", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		// A real breaker at its defaults opens after 20 samples at a 100% error rate, so this is
+		// comfortably past the point where the refusal used to take every other operation down.
+		u, err := NewUploadManager(ctx, &Config{BucketName: t.Name(), Provider: MemoryProvider})
+		must.NoError(t, err)
+		t.Cleanup(func() { test.NoError(t, u.Close()) })
+
+		for range 100 {
+			_, err = u.SignedURL(ctx, "greeting.txt", nil)
+			must.ErrorIs(t, err, uploads.ErrSigningUnsupported)
+		}
+
+		must.NoError(t, uploads.SaveFile(ctx, u, "greeting.txt", []byte("hello")))
+		got, err := uploads.ReadFile(ctx, u, "greeting.txt")
+		must.NoError(t, err)
+		test.EqOp(t, "hello", string(got))
+	})
+
+	T.Run("an unsupported refusal is counted under its own reason", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		var reasons []string
+		errCounter := &metricsmock.Int64CounterMock{
+			AddFunc: func(_ context.Context, _ int64, options ...metric.AddOption) {
+				attrs := metric.NewAddConfig(options).Attributes()
+				reason, _ := attrs.Value(reasonAttrKey)
+				reasons = append(reasons, reason.AsString())
+			},
+		}
+
+		u := newTestUploader(t, memblob.OpenBucket(&memblob.Options{}), observability.NewObserverForTest(t.Name()), noop.NewCircuitBreaker())
+		u.instruments.errors = errCounter
+
+		_, err := u.SignedURL(ctx, "greeting.txt", nil)
+		test.ErrorIs(t, err, uploads.ErrSigningUnsupported)
+		test.Eq(t, []string{"unsupported"}, reasons)
+	})
+
+	T.Run("a genuine failure still counts against the breaker", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		b := memblob.OpenBucket(&memblob.Options{})
+		must.NoError(t, b.Close())
+
+		cb := &circuitbreakingmock.CircuitBreakerMock{
+			CannotProceedFunc: func() bool { return false },
+			FailedFunc:        func() {},
+		}
+		u := newTestUploader(t, b, observability.NewObserverForTest(t.Name()), cb)
+
+		_, err := u.SignedURL(ctx, "greeting.txt", nil)
+		test.Error(t, err)
+		test.False(t, errors.Is(err, uploads.ErrSigningUnsupported))
+		test.SliceLen(t, 1, cb.FailedCalls())
 	})
 
 	T.Run("with broken circuit breaker", func(t *testing.T) {
