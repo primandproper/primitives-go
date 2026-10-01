@@ -23,12 +23,67 @@ const (
 	fieldAppliedFilter = "applied_query_filter"
 )
 
+// ArchiveDecision is whether the caller decoding a filter may see archived
+// rows, which FromProto needs before it will hand one back.
+//
+// It is a struct rather than a bool so that a call site reads as a decision —
+// FromProto(in, ArchivedDenied) — and so that a bare true does not compile in
+// its place. Its zero value is ArchivedDenied: a decision nobody made is the
+// one that leaks nothing.
+type ArchiveDecision struct {
+	allowed bool
+}
+
+var (
+	// ArchivedAllowed honors a client's include_archived as sent. Pass it for a
+	// caller holding the grant that archives what the read pages, or for a
+	// surface whose noun has no archive to hide.
+	ArchivedAllowed = ArchiveDecision{allowed: true}
+
+	// ArchivedDenied clears a client's include_archived, so the read answers
+	// with live rows whatever the client asked for.
+	ArchivedDenied = ArchiveDecision{}
+)
+
+// ArchivedIf is the decision a surface reaches by asking, as in
+// ArchivedIf(grants.Has(PermissionArchiveWidgets)).
+func ArchivedIf(allowed bool) ArchiveDecision {
+	return ArchiveDecision{allowed: allowed}
+}
+
+// Allowed reports whether the decision honors include_archived.
+func (d ArchiveDecision) Allowed() bool {
+	return d.allowed
+}
+
 // FromProto converts a wire QueryFilter into the Go one, applying the ceiling
-// before the narrowing and then the defaults.
+// before the narrowing and then the defaults, and applying the caller's
+// archive decision to include_archived.
 //
 // An absent message is the default filter rather than an empty one: a client
 // that sent no filter asked for the first page at the default size, which is
 // what every other transport here reads it as.
+//
+// # Why the archive decision is an argument
+//
+// include_archived is a request, not an instruction. Whether a caller may see
+// archived rows is a question only the surface can answer, and when answering
+// it was something each surface did to the filter afterward, the surfaces that
+// forgot handed archived rows to anybody holding the read grant — the archive
+// grant became a name rather than a policy, and nothing failed to say so. As an
+// argument, no surface can decode a filter without making the decision.
+//
+// ArchivedAllowed leaves the field as the client sent it. ArchivedDenied
+// clears it to absent rather than writing false, so the store receives the
+// filter of a caller who never asked. That is a narrowing and not a refusal: a
+// client that asked for archived rows it may not see is answered with live
+// ones, not an error. An absent field stays absent either way.
+//
+// cleared reports that the client asked for archived rows and the decision
+// took them away, which is what a surface records on the read's span (under
+// keys.FilterIncludeArchivedClearedKey) so that "my archived rows stopped
+// arriving" is answerable from a trace. A denied false is dropped too, but
+// silently: it asked for what an absent field asks for, and nothing changed.
 //
 // The page size is the field this function exists for. Protobuf has no uint16,
 // so max_response_size crosses as a uint32 and something has to narrow it;
@@ -43,19 +98,24 @@ const (
 // recognizes is reported by Normalize with ascending left in place — both
 // wrapping errors.ErrUnrecognizedInputValue. A caller reporting the failure
 // should discard the filter rather than list against a half-applied one.
-func FromProto(in *filteringpb.QueryFilter) (*filtering.QueryFilter, error) {
+func FromProto(in *filteringpb.QueryFilter, archived ArchiveDecision) (qf *filtering.QueryFilter, cleared bool, err error) {
 	if in == nil {
-		return filtering.DefaultQueryFilter(), nil
+		return filtering.DefaultQueryFilter(), false, nil
 	}
 
-	qf, err := fromProto(in)
+	qf, err = fromProto(in)
+
+	if !archived.allowed && qf.IncludeArchived != nil {
+		cleared = *qf.IncludeArchived
+		qf.IncludeArchived = nil
+	}
 
 	// Normalize supplies the default page size for an absent one, clamps a
 	// present one again — harmlessly, since SetMaxResponseSize already did —
 	// and reports an unrecognized sort direction. Joined rather than returned
 	// on its own so a field that would not decode is not lost behind a sort
 	// direction that happened to be fine.
-	return qf, platformerrors.Join(err, qf.Normalize())
+	return qf, cleared, platformerrors.Join(err, qf.Normalize())
 }
 
 // fromProto copies the fields across without normalizing, which is what the

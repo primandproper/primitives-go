@@ -13,11 +13,15 @@ import (
 // the uint32 protobuf can carry, and is clamped before it is narrowed — 70000
 // is answered with the ceiling rather than with the 4464 it would have wrapped
 // to.
+//
+// The decision is ArchivedDenied because this caller has not been shown to
+// hold the grant that archives the noun; a client's include_archived would be
+// cleared rather than honored.
 func ExampleFromProto() {
-	filter, err := filteringgrpc.FromProto(&filteringpb.QueryFilter{
+	filter, _, err := filteringgrpc.FromProto(&filteringpb.QueryFilter{
 		MaxResponseSize: new(uint32(70000)),
 		Cursor:          new("row-42"),
-	})
+	}, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		// A filter that could not be read in full is still usable. Answer with
 		// it, or refuse the request — errors/grpc renders this as
@@ -35,10 +39,37 @@ func ExampleFromProto() {
 	// row-42
 }
 
+// A surface whose caller holds the read grant but not the one that archives
+// the noun. The client asked for archived rows; the read is answered with live
+// ones rather than refused, and the surface records the narrowing on its span
+// so the missing rows can be explained from a trace.
+func ExampleFromProto_archivedDenied() {
+	hasArchiveGrant := false // grants.Has(PermissionArchiveWidgets), in a real surface
+
+	filter, cleared, err := filteringgrpc.FromProto(&filteringpb.QueryFilter{
+		IncludeArchived: new(true),
+	}, filteringgrpc.ArchivedIf(hasArchiveGrant))
+	if err != nil {
+		panic(err)
+	}
+
+	if cleared {
+		// A real surface records this on the read's Operation, under
+		// keys.FilterIncludeArchivedClearedKey.
+		fmt.Println("include_archived cleared")
+	}
+
+	fmt.Println(filter.IncludeArchived == nil)
+
+	// Output:
+	// include_archived cleared
+	// true
+}
+
 // An absent filter is the default one, so a client that sent nothing is
 // answered under the same rules as one that sent an empty filter.
 func ExampleFromProto_absent() {
-	filter, err := filteringgrpc.FromProto(nil)
+	filter, _, err := filteringgrpc.FromProto(nil, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		panic(err)
 	}
