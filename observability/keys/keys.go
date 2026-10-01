@@ -45,6 +45,9 @@ const (
 	FilterIsNilKey = "query_filter.is_nil"
 	// FilterIncludeArchivedKey is the standard key for referring to a types.QueryFilter's IncludeArchived field.
 	FilterIncludeArchivedKey = "query_filter.include_archived"
+	// FilterIncludeArchivedClearedKey is the standard key for recording that a read asked for archived rows and was
+	// answered with live ones, because the caller could not see the archived ones.
+	FilterIncludeArchivedClearedKey = "query_filter.include_archived_cleared"
 	// URLKey is the standard key for referring to a URL.
 	URLKey = "url"
 	// RequestHeadersKey is the standard key for referring to a http.Request's Headers.
