@@ -65,13 +65,13 @@ func fullQueryFilter() *filtering.QueryFilter {
 	}
 }
 
-func TestFromProto(T *testing.T) {
+func TestQueryFilterFromProto(T *testing.T) {
 	T.Parallel()
 
 	T.Run("absent message is the default filter", func(t *testing.T) {
 		t.Parallel()
 
-		qf, _, err := FromProto(nil, ArchivedAllowed)
+		qf, _, err := QueryFilterFromProto(nil, ArchivedAllowed)
 		must.NoError(t, err)
 		test.Eq(t, filtering.DefaultQueryFilter(), qf)
 	})
@@ -79,7 +79,7 @@ func TestFromProto(T *testing.T) {
 	T.Run("empty message is the default filter", func(t *testing.T) {
 		t.Parallel()
 
-		qf, _, err := FromProto(&filteringpb.QueryFilter{}, ArchivedAllowed)
+		qf, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{}, ArchivedAllowed)
 		must.NoError(t, err)
 		test.Eq(t, filtering.DefaultQueryFilter(), qf)
 	})
@@ -90,7 +90,7 @@ func TestFromProto(T *testing.T) {
 		expected := fullQueryFilter()
 		assertEveryFieldSet(t, expected)
 
-		qf, _, err := FromProto(ToProto(expected), ArchivedAllowed)
+		qf, _, err := QueryFilterFromProto(ToProto(expected), ArchivedAllowed)
 		must.NoError(t, err)
 		test.Eq(t, expected, qf)
 	})
@@ -98,7 +98,7 @@ func TestFromProto(T *testing.T) {
 	T.Run("page size above the ceiling clamps", func(t *testing.T) {
 		t.Parallel()
 
-		qf, _, err := FromProto(&filteringpb.QueryFilter{
+		qf, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{
 			MaxResponseSize: new(uint32(filtering.MaxQueryFilterLimit) + 1),
 		}, ArchivedAllowed)
 		must.NoError(t, err)
@@ -118,7 +118,7 @@ func TestFromProto(T *testing.T) {
 			(1 << 16) + uint32(filtering.MaxQueryFilterLimit),
 			math.MaxUint32,
 		} {
-			qf, _, err := FromProto(&filteringpb.QueryFilter{MaxResponseSize: &size}, ArchivedAllowed)
+			qf, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{MaxResponseSize: &size}, ArchivedAllowed)
 			must.NoError(t, err)
 			must.NotNil(t, qf.MaxResponseSize)
 			test.EqOp(t, filtering.MaxQueryFilterLimit, *qf.MaxResponseSize,
@@ -129,7 +129,7 @@ func TestFromProto(T *testing.T) {
 	T.Run("page size of zero is the default", func(t *testing.T) {
 		t.Parallel()
 
-		qf, _, err := FromProto(&filteringpb.QueryFilter{MaxResponseSize: new(uint32(0))}, ArchivedAllowed)
+		qf, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{MaxResponseSize: new(uint32(0))}, ArchivedAllowed)
 		must.NoError(t, err)
 		must.NotNil(t, qf.MaxResponseSize)
 		test.EqOp(t, uint16(filtering.DefaultQueryFilterLimit), *qf.MaxResponseSize)
@@ -138,7 +138,7 @@ func TestFromProto(T *testing.T) {
 	T.Run("unrecognized sort direction is reported", func(t *testing.T) {
 		t.Parallel()
 
-		qf, _, err := FromProto(&filteringpb.QueryFilter{SortBy: new("sideways")}, ArchivedAllowed)
+		qf, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{SortBy: new("sideways")}, ArchivedAllowed)
 		test.ErrorIs(t, err, platformerrors.ErrUnrecognizedInputValue)
 
 		// Still usable, and still ascending, so a caller that logs and lists
@@ -150,7 +150,7 @@ func TestFromProto(T *testing.T) {
 	T.Run("an empty sort direction is unrecognized too", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, err := FromProto(&filteringpb.QueryFilter{SortBy: new("")}, ArchivedAllowed)
+		_, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{SortBy: new("")}, ArchivedAllowed)
 		test.ErrorIs(t, err, platformerrors.ErrUnrecognizedInputValue)
 	})
 
@@ -159,7 +159,7 @@ func TestFromProto(T *testing.T) {
 
 		invalid := &timestamppb.Timestamp{Seconds: math.MaxInt64}
 
-		qf, _, err := FromProto(&filteringpb.QueryFilter{
+		qf, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{
 			CreatedAfter:  invalid,
 			CreatedBefore: invalid,
 			UpdatedAfter:  invalid,
@@ -184,7 +184,7 @@ func TestFromProto(T *testing.T) {
 	T.Run("every unreadable field is reported, not just the first", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, err := FromProto(&filteringpb.QueryFilter{
+		_, _, err := QueryFilterFromProto(&filteringpb.QueryFilter{
 			CreatedAfter: &timestamppb.Timestamp{Seconds: math.MaxInt64},
 			SortBy:       new("sideways"),
 		}, ArchivedAllowed)
@@ -199,7 +199,7 @@ func TestFromProto(T *testing.T) {
 // rather than an instruction, so a denied decision clears it whatever was
 // sent; only a request for archived rows that was taken away is reported,
 // because a false that was dropped asked for what an absent field asks for.
-func TestFromProto_archiveDecision(T *testing.T) {
+func TestQueryFilterFromProto_archiveDecision(T *testing.T) {
 	T.Parallel()
 
 	testCases := map[string]struct {
@@ -243,7 +243,7 @@ func TestFromProto_archiveDecision(T *testing.T) {
 		T.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			qf, cleared, err := FromProto(&filteringpb.QueryFilter{IncludeArchived: tc.sent}, tc.decision)
+			qf, cleared, err := QueryFilterFromProto(&filteringpb.QueryFilter{IncludeArchived: tc.sent}, tc.decision)
 			must.NoError(t, err)
 
 			test.Eq(t, tc.expected, qf.IncludeArchived)
@@ -258,10 +258,10 @@ func TestFromProto_archiveDecision(T *testing.T) {
 
 		in := ToProto(fullQueryFilter())
 
-		allowed, _, err := FromProto(in, ArchivedAllowed)
+		allowed, _, err := QueryFilterFromProto(in, ArchivedAllowed)
 		must.NoError(t, err)
 
-		denied, cleared, err := FromProto(in, ArchivedDenied)
+		denied, cleared, err := QueryFilterFromProto(in, ArchivedDenied)
 		must.NoError(t, err)
 		test.True(t, cleared)
 
@@ -276,7 +276,7 @@ func TestFromProto_archiveDecision(T *testing.T) {
 		t.Parallel()
 
 		for _, decision := range []ArchiveDecision{ArchivedAllowed, ArchivedDenied} {
-			qf, cleared, err := FromProto(nil, decision)
+			qf, cleared, err := QueryFilterFromProto(nil, decision)
 			must.NoError(t, err)
 			test.Eq(t, filtering.DefaultQueryFilter(), qf)
 			test.False(t, cleared)
@@ -286,13 +286,56 @@ func TestFromProto_archiveDecision(T *testing.T) {
 	T.Run("a filter that would not decode still has the decision applied", func(t *testing.T) {
 		t.Parallel()
 
-		qf, cleared, err := FromProto(&filteringpb.QueryFilter{
+		qf, cleared, err := QueryFilterFromProto(&filteringpb.QueryFilter{
 			SortBy:          new("sideways"),
 			IncludeArchived: new(true),
 		}, ArchivedDenied)
 		test.ErrorIs(t, err, platformerrors.ErrUnrecognizedInputValue)
 		test.Nil(t, qf.IncludeArchived)
 		test.True(t, cleared)
+	})
+}
+
+// FromProto is deprecated rather than changed, because changing its signature
+// would break every v2 consumer. Until the next major removes it, it keeps
+// treating include_archived as an instruction, exactly as it always has.
+func TestFromProto(T *testing.T) {
+	T.Parallel()
+
+	T.Run("honors include_archived as sent", func(t *testing.T) {
+		t.Parallel()
+
+		for _, sent := range []*bool{nil, new(true), new(false)} {
+			qf, err := FromProto(&filteringpb.QueryFilter{IncludeArchived: sent})
+			must.NoError(t, err)
+			test.Eq(t, sent, qf.IncludeArchived)
+		}
+	})
+
+	T.Run("matches QueryFilterFromProto with ArchivedAllowed", func(t *testing.T) {
+		t.Parallel()
+
+		in := &filteringpb.QueryFilter{
+			MaxResponseSize: new(uint32(70000)),
+			SortBy:          new("sideways"),
+			IncludeArchived: new(true),
+		}
+
+		expected, _, expectedErr := QueryFilterFromProto(in, ArchivedAllowed)
+		actual, actualErr := FromProto(in)
+
+		must.Error(t, expectedErr)
+		must.Error(t, actualErr)
+		test.Eq(t, expected, actual)
+		test.EqOp(t, expectedErr.Error(), actualErr.Error())
+	})
+
+	T.Run("absent message is the default filter", func(t *testing.T) {
+		t.Parallel()
+
+		qf, err := FromProto(nil)
+		must.NoError(t, err)
+		test.Eq(t, filtering.DefaultQueryFilter(), qf)
 	})
 }
 
@@ -329,14 +372,14 @@ func TestToProto(T *testing.T) {
 	})
 
 	// A url.Values cannot say "no filter" and writes the defaults out instead.
-	// A message can simply not be there, and FromProto reads an absent one as
+	// A message can simply not be there, and QueryFilterFromProto reads an absent one as
 	// the default filter, so nil survives the round trip as the same request.
 	T.Run("a nil filter is an absent message", func(t *testing.T) {
 		t.Parallel()
 
 		test.Nil(t, ToProto(nil))
 
-		qf, _, err := FromProto(ToProto(nil), ArchivedAllowed)
+		qf, _, err := QueryFilterFromProto(ToProto(nil), ArchivedAllowed)
 		must.NoError(t, err)
 		test.Eq(t, filtering.DefaultQueryFilter(), qf)
 	})

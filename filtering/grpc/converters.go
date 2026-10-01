@@ -24,11 +24,11 @@ const (
 )
 
 // ArchiveDecision is whether the caller decoding a filter may see archived
-// rows, which FromProto needs before it will hand one back.
+// rows, which QueryFilterFromProto needs before it will hand one back.
 //
 // It is a struct rather than a bool so that a call site reads as a decision —
-// FromProto(in, ArchivedDenied) — and so that a bare true does not compile in
-// its place. Its zero value is ArchivedDenied: a decision nobody made is the
+// QueryFilterFromProto(in, ArchivedDenied) — and so that a bare true does not
+// compile in its place. Its zero value is ArchivedDenied: a decision nobody made is the
 // one that leaks nothing.
 type ArchiveDecision struct {
 	allowed bool
@@ -56,9 +56,24 @@ func (d ArchiveDecision) Allowed() bool {
 	return d.allowed
 }
 
-// FromProto converts a wire QueryFilter into the Go one, applying the ceiling
-// before the narrowing and then the defaults, and applying the caller's
-// archive decision to include_archived.
+// FromProto converts a wire QueryFilter into the Go one, honoring
+// include_archived as the client sent it.
+//
+// Deprecated: use QueryFilterFromProto, which takes the caller's archive
+// decision as an argument. FromProto treats include_archived as an
+// instruction, so a surface that forgets to clear it afterward hands archived
+// rows to any caller holding the read grant. It is equivalent to
+// QueryFilterFromProto(in, ArchivedAllowed) with the cleared result dropped,
+// and it goes at the next major version.
+func FromProto(in *filteringpb.QueryFilter) (*filtering.QueryFilter, error) {
+	qf, _, err := QueryFilterFromProto(in, ArchivedAllowed)
+
+	return qf, err
+}
+
+// QueryFilterFromProto converts a wire QueryFilter into the Go one, applying
+// the ceiling before the narrowing and then the defaults, and applying the
+// caller's archive decision to include_archived.
 //
 // An absent message is the default filter rather than an empty one: a client
 // that sent no filter asked for the first page at the default size, which is
@@ -71,7 +86,8 @@ func (d ArchiveDecision) Allowed() bool {
 // it was something each surface did to the filter afterward, the surfaces that
 // forgot handed archived rows to anybody holding the read grant — the archive
 // grant became a name rather than a policy, and nothing failed to say so. As an
-// argument, no surface can decode a filter without making the decision.
+// argument, no surface can decode a filter without making the decision. (This
+// is why FromProto, which took no decision, is deprecated.)
 //
 // ArchivedAllowed leaves the field as the client sent it. ArchivedDenied
 // clears it to absent rather than writing false, so the store receives the
@@ -98,7 +114,7 @@ func (d ArchiveDecision) Allowed() bool {
 // recognizes is reported by Normalize with ascending left in place — both
 // wrapping errors.ErrUnrecognizedInputValue. A caller reporting the failure
 // should discard the filter rather than list against a half-applied one.
-func FromProto(in *filteringpb.QueryFilter, archived ArchiveDecision) (qf *filtering.QueryFilter, cleared bool, err error) {
+func QueryFilterFromProto(in *filteringpb.QueryFilter, archived ArchiveDecision) (qf *filtering.QueryFilter, cleared bool, err error) {
 	if in == nil {
 		return filtering.DefaultQueryFilter(), false, nil
 	}
@@ -164,9 +180,9 @@ func fromProto(in *filteringpb.QueryFilter) (*filtering.QueryFilter, error) {
 		qf.IncludeArchived = new(in.GetIncludeArchived())
 	}
 
-	// Absent stays absent rather than arriving as a zero. FromProto normalizes
-	// both to the default page size a moment later, exactly as the HTTP path
-	// does — but nothing normalizes the filter a Pagination reports, and
+	// Absent stays absent rather than arriving as a zero. QueryFilterFromProto
+	// normalizes both to the default page size a moment later, exactly as the
+	// HTTP path does — but nothing normalizes the filter a Pagination reports, and
 	// ToSQLArgs reads an explicit zero there as a request for no rows and an
 	// absent one as a request for the default.
 	if in.MaxResponseSize != nil {
@@ -181,10 +197,10 @@ func fromProto(in *filteringpb.QueryFilter) (*filtering.QueryFilter, error) {
 // A nil filter crosses as an absent message rather than as the default one,
 // which is where this parts company with ToValues. A url.Values has no way to
 // say "no filter", so ToValues writes the defaults out; a message can simply
-// not be there, and FromProto reads an absent one as the default filter. Nil
-// therefore survives the round trip as the same request, and a Pagination that
-// reports no applied filter keeps reporting none rather than acquiring one it
-// never applied.
+// not be there, and QueryFilterFromProto reads an absent one as the default
+// filter. Nil therefore survives the round trip as the same request, and a
+// Pagination that reports no applied filter keeps reporting none rather than
+// acquiring one it never applied.
 //
 // Absent fields stay absent rather than crossing as zeroes: every field on the
 // message has explicit presence for that reason, and a page size of zero that

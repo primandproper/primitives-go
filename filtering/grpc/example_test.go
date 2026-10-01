@@ -17,8 +17,8 @@ import (
 // The decision is ArchivedDenied because this caller has not been shown to
 // hold the grant that archives the noun; a client's include_archived would be
 // cleared rather than honored.
-func ExampleFromProto() {
-	filter, _, err := filteringgrpc.FromProto(&filteringpb.QueryFilter{
+func ExampleQueryFilterFromProto() {
+	filter, _, err := filteringgrpc.QueryFilterFromProto(&filteringpb.QueryFilter{
 		MaxResponseSize: new(uint32(70000)),
 		Cursor:          new("row-42"),
 	}, filteringgrpc.ArchivedDenied)
@@ -43,10 +43,10 @@ func ExampleFromProto() {
 // the noun. The client asked for archived rows; the read is answered with live
 // ones rather than refused, and the surface records the narrowing on its span
 // so the missing rows can be explained from a trace.
-func ExampleFromProto_archivedDenied() {
+func ExampleQueryFilterFromProto_archivedDenied() {
 	hasArchiveGrant := false // grants.Has(PermissionArchiveWidgets), in a real surface
 
-	filter, cleared, err := filteringgrpc.FromProto(&filteringpb.QueryFilter{
+	filter, cleared, err := filteringgrpc.QueryFilterFromProto(&filteringpb.QueryFilter{
 		IncludeArchived: new(true),
 	}, filteringgrpc.ArchivedIf(hasArchiveGrant))
 	if err != nil {
@@ -68,8 +68,8 @@ func ExampleFromProto_archivedDenied() {
 
 // An absent filter is the default one, so a client that sent nothing is
 // answered under the same rules as one that sent an empty filter.
-func ExampleFromProto_absent() {
-	filter, _, err := filteringgrpc.FromProto(nil, filteringgrpc.ArchivedDenied)
+func ExampleQueryFilterFromProto_absent() {
+	filter, _, err := filteringgrpc.QueryFilterFromProto(nil, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		panic(err)
 	}

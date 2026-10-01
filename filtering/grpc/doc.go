@@ -8,18 +8,20 @@ decoding a QueryFilter out of protobuf has to narrow to uint16 and has to
 supply a default, and both are easy to get subtly wrong in a way nothing
 reports: narrow the page size before clamping it and a requested 70000 wraps
 to 4464, which the clamp then trims to a legible-looking page nobody asked
-for. FromProto applies the ceiling to the wide value protobuf actually
-carries, which is the only order that works, and then normalizes — so a
-filter decoded here is the same filter the HTTP path would have produced,
+for. QueryFilterFromProto applies the ceiling to the wide value protobuf
+actually carries, which is the only order that works, and then normalizes —
+so a filter decoded here is the same filter the HTTP path would have produced,
 without this package's numbers being restated anywhere a consumer keeps them.
 
-include_archived is the one field FromProto does not take at the client's
-word. Whether a caller may see archived rows is the surface's question, so
-FromProto takes the answer as an ArchiveDecision and will not decode a filter
-without one: a denied decision clears the field, answering with live rows
-rather than an error, and reports that it did so for the read's span. A
+include_archived is the one field QueryFilterFromProto does not take at the
+client's word. Whether a caller may see archived rows is the surface's
+question, so QueryFilterFromProto takes the answer as an ArchiveDecision and
+will not decode a filter without one: a denied decision clears the field,
+answering with live rows rather than an error, and reports that it did so for
+the read's span. A
 surface that had to remember to clear it afterward is a surface that can
-forget, and two did.
+forget, and two did. FromProto, which predates the decision and honors the
+field as sent, is deprecated and goes at the next major version.
 
 It is a subpackage rather than part of filtering itself because filtering
 builds no SQL, touches no database, and should take on no protobuf runtime
