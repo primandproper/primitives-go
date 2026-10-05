@@ -93,6 +93,7 @@ Implementations are listed in parentheses; most concerns also ship a `noop`. Thr
 | `authentication`                    | Password hashing, TOTP, tokens                                              | argon2, totp, tokens (jwt, paseto) |
 | `authentication/webauthn`           | Passkey registration & login, with ceremony state that outlives one replica | cache                          |
 | `authentication/oauth2server`       | The OAuth2 / OIDC protocol surface: authorize, token, revoke, registration  | memory                         |
+| `authentication/oauth2server/mcp`   | An MCP server behind oauth2server's Verifier: bearer guard, RFC 9728 document, SDK `TokenVerifier` | — |
 | `authorization`                     | Role/permission policy, enforcement                                         | static (default), cached (+ http, grpc) |
 | `cryptography`                      | Cryptographic primitives                                                    | encryption (aes, kms), hashing |
 | `cryptography/requestsigning`       | HMAC request signing & verification                                         | v1                             |
