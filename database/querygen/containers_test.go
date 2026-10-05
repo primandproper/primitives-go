@@ -441,6 +441,30 @@ func setReadWidgets(tb testing.TB, ctx context.Context, d dialect.Dialect, db *s
 	return ids
 }
 
+// widgetRandomQuery is the random pick over the widgets, keyed on the owner like
+// every other statement in this suite.
+func widgetRandomQuery(d dialect.Dialect) *Query {
+	return For(d).RandomQuery("GetRandomWidget", widgetsTable, widgetsColumns(), Match{Column: BelongsToAccountColumn})
+}
+
+// randomWidget runs the random pick for one owner, returning the id it read.
+func randomWidget(tb testing.TB, ctx context.Context, d dialect.Dialect, db *sql.DB, account string) string {
+	tb.Helper()
+
+	statement, order := bindArguments(d, widgetRandomQuery(d).Content)
+
+	var (
+		id                                               string
+		name, owner, indexed, created, updated, archived any
+	)
+
+	must.NoError(tb, db.QueryRowContext(ctx, statement, argumentsFor(tb, order, map[string]any{
+		BelongsToAccountColumn: account,
+	})...).Scan(&id, &name, &owner, &indexed, &created, &updated, &archived))
+
+	return id
+}
+
 func TestQuerygen_Postgres(T *testing.T) {
 	T.Parallel()
 
@@ -498,6 +522,8 @@ func runDialect(t *testing.T, ctx context.Context, d dialect.Dialect, db *sql.DB
 		for _, query := range widgetSetReads(d) {
 			prepare(t, ctx, d, db, query)
 		}
+
+		prepare(t, ctx, d, db, widgetRandomQuery(d))
 	})
 
 	t.Run("the suite", func(t *testing.T) {
@@ -624,6 +650,24 @@ func runWidgetSuite(t *testing.T, ctx context.Context, d dialect.Dialect, db *sq
 		var exists bool
 		must.NoError(t, db.QueryRowContext(ctx, existsStatement, existsArguments...).Scan(&exists))
 		test.False(t, exists)
+	})
+
+	// w_004 is archived by now and w_005 is another account's, so neither may
+	// come back however often the pick is drawn. Fifty draws over three live
+	// rows is not a proof of uniformity, and is not meant as one; it is enough
+	// that a statement missing either predicate would be caught.
+	t.Run("the random pick draws only live rows the owner holds", func(t *testing.T) {
+		seen := map[string]bool{}
+
+		for range 50 {
+			seen[randomWidget(t, ctx, d, db, testAccount)] = true
+		}
+
+		for id := range seen {
+			test.SliceContains(t, []string{"w_001", "w_002", "w_003"}, id)
+		}
+
+		test.MapLen(t, 3, seen, test.Sprintf("fifty draws over three rows reached %v", seen))
 	})
 
 	t.Run("include_archived actually includes archived rows", func(t *testing.T) {
