@@ -1,11 +1,13 @@
 package filtering_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/llm"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 // A tool that lists something takes a page of a collection as its input, which
@@ -187,4 +189,21 @@ func ExampleMaxQueryFilterLimit() {
 	// Output:
 	// 512
 	// 512
+}
+
+// Observe is the first line of a list method, at every layer that has one. A
+// nil filter becomes the default, and the filter reaches the span on ctx and
+// the logger the method goes on to use — the same fields on both.
+func ExampleObserve() {
+	listRecipes := func(ctx context.Context, logger logging.Logger, filter *filtering.QueryFilter) {
+		filter, logger = filtering.Observe(ctx, logger, filter)
+
+		logger.Debug("listing recipes")
+		fmt.Println("page size:", *filter.MaxResponseSize)
+	}
+
+	listRecipes(context.Background(), nil, nil)
+
+	// Output:
+	// page size: 50
 }
