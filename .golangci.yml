@@ -175,6 +175,11 @@ linters:
       settings:
         rangeValCopy:
           sizeThreshold: 32
+    gomoddirectives:
+      # mcp/ is a module of its own and builds against this one at HEAD
+      # through `replace => ../`, so a change here that breaks it fails in the
+      # same pull request. Consumers ignore a replace, so this reaches no one.
+      replace-local: true
     govet:
       enable-all: true
       settings:

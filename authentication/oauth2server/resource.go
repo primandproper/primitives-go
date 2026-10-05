@@ -148,18 +148,28 @@ func (m *ResourceMetadata) ScopeChallenge(description string, scopes []string) s
 	return m.challenge(ErrorCodeInsufficientScope, description, scopes)
 }
 
-// challenge builds a WWW-Authenticate value, and is the one place this package
-// spells that syntax. Two callers rendering it separately is how a header
-// acquires a stray comma in one of its branches.
-func (m *ResourceMetadata) challenge(errorCode, description string, scopes []string) string {
+// URL is where this document is published: the address a challenge's
+// resource_metadata parameter points a client at.
+//
+// It is exported for a transport that hands the address to someone else's
+// middleware — the MCP SDK's bearer middleware takes it as a string — so that
+// address is derived from the resource identifier once, here, rather than
+// spelled a second time in configuration that can drift from the document.
+func (m *ResourceMetadata) URL() string {
 	// The trailing slash is trimmed rather than assumed absent. A resource
 	// identifier is conventionally written with one — "https://api.example/" —
 	// and concatenating the path onto that renders a double slash, which some
 	// clients follow and some do not. The identifier in the document keeps
 	// whatever form it was given, because that is the string a token's audience
 	// is compared against; only the derived URL is normalized.
-	challenge := fmt.Sprintf(`Bearer resource_metadata=%q`,
-		strings.TrimSuffix(m.doc.Resource, "/")+PathProtectedResourceMetadata)
+	return strings.TrimSuffix(m.doc.Resource, "/") + PathProtectedResourceMetadata
+}
+
+// challenge builds a WWW-Authenticate value, and is the one place this package
+// spells that syntax. Two callers rendering it separately is how a header
+// acquires a stray comma in one of its branches.
+func (m *ResourceMetadata) challenge(errorCode, description string, scopes []string) string {
+	challenge := fmt.Sprintf(`Bearer resource_metadata=%q`, m.URL())
 
 	if errorCode != "" {
 		challenge += fmt.Sprintf(`, error=%q`, errorCode)

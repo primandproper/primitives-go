@@ -4,8 +4,8 @@ on:
   pull_request:
     paths:
       - '**/*.go'
-      - go.mod
-      - go.sum
+      - '**/go.mod'
+      - '**/go.sum'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -27,7 +27,7 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
           cache: true
-          cache-dependency-path: go.sum
+          cache-dependency-path: '**/go.sum'
 
       - name: Build
         run: make build

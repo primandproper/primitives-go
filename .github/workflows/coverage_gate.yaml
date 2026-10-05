@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - '**/*.go'
+      - '**/go.mod'
+      - '**/go.sum'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -26,7 +28,7 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
           cache: true
-          cache-dependency-path: go.sum
+          cache-dependency-path: '**/go.sum'
 
       - name: run tests with coverage
         env:
@@ -36,7 +38,8 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.out
+          # A nested module writes its profile inside its own directory.
+          files: ./coverage.out,./mcp/coverage.out
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 

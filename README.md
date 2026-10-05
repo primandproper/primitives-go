@@ -40,6 +40,12 @@ go get github.com/primandproper/primitives-go/v2@latest
 
 Because breaking changes ride the major-version import path, upgrading across majors is an explicit, opt-in edit to your import paths — never a surprise from `go get -u`.
 
+`mcp/` is a separate module, so the Model Context Protocol SDK it depends on reaches only services that serve MCP:
+
+```bash
+go get github.com/primandproper/primitives-go/mcp@latest
+```
+
 ## Package Catalog
 
 Implementations are listed in parentheses; most concerns also ship a `noop`. Three packages sit under a parent this module does not ship — `notifications/async`, `notifications/mobile` and `webhooks/inbound` — because the parent owns a table and stayed in platform-go. They kept their import paths rather than being renamed on the way out, which is also why `notifications/` is a grouping directory here rather than a package: it now holds two children that are siblings in fact and not only in name.
@@ -93,6 +99,7 @@ Implementations are listed in parentheses; most concerns also ship a `noop`. Thr
 | `authentication`                    | Password hashing, TOTP, tokens                                              | argon2, totp, tokens (jwt, paseto) |
 | `authentication/webauthn`           | Passkey registration & login, with ceremony state that outlives one replica | cache                          |
 | `authentication/oauth2server`       | The OAuth2 / OIDC protocol surface: authorize, token, revoke, registration  | memory                         |
+| `mcp` (own module)                  | An MCP server behind oauth2server's Verifier: bearer guard, RFC 9728 document, SDK `TokenVerifier` | — |
 | `authorization`                     | Role/permission policy, enforcement                                         | static (default), cached (+ http, grpc) |
 | `cryptography`                      | Cryptographic primitives                                                    | encryption (aes, kms), hashing |
 | `cryptography/requestsigning`       | HMAC request signing & verification                                         | v1                             |

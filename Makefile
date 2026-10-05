@@ -15,6 +15,9 @@ SCRIPTS_DIR   := .scripts
 # Deferred, not `:=`. Immediate expansion runs `go list` when the Makefile is
 # *read*, so every target pays for it; only build reads this.
 TOTAL_PACKAGE_LIST = $(shell go list $(THIS)/...)
+# Modules in this repository besides the root. `./...` stops at their go.mod,
+# so build and lint are run from inside each.
+NESTED_MODULES     = $(shell $(SCRIPTS_DIR)/nested_modules.sh)
 
 # CONTAINER VERSIONS
 #
@@ -89,6 +92,9 @@ fmt: format
 golang_lint:
 	@mkdir -p $(GO_CACHE)/build $(GO_CACHE)/mod
 	@$(SCRIPTS_DIR)/golang_lint.sh $(CONTAINER_RUNNER) $(LINTER_IMAGE) "$(LINTER)"
+	@for module in $(NESTED_MODULES); do \
+		$(RUN_CONTAINER_CACHED) --workdir=$(PWD)/$$module $(LINTER_IMAGE) golangci-lint run --config=$(PWD)/.golangci.yml --timeout 30m ./... || exit 1; \
+	done
 
 .PHONY: shellcheck
 shellcheck:
@@ -120,6 +126,7 @@ proto:
 .PHONY: build
 build:
 	$(SCRIPTS_DIR)/build.sh $(TOTAL_PACKAGE_LIST)
+	@for module in $(NESTED_MODULES); do (cd $$module && go build ./...) || exit 1; done
 
 .PHONY: test
 test: $(ARTIFACTS_DIR)

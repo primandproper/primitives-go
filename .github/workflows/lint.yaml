@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '**/*.go'
+      - '**/go.mod'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -26,7 +27,7 @@ jobs:
         with:
           go-version: '${{ matrix.go-version }}'
           cache: true
-          cache-dependency-path: go.sum
+          cache-dependency-path: '**/go.sum'
 
       # The Makefile builds an image reference from this same file, so `make
       # lint` and this job cannot disagree about which linter ran.
@@ -38,3 +39,11 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ steps.linter.outputs.version }}
+
+      # mcp/ is a module of its own, and `./...` stops at its go.mod.
+      - name: golangci-lint (mcp)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ steps.linter.outputs.version }}
+          working-directory: mcp
+          args: --config=../.golangci.yml

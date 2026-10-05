@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Go library (`github.com/primandproper/primitives-go/v2`) providing the infrastructure primitives cloud-native services are built from: database, caching, messaging, observability, secrets, uploads, email, and more. Single module, v2, Go 1.27.
+Go library (`github.com/primandproper/primitives-go/v2`) providing the infrastructure primitives cloud-native services are built from: database, caching, messaging, observability, secrets, uploads, email, and more. v2, Go 1.27. One module, plus `mcp/` — a module of its own (`github.com/primandproper/primitives-go/mcp`) so the MCP SDK reaches only consumers that serve MCP. It builds against this module at HEAD through `replace => ../`; `.scripts/nested_modules.sh` is how `make test`/`build`/`lint` find it, since `./...` stops at its `go.mod`.
 
 The packages arrived in one move from `platform-go`, history preserved, in primandproper/primitives-go#2 — `git log` and `git blame` reach back through the years they spent there. Five packages that were `internal/` in platform-go are exported here, because platform-go imports them and cannot reach `internal`: `database/sqlguard`, `database/postgres/pgretry`, `charset/plainname`, `config/injection` and `config/cfgnorm`.
 
