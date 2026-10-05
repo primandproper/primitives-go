@@ -122,3 +122,26 @@ func TestResourceMetadata_Challenge(T *testing.T) {
 		test.StrContains(t, challenge, `error_description="the token expired"`)
 	})
 }
+
+func TestResourceMetadata_URL(T *testing.T) {
+	T.Parallel()
+
+	T.Run("is the address the challenge points at", func(t *testing.T) {
+		t.Parallel()
+
+		meta, err := oauth2server.NewResourceMetadata(testResource, []string{testIssuer})
+		must.NoError(t, err)
+
+		test.EqOp(t, "https://api.example"+oauth2server.PathProtectedResourceMetadata, meta.URL())
+		test.StrContains(t, meta.Challenge("", ""), `resource_metadata="`+meta.URL()+`"`)
+	})
+
+	T.Run("keeps a resource's path", func(t *testing.T) {
+		t.Parallel()
+
+		meta, err := oauth2server.NewResourceMetadata("https://api.example/mcp", []string{testIssuer})
+		must.NoError(t, err)
+
+		test.EqOp(t, "https://api.example/mcp"+oauth2server.PathProtectedResourceMetadata, meta.URL())
+	})
+}
