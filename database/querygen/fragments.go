@@ -63,6 +63,12 @@ func (g *Generator) LimitClause() string {
 // with the limit and the offset swapped. That is the fact this clause exists to
 // hold once.
 //
+// It does not go through [Generator.boundedLimit], though both spell MySQL's
+// LIMIT as bare markers. That one writes a single marker that is the limit, and
+// downstream records it under [LimitArg]; here the first marker is the offset,
+// so building on it would put the offset in the slot everything else reads as
+// the page size.
+//
 // Both arguments are required on every dialect, unlike LimitClause's page size.
 // MySQL could not coalesce either of them anyway, and a caller skipping rows it
 // has already seen knows how many it wants; defaulting one half of a pair that
