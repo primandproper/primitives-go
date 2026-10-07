@@ -67,6 +67,15 @@ const (
 	UpdatedBeforeArg   = filtering.ArgUpdatedBefore
 )
 
+// OffsetArg is the sqlc argument [Generator.PageClause] skips by.
+//
+// It is not one of filtering's names, because nothing in a QueryFilter is an
+// offset: a list walks by cursor, and an offset belongs to the reads that
+// cannot — a claim that locks its candidates by key reads on past the ones
+// another worker already holds. It lives beside [LimitArg] because the clause
+// that binds it binds that one too, and the two have to arrive in one order.
+const OffsetArg = "result_offset"
+
 // ReindexCursorArg is the sqlc argument the reindex scan resumes from.
 //
 // It is not CursorArg, and the reason is about what a consumer has to do rather

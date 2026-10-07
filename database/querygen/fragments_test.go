@@ -238,6 +238,34 @@ func TestGenerator_LimitClause(T *testing.T) {
 	})
 }
 
+func TestGenerator_PageClause(T *testing.T) {
+	T.Parallel()
+
+	T.Run("postgres and sqlite name both arguments, limit then offset", func(t *testing.T) {
+		t.Parallel()
+
+		for _, d := range []dialect.Dialect{dialect.Postgres, dialect.SQLite} {
+			test.EqOp(t, "LIMIT sqlc.arg(result_limit) OFFSET sqlc.arg(result_offset)",
+				For(d).PageClause(), test.Sprintf("dialect %q", d))
+		}
+	})
+
+	T.Run("mysql takes the offset first", func(t *testing.T) {
+		t.Parallel()
+
+		// LIMIT ?, ? is offset then count. LIMIT ? OFFSET ? would hand sqlc the
+		// arguments in the other order from SQLite's and swap them on convergence.
+		test.EqOp(t, "LIMIT ?, ?", For(dialect.MySQL).PageClause())
+	})
+
+	T.Run("it binds the limit argument LimitClause does", func(t *testing.T) {
+		t.Parallel()
+
+		test.EqOp(t, "result_offset", OffsetArg)
+		test.StrContains(t, pg().PageClause(), "sqlc.arg("+LimitArg+")")
+	})
+}
+
 func TestGenerator_CursorCondition(T *testing.T) {
 	T.Parallel()
 

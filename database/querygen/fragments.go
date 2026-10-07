@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/primandproper/primitives-go/v2/database/dialect"
 )
 
 // JoinStatement is one join in a filtered count's FROM clause: the table being
@@ -43,6 +45,48 @@ func (j JoinStatement) String() string {
 // position it landed in.
 func (g *Generator) LimitClause() string {
 	return g.limitClause()
+}
+
+// PageClause renders a page size and an offset, for a read a consumer writes
+// out rather than one this package renders.
+//
+// It is [Generator.LimitClause] with an offset after it, for the read a keyset
+// walk cannot serve: a skip-locked claim that locks its candidates by primary
+// key rather than by range has to read on past the candidates another worker
+// already holds, and the only way past them is to skip them.
+//
+// MySQL gets LIMIT ?, ? — offset first — and that order is not style. sqlc hands
+// SQLite's LIMIT … OFFSET … arguments to the generated querier offset first, and
+// sqlc-gen-unison converges a query only when its arguments arrive in one order
+// on every engine, so the two-argument MySQL form is the one that lines the three
+// up. LIMIT ? OFFSET ? on MySQL either fails to converge or, worse, converges
+// with the limit and the offset swapped. That is the fact this clause exists to
+// hold once.
+//
+// It does not go through [Generator.boundedLimit], though both spell MySQL's
+// LIMIT as bare markers. That one writes a single marker that is the limit, and
+// downstream records it under [LimitArg]; here the first marker is the offset,
+// so building on it would put the offset in the slot everything else reads as
+// the page size.
+//
+// Both arguments are required on every dialect, unlike LimitClause's page size.
+// MySQL could not coalesce either of them anyway, and a caller skipping rows it
+// has already seen knows how many it wants; defaulting one half of a pair that
+// has to agree across engines would make the generated signatures differ for
+// nothing. On Postgres and SQLite they bind as [LimitArg] and [OffsetArg].
+//
+// As with LimitClause, a MySQL statement using it has to place it last, since
+// its markers are positional. The rest is the consumer's half, in its
+// unison.yaml rather than here: an offset: result_offset rename, so MySQL's
+// unnamed offset marker generates under the same parameter name the other two
+// engines give it, and an int64 type override for *.result_offset, so the
+// offset is one Go type on all three.
+func (g *Generator) PageClause() string {
+	if g.dialect == dialect.MySQL {
+		return "LIMIT " + g.dialect.Placeholder(1) + ", " + g.dialect.Placeholder(2)
+	}
+
+	return fmt.Sprintf("LIMIT sqlc.arg(%s) OFFSET sqlc.arg(%s)", LimitArg, OffsetArg)
 }
 
 // SetCondition renders a column matched against a whole set of values bound as
