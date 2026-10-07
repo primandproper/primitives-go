@@ -48,6 +48,11 @@ null for an entitlement that does not lapse, and SubscriptionState.CurrentPeriod
 is nil there rather than a zero time, because a period that has no end and a period
 that ended in 1970 are opposite instructions to whatever revokes access.
 
+What the subscription buys comes out of product_id, the store product identifier,
+and lands on SubscriptionState.ProductID. RevenueCat has no price object to put
+beside it, so SubscriptionState.PriceID is always empty here; a consumer whose
+catalog is keyed on prices maps a store product onto one of its own.
+
 Two of RevenueCat's folds do not fall out of the type alone, and both are
 applied on top of the table:
 

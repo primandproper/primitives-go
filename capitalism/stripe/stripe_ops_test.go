@@ -501,6 +501,132 @@ func TestStripePaymentManager_HandleEventWebhook_ReturnsEvent(T *testing.T) {
 		test.Nil(t, event.Subscription.CurrentPeriodEnd)
 	})
 
+	T.Run("carries the price and product the subscription buys", func(t *testing.T) {
+		t.Parallel()
+
+		pm, secret := newManager(t)
+
+		// What a consumer places a new subscription against. Stripe reports the product
+		// either as an ID or as an expanded object; stripe-go absorbs the difference.
+		req := signedRequest(t, pm, secret, subscriptionEvent(t, stripe.EventTypeCustomerSubscriptionCreated, `{
+			"id": "sub_123",
+			"customer": "cus_123",
+			"status": "active",
+			"items": {"object": "list", "data": [
+				{"id": "si_1", "price": {"id": "price_monthly", "product": "prod_pro"}}
+			]}
+		}`))
+
+		obs := observability.NewRecordingObserver()
+		pm.o11y = obs
+
+		event, err := pm.HandleEventWebhook(req)
+		must.NoError(t, err)
+		must.NotNil(t, event)
+		must.NotNil(t, event.Subscription)
+
+		test.EqOp(t, "price_monthly", event.Subscription.PriceID)
+		test.EqOp(t, "prod_pro", event.Subscription.ProductID)
+
+		obs.ObservedOperationWithData(t, map[string]any{
+			"stripe.price_id":   "price_monthly",
+			"stripe.product_id": "prod_pro",
+		})
+	})
+
+	T.Run("reads an expanded product the same as its ID", func(t *testing.T) {
+		t.Parallel()
+
+		pm, secret := newManager(t)
+
+		req := signedRequest(t, pm, secret, subscriptionEvent(t, stripe.EventTypeCustomerSubscriptionCreated, `{
+			"id": "sub_123",
+			"status": "active",
+			"items": {"object": "list", "data": [
+				{"id": "si_1", "price": {"id": "price_monthly", "product": {"id": "prod_pro", "object": "product"}}}
+			]}
+		}`))
+
+		event, err := pm.HandleEventWebhook(req)
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		test.EqOp(t, "price_monthly", event.Subscription.PriceID)
+		test.EqOp(t, "prod_pro", event.Subscription.ProductID)
+	})
+
+	T.Run("keeps the product its items agree on when their prices differ", func(t *testing.T) {
+		t.Parallel()
+
+		pm, secret := newManager(t)
+
+		// A base price and a metered add-on of one product: there is no single price,
+		// and the first of two is not one, but there is a single product.
+		req := signedRequest(t, pm, secret, subscriptionEvent(t, stripe.EventTypeCustomerSubscriptionUpdated, `{
+			"id": "sub_123",
+			"status": "active",
+			"items": {"object": "list", "data": [
+				{"id": "si_1", "price": {"id": "price_base", "product": "prod_pro"}},
+				{"id": "si_2", "price": {"id": "price_seats", "product": "prod_pro"}}
+			]}
+		}`))
+
+		event, err := pm.HandleEventWebhook(req)
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		test.EqOp(t, "", event.Subscription.PriceID)
+		test.EqOp(t, "prod_pro", event.Subscription.ProductID)
+	})
+
+	T.Run("names neither when the items disagree on both", func(t *testing.T) {
+		t.Parallel()
+
+		pm, secret := newManager(t)
+
+		req := signedRequest(t, pm, secret, subscriptionEvent(t, stripe.EventTypeCustomerSubscriptionUpdated, `{
+			"id": "sub_123",
+			"status": "active",
+			"items": {"object": "list", "data": [
+				{"id": "si_1", "price": {"id": "price_pro", "product": "prod_pro"}},
+				{"id": "si_2", "price": {"id": "price_addon", "product": "prod_addon"}}
+			]}
+		}`))
+
+		event, err := pm.HandleEventWebhook(req)
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		test.EqOp(t, "", event.Subscription.PriceID)
+		test.EqOp(t, "", event.Subscription.ProductID)
+	})
+
+	T.Run("leaves the price and product absent when Stripe reported none", func(t *testing.T) {
+		t.Parallel()
+
+		pm, secret := newManager(t)
+
+		// Items absent, items empty, an item with no price, and a price with no product
+		// all name less than a full placement; none of them is dereferenced on trust.
+		for items, wantPrice := range map[string]string{
+			``:                "",
+			`, "items": null`: "",
+			`, "items": {"object": "list", "data": []}`:                                           "",
+			`, "items": {"object": "list", "data": [null, {"id": "si_1"}]}`:                       "",
+			`, "items": {"object": "list", "data": [{"id": "si_1", "price": {"id": "price_x"}}]}`: "price_x",
+		} {
+			req := signedRequest(t, pm, secret, subscriptionEvent(t, stripe.EventTypeCustomerSubscriptionUpdated,
+				`{"id": "sub_123", "status": "active"`+items+`}`))
+
+			event, err := pm.HandleEventWebhook(req)
+			must.NoError(t, err, must.Sprintf("items %q", items))
+			must.NotNil(t, event.Subscription, must.Sprintf("items %q", items))
+
+			test.EqOp(t, wantPrice, event.Subscription.PriceID, test.Sprintf("items %q", items))
+			test.EqOp(t, "", event.Subscription.ProductID, test.Sprintf("items %q", items))
+		}
+	})
+
 	T.Run("keeps the raw payload for a consumer with its own stripe-go", func(t *testing.T) {
 		t.Parallel()
 

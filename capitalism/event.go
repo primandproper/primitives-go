@@ -90,6 +90,34 @@ type (
 		// empty when the delivery did not name one.
 		CustomerID string
 
+		// PriceID and ProductID name what the subscription buys, in the
+		// provider's own identifiers, and are empty where the delivery reported
+		// none.
+		//
+		// They are here because a status and a customer say whose standing moved
+		// but not in what. A consumer opening a subscription row of its own has
+		// to place it against one of its own billing products, and the
+		// provider's price or product identifier is the only fact in the
+		// delivery it can map from — without them, placing a new subscription
+		// means re-decoding Payload with the provider's SDK, which is the work
+		// this type exists to remove.
+		//
+		// They are two fields rather than one because the providers draw the
+		// line in different places, and a consumer maps whichever one its own
+		// catalog is keyed on. Stripe reports both: a price is one way of paying
+		// for a product (monthly, yearly, per seat), so two prices of one product
+		// share a ProductID and differ in PriceID. RevenueCat reports a store
+		// product and no price object, so PriceID stays empty there.
+		//
+		// A Stripe subscription can carry several items, each with its own price.
+		// Each field is set only when every item agrees on it — one item, or
+		// several that share a product — and is empty when they disagree,
+		// because handing over the first of several would be a guess presented
+		// as a fact, and a consumer that places on it bills the wrong thing.
+		// Such a subscription is still fully described in Payload.
+		PriceID   string
+		ProductID string
+
 		// Status is the provider's reported status, mapped onto this module's
 		// vocabulary. It is SubscriptionStatusUnknown when the adapter did not
 		// recognize what the provider reported.

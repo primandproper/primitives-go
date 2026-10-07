@@ -316,6 +316,45 @@ func TestPaymentManager_HandleEventWebhook(T *testing.T) {
 		test.Nil(t, event.Subscription.CurrentPeriodEnd)
 	})
 
+	T.Run("carries the product the subscription buys", func(t *testing.T) {
+		t.Parallel()
+
+		pm := newManager(t)
+
+		obs := observability.NewRecordingObserver()
+		pm.o11y = obs
+
+		event, err := pm.HandleEventWebhook(signedRequest(t, delivery(
+			`"type":"INITIAL_PURCHASE","id":"evt_rc","app_user_id":"user_123","transaction_id":"txn_1","product_id":"pro_monthly"`,
+		)))
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		test.EqOp(t, "pro_monthly", event.Subscription.ProductID)
+		// RevenueCat has no price object, so there is nothing to put here; a guess
+		// from the product would be a fact this package does not have.
+		test.EqOp(t, "", event.Subscription.PriceID)
+
+		obs.ObservedOperationWithData(t, map[string]any{
+			"revenuecat.product_id": "pro_monthly",
+		})
+	})
+
+	T.Run("leaves the product absent when the event reported none", func(t *testing.T) {
+		t.Parallel()
+
+		pm := newManager(t)
+
+		event, err := pm.HandleEventWebhook(signedRequest(t, delivery(
+			`"type":"RENEWAL","id":"evt_rc","app_user_id":"user_123","transaction_id":"txn_1"`,
+		)))
+		must.NoError(t, err)
+		must.NotNil(t, event.Subscription)
+
+		test.EqOp(t, "", event.Subscription.ProductID)
+		test.EqOp(t, "", event.Subscription.PriceID)
+	})
+
 	T.Run("falls back to the current transaction when there is no original", func(t *testing.T) {
 		t.Parallel()
 
