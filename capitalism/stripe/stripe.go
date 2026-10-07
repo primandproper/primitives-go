@@ -189,6 +189,8 @@ func (s *PaymentManager) HandleEventWebhook(req *http.Request) (_ *capitalism.Ev
 		op.Set("stripe.subscription_id", out.Subscription.ID).
 			Set("stripe.customer_id", out.Subscription.CustomerID).
 			Set("stripe.subscription_status", out.Subscription.ProviderStatus).
+			Set("stripe.price_id", out.Subscription.PriceID).
+			Set("stripe.product_id", out.Subscription.ProductID).
 			Set("capitalism.subscription_status", out.Subscription.Status.String())
 
 		if out.Subscription.CurrentPeriodEnd != nil {
@@ -234,7 +236,56 @@ func subscriptionState(subscription *stripe.Subscription) *capitalism.Subscripti
 		state.CustomerID = subscription.Customer.ID
 	}
 
+	state.PriceID, state.ProductID = subscriptionPlacement(subscription.Items)
+
 	return state
+}
+
+// subscriptionPlacement is the price and product a subscription's items agree on.
+//
+// Each is reported only when every item that names one names the same one, and is empty
+// otherwise: a subscription with a base price and a metered add-on has two prices and no
+// single answer to "which price", and the first of them is not that answer. Two prices of
+// one product still agree on the product, which is the case that makes the fields worth
+// keeping separate. Every pointer on the way down is checked, because stripe-go leaves
+// each of them nil for a payload that omitted the level, and this is a public endpoint.
+func subscriptionPlacement(items *stripe.SubscriptionItemList) (priceID, productID string) {
+	if items == nil {
+		return "", ""
+	}
+
+	var prices, products []string
+	for _, item := range items.Data {
+		if item == nil || item.Price == nil {
+			continue
+		}
+
+		prices = append(prices, item.Price.ID)
+
+		if item.Price.Product != nil {
+			products = append(products, item.Price.Product.ID)
+		}
+	}
+
+	return agreed(prices), agreed(products)
+}
+
+// agreed is the one non-empty value every entry shares, or empty when there is none or more
+// than one.
+func agreed(values []string) string {
+	var out string
+	for _, value := range values {
+		switch {
+		case value == "":
+			continue
+		case out == "":
+			out = value
+		case out != value:
+			return ""
+		}
+	}
+
+	return out
 }
 
 // epochSeconds renders one of Stripe's Unix timestamps as a UTC time, or nil where the

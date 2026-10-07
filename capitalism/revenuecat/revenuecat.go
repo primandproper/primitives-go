@@ -258,6 +258,12 @@ func (r *PaymentManager) HandleEventWebhook(req *http.Request) (_ *capitalism.Ev
 		CustomerID:     customerID(&event),
 		Status:         status,
 		ProviderStatus: event.Type,
+		// product_id is the store product the period this event reports was bought
+		// as. On a PRODUCT_CHANGE that is still the product being changed *from* —
+		// the store applies most changes at the next renewal, and the RENEWAL that
+		// follows carries the new one — so it agrees with the period beside it.
+		// RevenueCat reports no price object, so PriceID stays empty.
+		ProductID: event.ProductID,
 		// purchased_at_ms is when the period this event reports began, which for a
 		// renewal is the renewal itself rather than the original purchase, and
 		// expiration_at_ms is when it lapses.
@@ -267,7 +273,7 @@ func (r *PaymentManager) HandleEventWebhook(req *http.Request) (_ *capitalism.Ev
 
 	op.Set("revenuecat.subscription_id", out.Subscription.ID).
 		Set("revenuecat.app_user_id", out.Subscription.CustomerID).
-		Set("revenuecat.product_id", event.ProductID).
+		Set("revenuecat.product_id", out.Subscription.ProductID).
 		Set("revenuecat.period_type", event.PeriodType).
 		Set("capitalism.subscription_status", out.Subscription.Status.String())
 
