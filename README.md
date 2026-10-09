@@ -24,13 +24,13 @@ The dependency runs one way. platform-go imports this module; **this module impo
 This repository follows a deliberately conservative release model:
 
 - **Only tagged releases are supported.** If it isn't behind a version tag, it can change or break without notice, and no support or compatibility is promised for it.
-- **`main` moves ahead of the latest release.** New work — including breaking changes — lands on `main` well before it is deemed release-worthy. Two facts locate you at any moment, and both are derived rather than written down here: the module path in `go.mod` is the major that `main` is currently building toward, and the highest version tag is the latest supported release. Whatever is on `main` but not yet in that tag is subject to change — and immediately after a major bump, that is the entire major.
-- **Semantic Versioning, enforced by Go's module paths.** Breaking changes increment the major version and the module import path (`/vN` → `/vN+1`), so a major bump can never silently break a consumer that hasn't opted in. The path bump lands in the same change that makes the break, never as a follow-up, which is why `main`'s major is frequently one ahead of anything you can fetch by tag.
+- **`main` moves ahead of the latest release.** New work, breaking changes included, lands on `main` well before it is deemed release-worthy. The highest version tag is the latest supported release; whatever is on `main` but not yet in that tag is subject to change.
+- **Versions are labels, not promises.** Any release may break, minor and patch releases included. A major bump marks something big when one is worth marking; a breaking change does not require one. The one guarantee is that a tagged version never changes, so a pinned version keeps building.
 - **No stability guarantees on unreleased APIs.** Interfaces, config shapes, and package boundaries on `main` are subject to change until they ship in a release.
 
 If you depend on this library, pin to a released tag — and note that `@latest` against a major that has no tag yet resolves to a commit on `main` rather than to a release. If you want to track upcoming work, `main` is fair game — just don't expect it to hold still.
 
-This module is v2, and being the slow tier it intends to stay there for a long while. That is an intention rather than a promise: the model above is the promise, and the next major would arrive the same way this one did.
+This module is v2 and expects to stay there. Being the slow tier, it should break rarely, and when it does, the break ships in an ordinary release.
 
 ## Installation
 
@@ -38,7 +38,7 @@ This module is v2, and being the slow tier it intends to stay there for a long w
 go get github.com/primandproper/primitives-go/v2@latest
 ```
 
-Because breaking changes ride the major-version import path, upgrading across majors is an explicit, opt-in edit to your import paths — never a surprise from `go get -u`.
+Any release may break, so bump deliberately: `go get -u` can pull in a breaking change without warning.
 
 ## Package Catalog
 
