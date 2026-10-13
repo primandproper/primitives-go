@@ -77,13 +77,28 @@ grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(n)) to match. A server
 raised alone just moves the ResourceExhausted back to where it was hardest to
 attribute.
 
+# Serving from an http.Handler
+
+Server is also an http.Handler. ServeHTTP hands a request to grpc-go's
+Server.ServeHTTP, so a call that arrives through an HTTP server runs through
+the same interceptors, stats handler and message-size bounds as one on the
+listener. server/grpcweb is what it is for: it translates gRPC-web into the
+HTTP/2 gRPC request ServeHTTP requires, and reads GetServiceInfo to refuse the
+streaming methods it does not serve.
+
 # Shutdown
 
 Shutdown drains in-flight RPCs until ctx is done, then stops hard and reports
-ctx's error, so a caller can tell a clean drain from a forced one. It flushes the
-tracer provider afterwards — spans from RPCs that finish during draining would be
-lost by flushing first — but does not shut the provider down, since the provider
-belongs to the process rather than to this server.
+ctx's error, so a caller can tell a clean drain from a forced one.
+
+grpc-go's GracefulStop does not drain calls served through ServeHTTP: it closes
+their transports, which cancels the call and discards its response. Shutdown
+therefore waits for those first, answering any that arrive meanwhile
+UNAVAILABLE, and only then stops gracefully.
+
+It flushes the tracer provider afterwards — spans from RPCs that finish during
+draining would be lost by flushing first — but does not shut the provider down,
+since the provider belongs to the process rather than to this server.
 */
 package grpc
 

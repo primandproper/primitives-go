@@ -66,7 +66,7 @@ Implementations are listed in parentheses; most concerns also ship a `noop`. Thr
 ### Web & transport
 | Package            | Purpose                                       | Implementations                       |
 |--------------------|-----------------------------------------------|---------------------------------------|
-| `server`           | Service servers                               | grpc, http                            |
+| `server`           | Service servers                               | grpc, grpcweb, http                   |
 | `routing`          | HTTP router abstraction                       | chi, stdlib, httprouter, gin          |
 | `httpclient`       | Instrumented HTTP client                      | —                                     |
 | `cookies`          | Cookie management                             | —                                     |

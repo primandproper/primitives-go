@@ -70,6 +70,7 @@ type (
 		grpcServer     *grpc.Server
 		tracerProvider tracing.Provider
 		bound          bound.Address
+		httpCalls      httpCalls
 	}
 
 	// RegistrationFunc is i.e. protobuf.RegisterSomeExampleServiceServer(grpcServer, &exampleServiceServerImpl{}).
@@ -224,12 +225,18 @@ func resolveMessageSize(direction string, configured, override int) (int, error)
 // down, and closing an exporter one server happens to be finished with would
 // blind all of it. Its owner shuts it down last.
 //
-// In-flight RPCs are given until ctx is done to finish. If ctx expires first the
-// server is stopped hard and the context's error is returned, so a caller can
-// tell a clean drain from a forced one.
+// In-flight RPCs, including those served through ServeHTTP, are given until ctx
+// is done to finish. If ctx expires first the server is stopped hard and the
+// context's error is returned, so a caller can tell a clean drain from a forced
+// one.
 func (s *Server) Shutdown(ctx context.Context) error {
 	stopped := make(chan struct{})
 	go func() {
+		// Calls arriving through ServeHTTP are drained first, because
+		// GracefulStop does not drain them: it closes their transports, which
+		// cancels the call and discards its response. The listener keeps
+		// accepting while they finish, and GracefulStop drains what it took.
+		s.httpCalls.drain()
 		s.grpcServer.GracefulStop()
 		close(stopped)
 	}()
@@ -238,8 +245,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	select {
 	case <-stopped:
 	case <-ctx.Done():
-		// GracefulStop is still blocked on in-flight RPCs; Stop unblocks it by
-		// cancelling them.
+		// GracefulStop, or the ServeHTTP drain ahead of it, is still blocked on
+		// in-flight RPCs; Stop unblocks both by cancelling them.
 		s.grpcServer.Stop()
 		<-stopped
 		err = ctx.Err()
