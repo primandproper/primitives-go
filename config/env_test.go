@@ -12,7 +12,7 @@ type sampleConfig struct {
 	Nested struct {
 		Token string `env:"TOKEN"`
 	} `envPrefix:"NESTED_"`
-	Port    int  `env:"PORT"    envDefault:"8080"`
+	Port    int  `env:"PORT"          envDefault:"8080"`
 	Verbose bool `env:"VERBOSE"`
 }
 

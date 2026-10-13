@@ -105,7 +105,7 @@ func describe(v *Variable) string {
 	case v.HasDefault && v.Default == "":
 		description += " It defaults to the empty string."
 	case v.HasDefault:
-		description += fmt.Sprintf(" It defaults to `%s`.", v.Default)
+		description += fmt.Sprintf(" It defaults to %#q.", v.Default)
 	}
 
 	return description
