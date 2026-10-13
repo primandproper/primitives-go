@@ -11,7 +11,9 @@
 // Source locations are attached only at debug level, and are resolved by walking
 // the stack in this package so they point at the caller of Info, Debug, Warn, or
 // Error rather than at this file — which is what a wrapper around slog otherwise
-// reports for every line it emits.
+// reports for every line it emits. The walk passes over logging.Helper frames
+// too, so a line logged through observability.PrepareAndLogError names the code
+// that called it.
 //
 // log/slog has no named loggers, so logging.Logger's WithName is implemented as
 // an attribute on the derived logger rather than as a name slog itself knows
@@ -23,7 +25,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/observability/keys"
@@ -81,20 +82,18 @@ func (l *Logger) SetRequestIDFunc(f logging.RequestIDFunc) {
 }
 
 // logAt emits a record whose source PC points at the caller of the exported
-// logging method rather than at this wrapper. Calling
-// l.logger.Info/Debug/Warn/Error directly makes slog's AddSource attribute every
-// line to this file.
+// logging method rather than at this wrapper, or past it, to the caller of the
+// logging.Helper that called it. Calling l.logger.Info/Debug/Warn/Error directly
+// makes slog's AddSource attribute every line to this file.
 func (l *Logger) logAt(level slog.Level, msg string, attrs ...slog.Attr) {
 	ctx := context.Background()
 	if !l.logger.Enabled(ctx, level) {
 		return
 	}
 
-	var pcs [1]uintptr
-	// Skip [runtime.Callers, logAt, the exported Info/Debug/Warn/Error method] so
-	// the captured PC is the caller of that exported method.
-	runtime.Callers(3, pcs[:])
-	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	// Skip the exported Info/Debug/Warn/Error method, and any logging.Helper
+	// above it, so the PC is the code that asked for the record.
+	r := slog.NewRecord(time.Now(), level, msg, logging.CallerPC(1))
 	r.AddAttrs(attrs...)
 	_ = l.logger.Handler().Handle(ctx, r) //nolint:errcheck // logging is best-effort
 }

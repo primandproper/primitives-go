@@ -12,13 +12,14 @@
 // Caller paths are trimmed of this module's own prefix, which shows up only in
 // -trimpath builds; an untrimmed build reports the absolute path the runtime
 // gives it. A stack that cannot be walked yields "unknown" rather than an absent
-// field, so the caller key is always present.
+// field, so the caller key is always present. The walk passes over
+// logging.Helper frames, so an error logged through
+// observability.PrepareAndLogError names the code that called it.
 package zerolog
 
 import (
 	"net/http"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -44,24 +45,26 @@ func (utcTimestampHook) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
 	e.Str(zerolog.TimestampFieldName, time.Now().UTC().Format(time.RFC3339Nano))
 }
 
-// callerAt resolves the call site skip frames above its own caller, formatted
-// the way this package has always formatted callers.
+// callerAt resolves the call site skip frames above its own caller, passing
+// over any logging.Helper, formatted the way this package has always formatted
+// callers.
 //
 // It stands in for zerolog's Caller(), which reads the global
 // CallerSkipFrameCount and CallerMarshalFunc. Resolving the frame here means the
 // skip count is a local constant that can be read against the method using it,
 // rather than a global increment that any other zerolog user in the process
-// could also apply.
+// could also apply — and it is the only way to pass over a helper, which a
+// fixed skip count cannot know the depth of.
 //
 // The TrimPrefix matters only in -trimpath builds, where runtime reports
 // module-relative paths; an untrimmed build keeps its absolute path.
 func callerAt(skip int) string {
-	_, file, line, ok := runtime.Caller(skip + 1)
+	frame, ok := logging.CallerFrame(skip)
 	if !ok {
 		return unknownCaller
 	}
 
-	return strings.TrimPrefix(file, here) + ", line " + strconv.Itoa(line)
+	return strings.TrimPrefix(frame.File, here) + ", line " + strconv.Itoa(frame.Line)
 }
 
 // unknownCaller stands in when the stack cannot be walked, so the caller field
