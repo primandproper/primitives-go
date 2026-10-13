@@ -39,7 +39,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/errors"
@@ -191,17 +190,19 @@ func (l *Logger) SetRequestIDFunc(f logging.RequestIDFunc) {
 // directly leaves slog to walk the stack itself, and it stops at this file, so
 // AddSource and the otelslog bridge's WithSource(true) both attribute every
 // record in the process to whichever of the four methods below emitted it.
+//
+// The PC also passes over any logging.Helper above the exported method, so a
+// record logged through observability.PrepareAndLogError names its caller rather
+// than the helper.
 func (l *Logger) logAt(level slog.Level, msg string, attrs ...slog.Attr) {
 	ctx := context.Background()
 	if !l.logger.Enabled(ctx, level) {
 		return
 	}
 
-	var pcs [1]uintptr
-	// Skip [runtime.Callers, logAt, the exported Info/Debug/Warn/Error method] so
-	// the captured PC is the caller of that exported method.
-	runtime.Callers(3, pcs[:])
-	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	// Skip the exported Info/Debug/Warn/Error method, and any logging.Helper
+	// above it, so the PC is the code that asked for the record.
+	r := slog.NewRecord(time.Now(), level, msg, logging.CallerPC(1))
 	r.AddAttrs(attrs...)
 	_ = l.logger.Handler().Handle(ctx, r) //nolint:errcheck // logging is best-effort
 }

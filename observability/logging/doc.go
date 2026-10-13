@@ -24,6 +24,18 @@ Adding a method that takes a domain type is the mistake the interface exists to
 prevent — everything logs, so everything imports this package, and a method
 naming a type from elsewhere in the module makes that an import cycle.
 
+# Call sites, and the helpers in front of them
+
+Every backend that reports a call site — slog's source, zap's caller, zerolog's
+caller on Error — reports the code that called the Logger, not the backend's own
+method. A function that logs on its caller's behalf, like
+observability.PrepareAndLogError, calls Helper first, and the call site walks
+past it to whoever called it; without that, every error in a service logged
+through the helper is attributed to the one line inside it that calls Error.
+A consumer's own wrapper does the same: call Helper and it drops out of the
+attribution, exactly as testing.T.Helper drops a test helper out of a failure's
+line number.
+
 # What With* returns, and what that costs
 
 Every With* method and WithName return a logging.Logger, because that is what the

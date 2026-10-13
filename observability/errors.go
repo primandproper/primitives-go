@@ -12,10 +12,16 @@ import (
 )
 
 // PrepareAndLogError standardizes our error handling by logging, tracing, and formatting an error consistently.
+//
+// It is a logging.Helper, so the line it logs names the code that called it
+// rather than this function. So are AcknowledgeError, PrepareAndLogGRPCStatus,
+// and Operation's Error and Acknowledge.
 func PrepareAndLogError(err error, logger logging.Logger, span tracing.Span, descriptionFmt string, descriptionArgs ...any) error {
 	if err == nil {
 		return nil
 	}
+
+	logging.Helper()
 
 	desc := fmt.Sprintf(descriptionFmt, descriptionArgs...)
 	if span != nil {
@@ -66,6 +72,8 @@ func AcknowledgeError(err error, logger logging.Logger, span tracing.Span, descr
 		return
 	}
 
+	logging.Helper()
+
 	desc := fmt.Sprintf(descriptionFmt, descriptionArgs...)
 	if desc == "" {
 		desc = unspecifiedErrorDescription
@@ -96,6 +104,8 @@ func PrepareAndLogGRPCStatus(err error, logger logging.Logger, span tracing.Span
 	if err == nil {
 		return nil
 	}
+
+	logging.Helper()
 
 	desc := fmt.Sprintf(descriptionFmt, descriptionArgs...)
 

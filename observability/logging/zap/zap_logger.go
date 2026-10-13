@@ -79,7 +79,11 @@ func NewZapLogger(lvl logging.Level) (*Logger, error) {
 	// Wire our AtomicLevel into the config so SetLevel affects the running logger.
 	cfg.Level = atomicLevel
 
-	l, err := cfg.Build(zap.AddCallerSkip(1))
+	// zap's own caller resolution is off: it counts a fixed number of frames, and
+	// cannot pass over a logging.Helper, so write sets the caller itself. The
+	// skip still positions the stack traces zap attaches, which start at the
+	// caller of the method that called write.
+	l, err := cfg.Build(zap.WithCaller(false), zap.AddCallerSkip(2))
 	if err != nil {
 		return nil, errors.Wrap(err, "building zap logger")
 	}
@@ -118,28 +122,54 @@ func (l *Logger) SetRequestIDFunc(f logging.RequestIDFunc) {
 	}
 }
 
+// write emits an entry attributed to the caller of the exported logging method,
+// or past it, to the caller of the logging.Helper that called it.
+//
+// Whether the caller appears is the encoder's decision rather than zap's
+// AddCaller option: an encoder config with a CallerKey prints it, as both of
+// the presets NewZapLogger builds from do.
+func (l *Logger) write(level zapcore.Level, msg string, fields ...zap.Field) {
+	ce := l.logger.Check(level, msg)
+	if ce == nil {
+		return
+	}
+
+	// Skip the exported Info/Debug/Warn/Error method that called write.
+	if frame, ok := logging.CallerFrame(1); ok {
+		ce.Caller = zapcore.EntryCaller{
+			Defined:  true,
+			PC:       frame.PC,
+			File:     frame.File,
+			Line:     frame.Line,
+			Function: frame.Function,
+		}
+	}
+
+	ce.Write(fields...)
+}
+
 // Info satisfies our contract for the logging.Logger Info method.
 func (l *Logger) Info(input string) {
-	l.logger.Info(input)
+	l.write(zap.InfoLevel, input)
 }
 
 // Debug satisfies our contract for the logging.Logger Debug method.
 func (l *Logger) Debug(input string) {
-	l.logger.Debug(input)
+	l.write(zap.DebugLevel, input)
 }
 
 // Warn satisfies our contract for the logging.Logger Warn method.
 func (l *Logger) Warn(input string) {
-	l.logger.Warn(input)
+	l.write(zap.WarnLevel, input)
 }
 
 // Error satisfies our contract for the logging.Logger Error method.
 func (l *Logger) Error(whatWasHappeningWhenErrorOccurred string, err error) {
 	if err != nil {
-		l.logger.Error(whatWasHappeningWhenErrorOccurred, zap.Error(err))
+		l.write(zap.ErrorLevel, whatWasHappeningWhenErrorOccurred, zap.Error(err))
 		return
 	}
-	l.logger.Error(whatWasHappeningWhenErrorOccurred)
+	l.write(zap.ErrorLevel, whatWasHappeningWhenErrorOccurred)
 }
 
 // Clone satisfies our contract for the logging.Logger WithValue method.

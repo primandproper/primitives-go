@@ -159,6 +159,17 @@ func TestOperation_Acknowledge(T *testing.T) {
 
 		op.Acknowledge(errors.New("boom"), "doing thing")
 	})
+
+	T.Run("with nil error", func(t *testing.T) {
+		t.Parallel()
+
+		logger := newCallSiteLogger()
+		_, span := tracing.StartSpan(t.Context())
+		op := newOperation(span, logger)
+
+		op.Acknowledge(nil, "doing thing")
+		test.EqOp(t, "", logger.frame.Function)
+	})
 }
 
 func TestOperation_End(T *testing.T) {

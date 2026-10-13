@@ -106,11 +106,23 @@ func (op *operation) Span() tracing.Span {
 
 // Error logs and traces err, then returns it wrapped with the given description.
 func (op *operation) Error(err error, descriptionFmt string, descriptionArgs ...any) error {
+	if err == nil {
+		return nil
+	}
+
+	logging.Helper()
+
 	return PrepareAndLogError(err, op.logger, op.span, descriptionFmt, descriptionArgs...)
 }
 
 // Acknowledge logs and traces err without wrapping or returning it.
 func (op *operation) Acknowledge(err error, descriptionFmt string, descriptionArgs ...any) {
+	if err == nil {
+		return
+	}
+
+	logging.Helper()
+
 	AcknowledgeError(err, op.logger, op.span, descriptionFmt, descriptionArgs...)
 }
 

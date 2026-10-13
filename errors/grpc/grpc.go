@@ -65,6 +65,8 @@ func PrepareAndLogGRPCStatus(err error, logger logging.Logger, span tracing.Span
 		return nil
 	}
 
+	logging.Helper()
+
 	code := MapToGRPC(err, defaultCode)
 	description := fmt.Sprintf(descriptionFmt, descriptionArgs...)
 
