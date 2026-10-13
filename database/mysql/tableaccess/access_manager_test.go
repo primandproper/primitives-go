@@ -483,7 +483,7 @@ func TestManager_GrantUserAccessToTable(T *testing.T) {
 			must.NoError(t, mgr.CreateDatabase(ctx, schema, username))
 
 			_, err := adminDB.ExecContext(ctx,
-				fmt.Sprintf("CREATE TABLE `%s`.`%s` (id INT PRIMARY KEY)", schema, table))
+				fmt.Sprintf("CREATE TABLE %#q.%#q (id INT PRIMARY KEY)", schema, table))
 			must.NoError(t, err)
 
 			test.NoError(t, mgr.GrantUserAccessToTable(ctx, username, schema, table, string(PrivilegeSelect)))
@@ -504,7 +504,7 @@ func TestManager_GrantUserAccessToTable(T *testing.T) {
 			must.NoError(t, mgr.CreateDatabase(ctx, schema, username))
 
 			_, err := adminDB.ExecContext(ctx,
-				fmt.Sprintf("CREATE TABLE `%s`.`%s` (id INT PRIMARY KEY)", schema, table))
+				fmt.Sprintf("CREATE TABLE %#q.%#q (id INT PRIMARY KEY)", schema, table))
 			must.NoError(t, err)
 
 			// CONNECT is Postgres' word and is on the shared list; MySQL has no

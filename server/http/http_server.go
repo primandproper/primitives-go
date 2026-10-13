@@ -14,8 +14,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/routing"
 	"github.com/primandproper/primitives-go/v2/server/internal/bound"
-
-	"golang.org/x/net/http2"
 )
 
 const defaultLoggerName = "api_server"
@@ -169,11 +167,6 @@ func (s *APIServer) Serve(ctx context.Context) (err error) {
 	// used to filter are filtered there too, by httpmw.IsUntraced.
 	s.httpServer.Handler = s.router.Handler()
 
-	http2ServerConf := &http2.Server{}
-	if err = http2.ConfigureServer(s.httpServer, http2ServerConf); err != nil {
-		return perrors.Wrap(err, "configuring HTTP2")
-	}
-
 	// Bind the listener up front, bounded by StartupDeadline, so a slow or wedged
 	// bind fails fast rather than hanging indefinitely.
 	listener, err := s.listen(ctx)
@@ -261,8 +254,16 @@ func provideStdLibHTTPServer(cfg *Config) *http.Server {
 		idleTO = idleTimeout
 	}
 
+	// HTTP/2 is served over TLS alongside HTTP/1.1, as x/net/http2's
+	// ConfigureServer used to arrange; net/http does it natively now. Plaintext
+	// stays HTTP/1.1 only, since unencrypted HTTP/2 was never enabled here.
+	var protocols http.Protocols
+	protocols.SetHTTP1(true)
+	protocols.SetHTTP2(true)
+
 	// heavily inspired by https://blog.cloudflare.com/exposing-go-on-the-internet/
 	srv := &http.Server{
+		Protocols:    &protocols,
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		ReadTimeout:  readTO,
 		WriteTimeout: writeTO,
