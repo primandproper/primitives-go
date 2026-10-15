@@ -2,10 +2,14 @@ package grpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
@@ -76,6 +80,96 @@ func TestServer_ServeHTTP(T *testing.T) {
 		test.EqOp(t, "application/grpc", rec.Header().Get("Content-Type"))
 		test.EqOp(t, "14", rec.Header().Get("Grpc-Status"))
 	})
+
+	// The forced Stop closes the call's request body, and over HTTP/2 that ends
+	// a read stalled on it, which is what lets Stop return. HTTP/1.1 has no such
+	// release, and its only path here, server/grpcweb, reads a body whole before
+	// the call is the server's; that case is pinned there.
+	T.Run("a call stalled mid-body does not hold Shutdown past its deadline", func(t *testing.T) {
+		t.Parallel()
+
+		srv := newHealthServer(t)
+
+		var h2c http.Protocols
+		h2c.SetUnencryptedHTTP2(true)
+
+		const sent = 3
+		stalled := make(chan struct{})
+		hs := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = &stallingBody{ReadCloser: r.Body, after: sent, stalled: stalled}
+			srv.ServeHTTP(w, r)
+		}))
+		hs.Config.Protocols = &h2c
+		hs.Start()
+		t.Cleanup(hs.Close)
+
+		transport := &http.Transport{Protocols: &h2c}
+		t.Cleanup(transport.CloseIdleConnections)
+
+		// The body promises 100 bytes and delivers three, then the client goes
+		// quiet with the stream open.
+		body, stall := io.Pipe()
+		t.Cleanup(func() { _ = stall.Close() })
+
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, hs.URL+"/grpc.health.v1.Health/Check", body)
+		must.NoError(t, err)
+		req.ContentLength = 100
+		req.Header.Set("Content-Type", "application/grpc")
+
+		go func() {
+			if resp, doErr := transport.RoundTrip(req); doErr == nil {
+				_ = resp.Body.Close()
+			}
+		}()
+
+		_, err = stall.Write(make([]byte, sent))
+		must.NoError(t, err)
+
+		select {
+		case <-stalled:
+		case <-time.After(5 * time.Second):
+			t.Fatal("the server never began the read the client stalls")
+		}
+
+		const deadline = 200 * time.Millisecond
+		ctx, cancel := context.WithTimeout(t.Context(), deadline)
+		defer cancel()
+
+		start := time.Now()
+		stopped := make(chan error, 1)
+		go func() { stopped <- srv.Shutdown(ctx) }()
+
+		select {
+		case err = <-stopped:
+		case <-time.After(deadline + 2*time.Second):
+			t.Fatal("Shutdown was still blocked well past its deadline")
+		}
+
+		test.ErrorIs(t, err, context.DeadlineExceeded)
+		test.Less(t, deadline+500*time.Millisecond, time.Since(start))
+	})
+}
+
+// stallingBody closes stalled when a read begins after the first `after` bytes
+// have arrived. A client that sent only those is silent from then on, so that
+// read is the one that blocks.
+type stallingBody struct {
+	io.ReadCloser
+	stalled chan struct{}
+	once    sync.Once
+	after   int
+	read    int
+}
+
+func (b *stallingBody) Read(p []byte) (int, error) {
+	if b.read >= b.after {
+		b.once.Do(func() { close(b.stalled) })
+	}
+
+	n, err := b.ReadCloser.Read(p)
+	b.read += n
+
+	return n, err
 }
 
 func TestServer_GetServiceInfo(T *testing.T) {
