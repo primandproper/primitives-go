@@ -1,6 +1,7 @@
 package grpcweb
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -388,32 +390,46 @@ func TestHandler_ServeHTTP(T *testing.T) {
 		must.NoError(t, <-stopped)
 	})
 
-	T.Run("a call stalled mid-body does not hold Shutdown past its deadline", func(t *testing.T) {
+	T.Run("a call stalled mid-body neither holds Shutdown nor reaches the server after it", func(t *testing.T) {
 		t.Parallel()
 
-		srv, url := newTestServer(t, newHealthService(serving))
-
-		var d net.Dialer
-		conn, err := d.DialContext(t.Context(), "tcp", strings.TrimPrefix(url, "http://"))
+		srv, err := grpcserver.NewGRPCServer(t.Context(), &grpcserver.Config{}, nil, nil, []grpcserver.RegistrationFunc{
+			func(s *grpc.Server) { grpc_health_v1.RegisterHealthServer(s, newHealthService(serving)) },
+		})
 		must.NoError(t, err)
-		t.Cleanup(func() { _ = conn.Close() })
 
 		// The body promises 100 bytes and delivers three, then the client goes
 		// quiet with the connection open.
+		const sent = "\x00\x00\x00"
+		stalled := make(chan struct{})
+		h := NewHandler(srv)
+		hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = &stallingBody{ReadCloser: r.Body, after: len(sent), stalled: stalled}
+			h.ServeHTTP(w, r)
+		}))
+		t.Cleanup(hs.Close)
+
+		var d net.Dialer
+		conn, err := d.DialContext(t.Context(), "tcp", hs.Listener.Addr().String())
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = conn.Close() })
+
 		_, err = io.WriteString(conn, "POST "+checkMethod+" HTTP/1.1\r\n"+
 			"Host: test\r\n"+
 			"Content-Type: application/grpc-web+proto\r\n"+
 			"Content-Length: 100\r\n"+
 			"\r\n"+
-			"\x00\x00\x00")
+			sent)
 		must.NoError(t, err)
 
-		// Give the server time to admit the call and block reading its body.
-		// Nothing the server does for a call before its first message is whole
-		// is visible from here; were the call not yet admitted, Shutdown would
-		// refuse it and return nil at once, failing below rather than hanging.
-		time.Sleep(100 * time.Millisecond)
+		select {
+		case <-stalled:
+		case <-time.After(5 * time.Second):
+			t.Fatal("the handler never began the read the client stalls")
+		}
 
+		// The handler reads the body whole before dispatch, so the call is not
+		// yet the server's: there is nothing in flight to drain or to force.
 		const deadline = 200 * time.Millisecond
 		ctx, cancel := context.WithTimeout(t.Context(), deadline)
 		defer cancel()
@@ -428,8 +444,21 @@ func TestHandler_ServeHTTP(T *testing.T) {
 			t.Fatal("Shutdown was still blocked well past its deadline")
 		}
 
-		test.ErrorIs(t, err, context.DeadlineExceeded)
-		test.Less(t, deadline+500*time.Millisecond, time.Since(start))
+		must.NoError(t, err)
+		test.Less(t, deadline, time.Since(start))
+
+		// The rest of the body arrives once Shutdown has begun, and the server
+		// refuses the call rather than serving it.
+		_, err = conn.Write(make([]byte, 100-len(sent)))
+		must.NoError(t, err)
+
+		resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+		must.NoError(t, err)
+		out := readResponse(t, resp)
+
+		test.SliceEmpty(t, out.messages)
+		test.EqOp(t, "14", out.trailers["grpc-status"])
+		test.EqOp(t, "14", out.header.Get("Grpc-Status"))
 	})
 
 	T.Run("a call the server is stopped under is answered UNAVAILABLE", func(t *testing.T) {
@@ -497,6 +526,28 @@ func requestOfSize(t *testing.T, size int) []byte {
 	must.SliceLen(t, size, payload)
 
 	return payload
+}
+
+// stallingBody closes stalled when a read begins after the first `after` bytes
+// have arrived. A client that sent only those is silent from then on, so that
+// read is the one that blocks.
+type stallingBody struct {
+	io.ReadCloser
+	stalled chan struct{}
+	once    sync.Once
+	after   int
+	read    int
+}
+
+func (b *stallingBody) Read(p []byte) (int, error) {
+	if b.read >= b.after {
+		b.once.Do(func() { close(b.stalled) })
+	}
+
+	n, err := b.ReadCloser.Read(p)
+	b.read += n
+
+	return n, err
 }
 
 // endlessBody is a request body that never ends, counting the bytes read from it.
