@@ -27,6 +27,11 @@ It is scoped to what a client of ours needs:
   - Any HTTP version. grpc-go's ServeHTTP insists on HTTP/2, and a request that
     arrived over HTTP/1.1 is presented to it as one, since the length-prefixed
     message in the body is the same on either.
+  - One message per request. A body longer than one message of the server's
+    receive limit and its frame header is answered RESOURCE_EXHAUSTED without
+    reaching the server, and is not read past that. The limit is the one the
+    server reports through MaxReceiveMessageSize, as *grpcserver.Server does,
+    or grpc-go's 4 MiB default for a Server that reports none.
 
 grpc-status, grpc-message and grpc-status-details-bin reach the client byte for
 byte, in the trailer frame. A trailers-only response, a call that failed before

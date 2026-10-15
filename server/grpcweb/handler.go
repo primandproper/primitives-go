@@ -3,7 +3,9 @@ package grpcweb
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"slices"
@@ -26,6 +28,10 @@ const (
 	// frameHeaderSize is the flag byte and the four-byte big-endian length that
 	// precede every gRPC frame.
 	frameHeaderSize = 5
+
+	// defaultMaxReceiveMessageSize is grpc-go's own receive default, the bound
+	// a Server is taken to have when it does not report one.
+	defaultMaxReceiveMessageSize = 4 << 20
 )
 
 type (
@@ -40,10 +46,17 @@ type (
 		GetServiceInfo() map[string]grpc.ServiceInfo
 	}
 
+	// receiveLimited is a Server that reports the bound on a single message it
+	// receives. *grpcserver.Server is one.
+	receiveLimited interface {
+		MaxReceiveMessageSize() int
+	}
+
 	handler struct {
 		next      http.Handler
 		logger    logging.Logger
 		streaming map[string]struct{}
+		maxBody   int64
 	}
 )
 
@@ -52,6 +65,13 @@ type (
 //
 // The streaming methods are read from next once, here, so every service must
 // already be registered on it.
+//
+// A request body is capped at one message of next's receive bound plus its
+// frame header, since a gRPC-web request carries exactly one message frame. The
+// bound comes from next's MaxReceiveMessageSize when it has one, as
+// *grpcserver.Server does, so the cap follows the server's own limit rather
+// than a second setting; a Server without one is taken to have grpc-go's 4 MiB
+// default.
 func NewHandler(next Server, opts ...Option) http.Handler {
 	o := newOptions(opts)
 
@@ -65,10 +85,16 @@ func NewHandler(next Server, opts ...Option) http.Handler {
 		}
 	}
 
+	maxReceive := defaultMaxReceiveMessageSize
+	if limited, ok := next.(receiveLimited); ok && limited.MaxReceiveMessageSize() > 0 {
+		maxReceive = limited.MaxReceiveMessageSize()
+	}
+
 	return &handler{
 		next:      next,
 		logger:    logging.NewNamedLogger(o.logger, loggerName),
 		streaming: streaming,
+		maxBody:   int64(maxReceive) + frameHeaderSize,
 	}
 }
 
@@ -87,17 +113,21 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	next := h.next
-	if _, streaming := h.streaming[r.URL.Path]; streaming {
-		next = trailersOnly(codes.Unimplemented, "gRPC-web serves unary methods only")
-	}
-
 	// grpc-go's ServeHTTP refuses anything but HTTP/2. The body it reads is the
 	// same length-prefixed message on any version, so the version is only a
 	// claim, and this is where it is made.
 	req := r.Clone(r.Context())
 	req.Proto, req.ProtoMajor, req.ProtoMinor = "HTTP/2.0", 2, 0
 	req.Header.Set("Content-Type", grpcContentType)
+
+	next := h.next
+	if _, streaming := h.streaming[r.URL.Path]; streaming {
+		next = trailersOnly(codes.Unimplemented, "gRPC-web serves unary methods only")
+	} else if body, err := h.readBody(w, r); err != nil {
+		next = h.unreadable(r, err)
+	} else {
+		req.Body, req.ContentLength = io.NopCloser(bytes.NewReader(body)), int64(len(body))
+	}
 
 	rw := &responseWriter{w: w, header: http.Header{}, contentType: webContentType}
 	next.ServeHTTP(rw, req)
@@ -107,6 +137,49 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// logged by the server's interceptors; only its status went undelivered.
 		h.logger.WithError(err).WithValue("rpc.method", r.URL.Path).Debug("writing gRPC-web trailers")
 	}
+}
+
+// readBody reads the request body whole, refusing one longer than maxBody.
+//
+// It is read here, before dispatch, because grpc-go would not refuse it.
+// grpc-go's handler transport reads a body as fast as it arrives into an
+// unbounded buffer, with no HTTP/2 flow control on this path to push back, and
+// MaxRecvMsgSize checks a message's length prefix, never the bytes behind it.
+// A unary call stops reading at its one message, so an error from a body
+// capped mid-stream would never be looked at, and the call would be answered
+// as though the padding were not there. Reading it first costs nothing grpc-go
+// would not have buffered anyway, and makes the refusal certain.
+//
+// MaxBytesReader is given the client's ResponseWriter so that net/http closes
+// the connection after the response rather than reading the rest.
+func (h *handler) readBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	var buf bytes.Buffer
+	if r.ContentLength > 0 && r.ContentLength <= h.maxBody {
+		buf.Grow(int(r.ContentLength) + bytes.MinRead)
+	}
+
+	if _, err := buf.ReadFrom(http.MaxBytesReader(w, r.Body, h.maxBody)); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+// unreadable answers a call whose body readBody refused. One over the cap is
+// RESOURCE_EXHAUSTED, the status grpc-go gives an oversized message; any other
+// failure is a client that broke off mid-body, which is told so if it is still
+// listening.
+func (h *handler) unreadable(r *http.Request, err error) http.Handler {
+	if tooLarge, ok := errors.AsType[*http.MaxBytesError](err); ok {
+		return trailersOnly(codes.ResourceExhausted, fmt.Sprintf(
+			"gRPC-web request body is larger than one message of the server's %d-byte receive limit and its frame header",
+			tooLarge.Limit-frameHeaderSize,
+		))
+	}
+
+	h.logger.WithError(err).WithValue("rpc.method", r.URL.Path).Debug("reading gRPC-web request body")
+
+	return trailersOnly(codes.Canceled, "the request body could not be read")
 }
 
 // negotiate maps a gRPC-web request content type to the one grpc-go accepts.
