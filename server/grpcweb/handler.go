@@ -152,6 +152,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // MaxBytesReader is given the client's ResponseWriter so that net/http closes
 // the connection after the response rather than reading the rest.
+//
+// It also means a call is not the server's until its body has arrived. A
+// client that stalls mid-body blocks here, outside the server's drain, so the
+// server's Shutdown neither waits for it nor is held by it, and a body that
+// completes once Shutdown has begun is answered UNAVAILABLE. Bounding how long
+// such a client holds its connection is the http.Server's job, with ReadTimeout.
 func (h *handler) readBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	var buf bytes.Buffer
 	if r.ContentLength > 0 && r.ContentLength <= h.maxBody {

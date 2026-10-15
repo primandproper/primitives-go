@@ -31,7 +31,11 @@ It is scoped to what a client of ours needs:
     receive limit and its frame header is answered RESOURCE_EXHAUSTED without
     reaching the server, and is not read past that. The limit is the one the
     server reports through MaxReceiveMessageSize, as *grpcserver.Server does,
-    or grpc-go's 4 MiB default for a Server that reports none.
+    or grpc-go's 4 MiB default for a Server that reports none. The body is read
+    whole before the call reaches the server, so the server's drain covers a
+    call from then on: one still uploading neither holds the server's Shutdown
+    nor is waited for by it, and is answered UNAVAILABLE if its body completes
+    after Shutdown has begun.
 
 grpc-status, grpc-message and grpc-status-details-bin reach the client byte for
 byte, in the trailer frame. A trailers-only response, a call that failed before
