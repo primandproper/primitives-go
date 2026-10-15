@@ -61,9 +61,15 @@ func serving(context.Context, *grpc_health_v1.HealthCheckRequest) (*grpc_health_
 func newTestServer(t *testing.T, svc *healthService, interceptors ...grpc.UnaryServerInterceptor) (srv *grpcserver.Server, url string) {
 	t.Helper()
 
+	return newTestServerWithOptions(t, svc, nil, interceptors...)
+}
+
+func newTestServerWithOptions(t *testing.T, svc *healthService, opts []grpcserver.Option, interceptors ...grpc.UnaryServerInterceptor) (srv *grpcserver.Server, url string) {
+	t.Helper()
+
 	srv, err := grpcserver.NewGRPCServer(t.Context(), &grpcserver.Config{}, interceptors, nil, []grpcserver.RegistrationFunc{
 		func(s *grpc.Server) { grpc_health_v1.RegisterHealthServer(s, svc) },
-	})
+	}, opts...)
 	must.NoError(t, err)
 
 	hs := httptest.NewServer(NewHandler(srv))
@@ -72,16 +78,24 @@ func newTestServer(t *testing.T, svc *healthService, interceptors ...grpc.UnaryS
 	return srv, hs.URL
 }
 
+// frame lays payload out as one gRPC message frame.
+func frame(payload []byte) []byte {
+	body := make([]byte, frameHeaderSize, frameHeaderSize+len(payload))
+	binary.BigEndian.PutUint32(body[1:], uint32(len(payload)))
+
+	return append(body, payload...)
+}
+
 func send(ctx context.Context, url, method, contentType string, msg proto.Message, header http.Header) (*http.Response, error) {
 	payload, err := proto.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	body := make([]byte, frameHeaderSize, frameHeaderSize+len(payload))
-	binary.BigEndian.PutUint32(body[1:], uint32(len(payload)))
-	body = append(body, payload...)
+	return sendRaw(ctx, url, method, contentType, frame(payload), header)
+}
 
+func sendRaw(ctx context.Context, url, method, contentType string, body []byte, header http.Header) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+method, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -469,5 +483,134 @@ func TestEncodeTrailerFrame(T *testing.T) {
 		test.EqOp(t, trailerFrameFlag, frame[0])
 		test.EqOp(t, uint32(len(block)), binary.BigEndian.Uint32(frame[1:frameHeaderSize]))
 		test.EqOp(t, block, string(frame[frameHeaderSize:]))
+	})
+}
+
+// requestOfSize marshals a HealthCheckRequest of exactly size bytes.
+func requestOfSize(t *testing.T, size int) []byte {
+	t.Helper()
+
+	// A one-byte tag and a two-byte length precede the service name for any
+	// size this is used with.
+	payload, err := proto.Marshal(&grpc_health_v1.HealthCheckRequest{Service: strings.Repeat("a", size-3)})
+	must.NoError(t, err)
+	must.SliceLen(t, size, payload)
+
+	return payload
+}
+
+// endlessBody is a request body that never ends, counting the bytes read from it.
+type endlessBody struct {
+	prefix []byte
+	read   int64
+}
+
+func (b *endlessBody) Read(p []byte) (int, error) {
+	n := copy(p, b.prefix)
+	b.prefix = b.prefix[n:]
+	clear(p[n:])
+	b.read += int64(len(p))
+
+	return len(p), nil
+}
+
+type plainServer struct {
+	http.Handler
+}
+
+func (plainServer) GetServiceInfo() map[string]grpc.ServiceInfo { return nil }
+
+type limitedServer struct {
+	plainServer
+	limit int
+}
+
+func (s limitedServer) MaxReceiveMessageSize() int { return s.limit }
+
+func TestHandler_requestBodyCap(T *testing.T) {
+	T.Parallel()
+
+	const maxReceive = 1024
+
+	T.Run("a body exactly at the cap is served", func(t *testing.T) {
+		t.Parallel()
+
+		_, url := newTestServerWithOptions(t, newHealthService(serving), []grpcserver.Option{grpcserver.WithMaxReceiveMessageSize(maxReceive)})
+
+		resp, err := sendRaw(t.Context(), url, checkMethod, "application/grpc-web+proto", frame(requestOfSize(t, maxReceive)), nil)
+		must.NoError(t, err)
+		out := readResponse(t, resp)
+
+		must.SliceLen(t, 1, out.messages)
+		test.EqOp(t, "0", out.trailers["grpc-status"])
+	})
+
+	T.Run("a body one byte over the cap is answered RESOURCE_EXHAUSTED without reaching the server", func(t *testing.T) {
+		t.Parallel()
+
+		reached := make(chan struct{}, 1)
+		_, url := newTestServerWithOptions(t, newHealthService(func(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
+			reached <- struct{}{}
+			return serving(ctx, req)
+		}), []grpcserver.Option{grpcserver.WithMaxReceiveMessageSize(maxReceive)})
+
+		// The message itself is within the server's limit, so grpc-go alone
+		// would serve this and ignore the byte behind it.
+		body := append(frame(requestOfSize(t, maxReceive)), 0)
+
+		resp, err := sendRaw(t.Context(), url, checkMethod, "application/grpc-web+proto", body, nil)
+		must.NoError(t, err)
+		out := readResponse(t, resp)
+
+		test.SliceEmpty(t, out.messages)
+		test.EqOp(t, "8", out.trailers["grpc-status"])
+		test.EqOp(t, "8", out.header.Get("Grpc-Status"))
+		test.StrContains(t, out.trailers["grpc-message"], "1024-byte")
+
+		select {
+		case <-reached:
+			t.Fatal("the over-cap call reached the server")
+		default:
+		}
+	})
+
+	T.Run("a body far over the cap stops being read at the cap", func(t *testing.T) {
+		t.Parallel()
+
+		srv, err := grpcserver.NewGRPCServer(t.Context(), &grpcserver.Config{}, nil, nil, []grpcserver.RegistrationFunc{
+			func(s *grpc.Server) { grpc_health_v1.RegisterHealthServer(s, newHealthService(serving)) },
+		}, grpcserver.WithMaxReceiveMessageSize(maxReceive))
+		must.NoError(t, err)
+
+		// One valid empty message, then padding without end.
+		body := &endlessBody{prefix: frame(nil)}
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, checkMethod, body)
+		req.Header.Set("Content-Type", "application/grpc-web+proto")
+
+		rec := httptest.NewRecorder()
+		NewHandler(srv).ServeHTTP(rec, req)
+
+		test.LessEq(t, int64(maxReceive+frameHeaderSize+1), body.read)
+
+		out := readResponse(t, rec.Result())
+		test.EqOp(t, "8", out.trailers["grpc-status"])
+	})
+
+	T.Run("the cap follows the server's receive limit", func(t *testing.T) {
+		t.Parallel()
+
+		h, ok := NewHandler(limitedServer{limit: maxReceive}).(*handler)
+		must.True(t, ok)
+
+		test.EqOp(t, int64(maxReceive+frameHeaderSize), h.maxBody)
+	})
+
+	T.Run("a server that reports no limit is taken to have grpc-go's default", func(t *testing.T) {
+		t.Parallel()
+
+		h, ok := NewHandler(plainServer{}).(*handler)
+		must.True(t, ok)
+
+		test.EqOp(t, int64(4<<20+frameHeaderSize), h.maxBody)
 	})
 }

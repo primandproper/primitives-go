@@ -111,6 +111,46 @@ func TestNewGRPCServer_messageSizeBounds(T *testing.T) {
 	})
 }
 
+func TestServer_MaxReceiveMessageSize(T *testing.T) {
+	T.Parallel()
+
+	T.Run("nothing configured reports the default", func(t *testing.T) {
+		t.Parallel()
+
+		srv, err := NewGRPCServer(t.Context(), &Config{}, nil, nil, nil)
+		must.NoError(t, err)
+
+		test.EqOp(t, DefaultMaxMessageSize, srv.MaxReceiveMessageSize())
+	})
+
+	T.Run("reports the config field", func(t *testing.T) {
+		t.Parallel()
+
+		srv, err := NewGRPCServer(t.Context(), &Config{MaxReceiveMessageSize: 1 << 20}, nil, nil, nil)
+		must.NoError(t, err)
+
+		test.EqOp(t, 1<<20, srv.MaxReceiveMessageSize())
+	})
+
+	T.Run("reports the option over the config field", func(t *testing.T) {
+		t.Parallel()
+
+		srv, err := NewGRPCServer(t.Context(), &Config{MaxReceiveMessageSize: 1 << 20}, nil, nil, nil, WithMaxReceiveMessageSize(2<<20))
+		must.NoError(t, err)
+
+		test.EqOp(t, 2<<20, srv.MaxReceiveMessageSize())
+	})
+
+	T.Run("is the receive bound, not the send one", func(t *testing.T) {
+		t.Parallel()
+
+		srv, err := NewGRPCServer(t.Context(), &Config{}, nil, nil, nil, WithMaxSendMessageSize(1<<20))
+		must.NoError(t, err)
+
+		test.EqOp(t, DefaultMaxMessageSize, srv.MaxReceiveMessageSize())
+	})
+}
+
 // The end-to-end half: the bounds above are only worth anything if they reach
 // grpc.NewServer, which nothing short of a real RPC can show.
 

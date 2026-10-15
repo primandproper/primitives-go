@@ -71,6 +71,8 @@ type (
 		tracerProvider tracing.Provider
 		bound          bound.Address
 		httpCalls      httpCalls
+
+		maxReceiveMessageSize int
 	}
 
 	// RegistrationFunc is i.e. protobuf.RegisterSomeExampleServiceServer(grpcServer, &exampleServiceServerImpl{}).
@@ -181,11 +183,23 @@ func NewGRPCServer(
 	}
 
 	return &Server{
-		logger:         logging.NewNamedLogger(logger, name),
-		config:         cfg,
-		grpcServer:     grpcServer,
-		tracerProvider: tp,
+		logger:                logging.NewNamedLogger(logger, name),
+		config:                cfg,
+		grpcServer:            grpcServer,
+		tracerProvider:        tp,
+		maxReceiveMessageSize: maxReceive,
 	}, nil
+}
+
+// MaxReceiveMessageSize is the bound on a single received message the server
+// was built with: WithMaxReceiveMessageSize if one was named, else
+// Config.MaxReceiveMessageSize, else DefaultMaxMessageSize.
+//
+// It is how something serving calls into the server from in front of it learns
+// the server's limit rather than keeping a second copy that could disagree.
+// server/grpcweb reads it to cap a request body before dispatch.
+func (s *Server) MaxReceiveMessageSize() int {
+	return s.maxReceiveMessageSize
 }
 
 // resolveMessageSize settles one direction's message-size bound: the Option if
