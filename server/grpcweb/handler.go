@@ -190,6 +190,13 @@ func (rw *responseWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// Unwrap hands http.NewResponseController the client's ResponseWriter. The
+// server's forced Shutdown reaches through it to cut short a call whose client
+// stalled mid-body, which it cannot do through this wrapper.
+func (rw *responseWriter) Unwrap() http.ResponseWriter {
+	return rw.w
+}
+
 // Flush is a no-op until a message has been written. grpc-go flushes before it
 // sets the status of a call that failed without one, and passing that through
 // would send the headers before the status could be among them.

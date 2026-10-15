@@ -2,10 +2,13 @@ package grpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/shoenig/test"
 	"github.com/shoenig/test/must"
@@ -75,6 +78,67 @@ func TestServer_ServeHTTP(T *testing.T) {
 		test.EqOp(t, http.StatusOK, rec.Code)
 		test.EqOp(t, "application/grpc", rec.Header().Get("Content-Type"))
 		test.EqOp(t, "14", rec.Header().Get("Grpc-Status"))
+	})
+
+	// Over HTTP/2 the stalled read ends when grpc-go closes the request body, so
+	// this holds without httpCalls.abort; it pins that the deadline holds on
+	// HTTP/2 too. The HTTP/1.1 case, where only abort ends the read, is in
+	// server/grpcweb, which is the path HTTP/1.1 calls take.
+	T.Run("a call stalled mid-body does not hold Shutdown past its deadline", func(t *testing.T) {
+		t.Parallel()
+
+		srv := newHealthServer(t)
+
+		var h2c http.Protocols
+		h2c.SetUnencryptedHTTP2(true)
+
+		hs := httptest.NewUnstartedServer(srv)
+		hs.Config.Protocols = &h2c
+		hs.Start()
+		t.Cleanup(hs.Close)
+
+		transport := &http.Transport{Protocols: &h2c}
+		t.Cleanup(transport.CloseIdleConnections)
+
+		// The body promises 100 bytes and delivers three, then the client goes
+		// quiet with the stream open.
+		body, stall := io.Pipe()
+		t.Cleanup(func() { _ = stall.Close() })
+
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, hs.URL+"/grpc.health.v1.Health/Check", body)
+		must.NoError(t, err)
+		req.ContentLength = 100
+		req.Header.Set("Content-Type", "application/grpc")
+
+		go func() {
+			if resp, doErr := transport.RoundTrip(req); doErr == nil {
+				_ = resp.Body.Close()
+			}
+		}()
+
+		_, err = stall.Write([]byte{0, 0, 0})
+		must.NoError(t, err)
+
+		// The pipe's write returning means the transport has the bytes; this
+		// gives the server time to admit the call and block reading the rest.
+		time.Sleep(100 * time.Millisecond)
+
+		const deadline = 200 * time.Millisecond
+		ctx, cancel := context.WithTimeout(t.Context(), deadline)
+		defer cancel()
+
+		start := time.Now()
+		stopped := make(chan error, 1)
+		go func() { stopped <- srv.Shutdown(ctx) }()
+
+		select {
+		case err = <-stopped:
+		case <-time.After(deadline + 2*time.Second):
+			t.Fatal("Shutdown was still blocked well past its deadline")
+		}
+
+		test.ErrorIs(t, err, context.DeadlineExceeded)
+		test.Less(t, deadline+500*time.Millisecond, time.Since(start))
 	})
 }
 

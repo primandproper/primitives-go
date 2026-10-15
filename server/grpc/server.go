@@ -247,6 +247,14 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	case <-ctx.Done():
 		// GracefulStop, or the ServeHTTP drain ahead of it, is still blocked on
 		// in-flight RPCs; Stop unblocks both by cancelling them.
+		//
+		// A ServeHTTP call does not return until its request-body read does,
+		// and Stop waits for every call to return, so a client that stalled
+		// mid-body would hold both until its connection closed. Its read is cut
+		// short first, which is what lets Stop return at all.
+		if unreached := s.httpCalls.abort(); unreached > 0 {
+			s.logger.WithValue("calls", unreached).Warn("forced shutdown could not interrupt the request-body read of in-flight ServeHTTP calls; their ResponseWriter does not unwrap to the server's")
+		}
 		s.grpcServer.Stop()
 		<-stopped
 		err = ctx.Err()

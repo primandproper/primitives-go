@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"io"
 	"maps"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -371,6 +372,50 @@ func TestHandler_ServeHTTP(T *testing.T) {
 		test.EqOp(t, "0", out.trailers["grpc-status"])
 
 		must.NoError(t, <-stopped)
+	})
+
+	T.Run("a call stalled mid-body does not hold Shutdown past its deadline", func(t *testing.T) {
+		t.Parallel()
+
+		srv, url := newTestServer(t, newHealthService(serving))
+
+		var d net.Dialer
+		conn, err := d.DialContext(t.Context(), "tcp", strings.TrimPrefix(url, "http://"))
+		must.NoError(t, err)
+		t.Cleanup(func() { _ = conn.Close() })
+
+		// The body promises 100 bytes and delivers three, then the client goes
+		// quiet with the connection open.
+		_, err = io.WriteString(conn, "POST "+checkMethod+" HTTP/1.1\r\n"+
+			"Host: test\r\n"+
+			"Content-Type: application/grpc-web+proto\r\n"+
+			"Content-Length: 100\r\n"+
+			"\r\n"+
+			"\x00\x00\x00")
+		must.NoError(t, err)
+
+		// Give the server time to admit the call and block reading its body.
+		// Nothing the server does for a call before its first message is whole
+		// is visible from here; were the call not yet admitted, Shutdown would
+		// refuse it and return nil at once, failing below rather than hanging.
+		time.Sleep(100 * time.Millisecond)
+
+		const deadline = 200 * time.Millisecond
+		ctx, cancel := context.WithTimeout(t.Context(), deadline)
+		defer cancel()
+
+		start := time.Now()
+		stopped := make(chan error, 1)
+		go func() { stopped <- srv.Shutdown(ctx) }()
+
+		select {
+		case err = <-stopped:
+		case <-time.After(deadline + 2*time.Second):
+			t.Fatal("Shutdown was still blocked well past its deadline")
+		}
+
+		test.ErrorIs(t, err, context.DeadlineExceeded)
+		test.Less(t, deadline+500*time.Millisecond, time.Since(start))
 	})
 
 	T.Run("a call the server is stopped under is answered UNAVAILABLE", func(t *testing.T) {
