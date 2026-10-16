@@ -91,14 +91,9 @@ func newRenderOptions(opts ...RenderOption) *renderOptions {
 
 // RenderJSONFiles writes each environment's Config to its Path as indented
 // JSON, and is the inverse of LoadFromJSONFile: what it writes, that function
-// reads back into an equal *T.
-//
-// The one thing that breaks the round trip is the caarlos0/env caveat
-// LoadFromJSONFile already documents. The overlay runs after the decode, so a
-// field carrying an envDefault whose env var is unset comes back as that
-// default no matter what was rendered. That is a property of loading, not of
-// rendering — the file on disk holds the value it was given either way — but a
-// test asserting Render-then-Load equality has to account for it.
+// reads back into an equal *T. A field carrying an envDefault comes back as
+// the default only if the file leaves it out — rendered at its zero value
+// under omitempty, say.
 //
 // Nothing is written until every environment has been validated and marshaled,
 // so a config that fails either fails the whole call rather than landing a

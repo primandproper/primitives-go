@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/errors"
 
+	"github.com/caarlos0/env/v11"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/joho/godotenv"
 )
@@ -24,11 +25,13 @@ func LoadFromEnvironment[T any](opts ...Option) (*T, error) {
 }
 
 // LoadFromJSONFile decodes the JSON file at path into a *T, then overlays
-// environment variables on top of it via ApplyEnvironmentVariables. A set env
-// var takes precedence over the file value. Note the caarlos0/env caveat
-// documented on ApplyEnvironmentVariables: a field carrying an envDefault whose
-// env var is unset is reset to that default even if the file supplied a value,
-// so give such fields their env var (or no envDefault) when the file should win.
+// environment variables on top of it. A set env var takes precedence over the
+// file, and the file over an envDefault: the defaults are applied to a zero *T
+// first, the file is decoded over them, and the variables that are set are
+// applied last. A field the file leaves out gets its default.
+//
+// WithOnSet reports from the first of those steps, so a default the file then
+// replaces is still reported as applied.
 func LoadFromJSONFile[T any](ctx context.Context, path string, opts ...Option) (*T, error) {
 	return loadFile[T](ctx, path, encoding.ContentTypeJSON, opts...)
 }
@@ -47,8 +50,10 @@ func LoadFromYAMLFile[T any](ctx context.Context, path string, opts ...Option) (
 	return loadFile[T](ctx, path, encoding.ContentTypeYAML, opts...)
 }
 
-// loadFile reads the file at path, decodes it as ct into a fresh *T, then
-// overlays environment variables.
+// loadFile reads the file at path and layers the defaults, the file and the
+// set variables into a fresh *T, lowest first. Both environment passes read one
+// snapshot, so a `,unset` the first applies cannot hide a variable from the
+// second.
 //
 // The decode goes through encoding rather than through the three unmarshalers
 // directly, so that a config file and everything else this module reads off a
@@ -62,12 +67,19 @@ func loadFile[T any](ctx context.Context, path string, ct encoding.ContentType, 
 		return nil, errors.Wrapf(err, "reading config file %q", path)
 	}
 
+	o := newOptions(opts...)
+	environment := env.ToMap(os.Environ())
+
 	cfg := new(T)
+	if err = applyEnvironment(cfg, o, environment); err != nil {
+		return nil, err
+	}
+
 	if err = encoding.NewClientEncoder(ct).Unmarshal(ctx, contents, cfg); err != nil {
 		return nil, errors.Wrapf(err, "decoding %s config file %q", ct, path)
 	}
 
-	if err = ApplyEnvironmentVariables(cfg, opts...); err != nil {
+	if err = applySetVariables(cfg, o, environment); err != nil {
 		return nil, err
 	}
 

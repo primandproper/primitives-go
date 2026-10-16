@@ -50,6 +50,84 @@ func TestLoadFromJSONFile_OverlaysEnvironment(t *testing.T) {
 	test.EqOp(t, 8080, cfg.Port)
 }
 
+func TestLoadFromJSONFile_FileBeatsEnvDefault(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	must.NoError(t, os.WriteFile(path, []byte(`{"Port":5000}`), 0o600))
+
+	t.Run("a file value survives an unset variable", func(t *testing.T) { //nolint:paralleltest // shares process env with sibling subtests.
+		cfg, err := LoadFromJSONFile[sampleConfig](t.Context(), path)
+		must.NoError(t, err)
+		test.EqOp(t, 5000, cfg.Port)
+	})
+
+	t.Run("a set variable overrides the file value", func(t *testing.T) {
+		t.Setenv("PORT", "9090")
+
+		cfg, err := LoadFromJSONFile[sampleConfig](t.Context(), path)
+		must.NoError(t, err)
+		test.EqOp(t, 9090, cfg.Port)
+	})
+
+	t.Run("a file's explicit zero survives too", func(t *testing.T) { //nolint:paralleltest // shares process env with sibling subtests.
+		zeroPath := filepath.Join(dir, "zero.json")
+		must.NoError(t, os.WriteFile(zeroPath, []byte(`{"Port":0}`), 0o600))
+
+		cfg, err := LoadFromJSONFile[sampleConfig](t.Context(), zeroPath)
+		must.NoError(t, err)
+		test.EqOp(t, 0, cfg.Port)
+	})
+
+	t.Run("required and notEmpty are satisfied by a default", func(t *testing.T) {
+		type checkedConfig struct {
+			Region string `env:"REGION,notEmpty" envDefault:"us"`
+			Zone   string `env:"ZONE,required"   envDefault:"a"`
+			Token  string `env:"TOKEN,required"`
+		}
+
+		checkedPath := filepath.Join(dir, "checked.json")
+		must.NoError(t, os.WriteFile(checkedPath, []byte(`{"Region":"eu"}`), 0o600))
+
+		t.Setenv("TOKEN", "sekret")
+
+		cfg, err := LoadFromJSONFile[checkedConfig](t.Context(), checkedPath)
+		must.NoError(t, err)
+		test.EqOp(t, "eu", cfg.Region)
+		test.EqOp(t, "a", cfg.Zone)
+		test.EqOp(t, "sekret", cfg.Token)
+	})
+
+	t.Run("a required variable with no default is still required", func(t *testing.T) { //nolint:paralleltest // shares process env with sibling subtests.
+		type requiredConfig struct {
+			Token string `env:"TOKEN,required"`
+		}
+
+		requiredPath := filepath.Join(dir, "required.json")
+		must.NoError(t, os.WriteFile(requiredPath, []byte(`{"Token":"fromfile"}`), 0o600))
+
+		_, err := LoadFromJSONFile[requiredConfig](t.Context(), requiredPath)
+		test.Error(t, err)
+	})
+
+	t.Run("OnSet reports a set variable once", func(t *testing.T) {
+		t.Setenv("PORT", "9090")
+
+		var reported []string
+		_, err := LoadFromJSONFile[sampleConfig](t.Context(), path, WithOnSet(func(tag string, _ any, _ bool) {
+			reported = append(reported, tag)
+		}))
+		must.NoError(t, err)
+
+		ports := 0
+		for _, tag := range reported {
+			if tag == "PORT" {
+				ports++
+			}
+		}
+		test.EqOp(t, 1, ports)
+	})
+}
+
 func TestLoadFromJSONFile(t *testing.T) {
 	t.Parallel()
 
