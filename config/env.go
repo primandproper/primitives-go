@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/primandproper/primitives-go/v2/errors"
 
 	"github.com/caarlos0/env/v11"
@@ -54,10 +56,15 @@ func newOptions(opts ...Option) *options {
 //     envDefault always ends up at either its env value or its default — never a
 //     value that came only from the file.
 //   - A field with no env var and no envDefault is left untouched.
+//
+// The LoadFrom* file loaders do not overlay this way: they let a file's value
+// stand over an envDefault. LoadFromJSONFile carries how.
 func ApplyEnvironmentVariables(cfg any, opts ...Option) error {
-	o := newOptions(opts...)
+	return applyEnvironment(cfg, newOptions(opts...), env.ToMap(os.Environ()))
+}
 
-	envOpts := env.Options{Prefix: o.prefix}
+func applyEnvironment(cfg any, o *options, environment map[string]string) error {
+	envOpts := env.Options{Prefix: o.prefix, Environment: environment}
 	if o.onSet != nil {
 		envOpts.OnSet = env.OnSetFn(o.onSet)
 	}
@@ -67,4 +74,40 @@ func ApplyEnvironmentVariables(cfg any, opts ...Option) error {
 	}
 
 	return nil
+}
+
+// noDefaultsTag names a struct tag nothing carries, so a parse looking for
+// defaults under it finds none.
+const noDefaultsTag = "primitivesNoEnvDefault"
+
+// applySetVariables assigns cfg the variables environment sets and nothing
+// else: with no defaults to fall back on, a field whose variable is unset keeps
+// what it holds.
+//
+// It runs after an applyEnvironment over the same environment, which has
+// already checked required and notEmpty against the defaults this pass cannot
+// see, so the failures those checks raise here are only the missing defaults
+// and are dropped.
+func applySetVariables(cfg any, o *options, environment map[string]string) error {
+	err := env.ParseWithOptions(cfg, env.Options{
+		Prefix:              o.prefix,
+		Environment:         environment,
+		DefaultValueTagName: noDefaultsTag,
+	})
+
+	var aggregate env.AggregateError
+	if !errors.As(err, &aggregate) {
+		return errors.Wrap(err, "applying environment variables")
+	}
+
+	var kept []error
+	for _, e := range aggregate.Errors {
+		var notSet env.VarIsNotSetError
+		var empty env.EmptyVarError
+		if !errors.As(e, &notSet) && !errors.As(e, &empty) {
+			kept = append(kept, e)
+		}
+	}
+
+	return errors.Wrap(errors.Join(kept...), "applying environment variables")
 }

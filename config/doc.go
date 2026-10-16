@@ -21,10 +21,8 @@ That ordering is the whole point of the layering: the file is what a deployment
 checks in, and the environment is what a deployment overrides per replica, per
 region, or per incident, including the secrets that must not be in the file.
 
-The overlay has one edge worth knowing before choosing tags, and it belongs to
-caarlos0/env rather than to this package: a field carrying an envDefault whose
-variable is unset is written back to that default, overwriting what the file
-supplied. A field the file should win is a field with no envDefault.
+The precedence is environment, then file, then envDefault: a set variable beats
+the file, and a default fills only a field the file leaves out.
 LoadFromJSONFile carries the long form.
 
 WithPrefix scopes the overlay to one application's variables. WithOnSet reports

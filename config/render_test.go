@@ -168,9 +168,8 @@ func TestRenderYAMLFiles(t *testing.T) {
 	}
 }
 
-// TestRenderJSONFiles_EnvDefaultOverlay pins the one documented gap in the
-// round trip: the rendered file holds the value it was given, but the loader's
-// env overlay resets a field carrying an envDefault whose var is unset.
+// TestRenderJSONFiles_EnvDefaultOverlay pins that a rendered value survives
+// the loader's env overlay on a field carrying an envDefault.
 func TestRenderJSONFiles_EnvDefaultOverlay(t *testing.T) {
 	t.Parallel()
 
@@ -185,7 +184,7 @@ func TestRenderJSONFiles_EnvDefaultOverlay(t *testing.T) {
 	cfg, err := LoadFromJSONFile[sampleConfig](t.Context(), path)
 	must.NoError(t, err)
 	test.EqOp(t, "rendered", cfg.Name)
-	test.EqOp(t, 8080, cfg.Port) // reset to the envDefault, not the rendered 9999
+	test.EqOp(t, 9999, cfg.Port)
 }
 
 func TestRenderJSONFiles_ValidatesEverythingFirst(t *testing.T) {
