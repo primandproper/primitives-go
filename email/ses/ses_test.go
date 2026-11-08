@@ -163,6 +163,29 @@ func TestEmailer_SendEmail(T *testing.T) {
 		test.EqOp(t, details.HTMLContent, aws.ToString(mock.input.Content.Simple.Body.Html.Data))
 	})
 
+	T.Run("sets Reply-To only when the message names one", func(t *testing.T) {
+		t.Parallel()
+
+		mock := &mockSESClient{output: &sesv2.SendEmailOutput{}}
+		e, _ := newRecordingEmailer(t, &Config{Region: "us-east-1"}, mock)
+
+		details := &email.OutboundEmailMessage{
+			ToAddress:      "recipient@example.com",
+			FromAddress:    "sender@example.com",
+			ReplyToAddress: "owner@example.com",
+			ReplyToName:    "Owner, Studio",
+			Subject:        "the subject line",
+			HTMLContent:    "<p>the html body</p>",
+		}
+		must.NoError(t, e.SendEmail(t.Context(), details))
+		must.SliceLen(t, 1, mock.input.ReplyToAddresses)
+		test.EqOp(t, `"Owner, Studio" <owner@example.com>`, mock.input.ReplyToAddresses[0])
+
+		details.ReplyToAddress, details.ReplyToName = "", ""
+		must.NoError(t, e.SendEmail(t.Context(), details))
+		test.SliceEmpty(t, mock.input.ReplyToAddresses)
+	})
+
 	T.Run("without names", func(t *testing.T) {
 		t.Parallel()
 

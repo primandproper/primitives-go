@@ -109,6 +109,9 @@ func (e *Emailer) SendEmail(ctx context.Context, details *email.OutboundEmailMes
 	to := mail.NewEmail(details.ToName, details.ToAddress)
 	from := mail.NewEmail(details.FromName, details.FromAddress)
 	message := mail.NewSingleEmail(from, details.Subject, to, "", details.HTMLContent)
+	if details.ReplyToAddress != "" {
+		message.SetReplyTo(mail.NewEmail(details.ReplyToName, details.ReplyToAddress))
+	}
 
 	req := e.client.Request
 	req.Body = mail.GetRequestBody(message)

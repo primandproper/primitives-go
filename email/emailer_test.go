@@ -55,3 +55,28 @@ func TestFormatAddress(T *testing.T) {
 		test.SliceLen(t, 1, list)
 	})
 }
+
+func TestOutboundEmailMessage_ReplyTo(T *testing.T) {
+	T.Parallel()
+
+	T.Run("names none", func(t *testing.T) {
+		t.Parallel()
+
+		test.EqOp(t, "", (&OutboundEmailMessage{ReplyToName: "Ignored without an address"}).ReplyTo())
+		test.EqOp(t, "", (&OutboundEmailMessage{ReplyToAddress: "   "}).ReplyTo())
+		test.EqOp(t, "", (*OutboundEmailMessage)(nil).ReplyTo())
+	})
+
+	T.Run("a bare address", func(t *testing.T) {
+		t.Parallel()
+
+		test.EqOp(t, "owner@example.com", (&OutboundEmailMessage{ReplyToAddress: "owner@example.com"}).ReplyTo())
+	})
+
+	T.Run("a display name is quoted", func(t *testing.T) {
+		t.Parallel()
+
+		got := (&OutboundEmailMessage{ReplyToAddress: "owner@example.com", ReplyToName: "Owner, Studio"}).ReplyTo()
+		test.EqOp(t, `"Owner, Studio" <owner@example.com>`, got)
+	})
+}

@@ -108,6 +108,7 @@ func (e *Emailer) SendEmail(ctx context.Context, details *email.OutboundEmailMes
 		To:      []string{to},
 		Subject: details.Subject,
 		Html:    details.HTMLContent,
+		ReplyTo: details.ReplyTo(),
 	}
 
 	resp, err := e.client.Emails.SendWithContext(ctx, params)

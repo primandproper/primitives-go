@@ -126,6 +126,10 @@ func (e *Emailer) SendEmail(ctx context.Context, details *email.OutboundEmailMes
 	)
 	msg.SetHTML(details.HTMLContent)
 
+	if replyTo := details.ReplyTo(); replyTo != "" {
+		msg.SetReplyTo(replyTo)
+	}
+
 	_, messageID, err := e.client.Send(ctx, msg)
 	if err != nil {
 		e.circuitBreaker.Failed()

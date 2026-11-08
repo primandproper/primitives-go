@@ -32,6 +32,7 @@ type (
 		Value string `json:"value"`
 	}
 	sgPayload struct {
+		ReplyTo          *sgAddress          `json:"reply_to"`
 		From             sgAddress           `json:"from"`
 		Subject          string              `json:"subject"`
 		Personalizations []sgPersonalization `json:"personalizations"`
@@ -140,6 +141,37 @@ func TestSendGridEmailer_SendEmail(T *testing.T) {
 			}
 		}
 		test.EqOp(t, details.HTMLContent, html)
+	})
+
+	T.Run("sets Reply-To only when the message names one", func(t *testing.T) {
+		t.Parallel()
+
+		var gotBody sgPayload
+		ts := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			gotBody = sgPayload{}
+			must.NoError(t, json.NewDecoder(req.Body).Decode(&gotBody))
+			res.WriteHeader(http.StatusAccepted)
+		}))
+
+		c, _ := newRecordingEmailer(t, &Config{APIToken: t.Name()}, ts.Client())
+		c.client.BaseURL = ts.URL
+
+		details := &email.OutboundEmailMessage{
+			ToAddress:      "recipient@example.com",
+			FromAddress:    "sender@example.com",
+			ReplyToAddress: "owner@example.com",
+			ReplyToName:    "Owner",
+			Subject:        "the subject line",
+			HTMLContent:    "<p>the html body</p>",
+		}
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		must.NotNil(t, gotBody.ReplyTo)
+		test.EqOp(t, "owner@example.com", gotBody.ReplyTo.Email)
+		test.EqOp(t, "Owner", gotBody.ReplyTo.Name)
+
+		details.ReplyToAddress, details.ReplyToName = "", ""
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		test.Nil(t, gotBody.ReplyTo)
 	})
 
 	T.Run("with error executing request", func(t *testing.T) {

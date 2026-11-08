@@ -19,6 +19,14 @@ type (
 		ToName      string `json:"toName"`
 		FromAddress string `json:"fromAddress"`
 		FromName    string `json:"fromName"`
+
+		// ReplyToAddress is where a recipient's reply goes when it is not the
+		// sender: a service that sends from its own domain on behalf of a
+		// person who reads their own mailbox. Empty sets no Reply-To, and
+		// ReplyToName is ignored without it.
+		ReplyToAddress string `json:"replyToAddress,omitempty"`
+		ReplyToName    string `json:"replyToName,omitempty"`
+
 		Subject     string `json:"subject"`
 		HTMLContent string `json:"htmlContent"`
 	}
@@ -48,4 +56,16 @@ func FormatAddress(name, address string) string {
 	}
 
 	return (&mail.Address{Name: name, Address: address}).String()
+}
+
+// ReplyTo renders the message's Reply-To as one RFC 5322 mailbox, through
+// FormatAddress, or the empty string when the message names none. A provider
+// that takes the mailbox as a single string sets it only when this is not
+// empty.
+func (m *OutboundEmailMessage) ReplyTo() string {
+	if m == nil || strings.TrimSpace(m.ReplyToAddress) == "" {
+		return ""
+	}
+
+	return FormatAddress(m.ReplyToName, m.ReplyToAddress)
 }
