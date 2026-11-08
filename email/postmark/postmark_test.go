@@ -28,10 +28,11 @@ type emailResponse struct {
 // enough to assert the outbound request carried the fields SendEmail was told
 // to send.
 type postmarkPayload struct {
-	From     string `json:"From"`
-	To       string `json:"To"`
-	Subject  string `json:"Subject"`
-	HtmlBody string `json:"HtmlBody"`
+	ReplyTo  *string `json:"ReplyTo"`
+	From     string  `json:"From"`
+	To       string  `json:"To"`
+	Subject  string  `json:"Subject"`
+	HtmlBody string  `json:"HtmlBody"`
 }
 
 // newRecordingEmailer builds an Emailer with a RecordingObserver swapped in, so a
@@ -158,6 +159,35 @@ func TestPostmarkEmailer_SendEmail(T *testing.T) {
 		test.EqOp(t, email.FormatAddress(details.ToName, details.ToAddress), gotBody.To)
 		test.EqOp(t, details.Subject, gotBody.Subject)
 		test.EqOp(t, details.HTMLContent, gotBody.HtmlBody)
+	})
+
+	T.Run("sets Reply-To only when the message names one", func(t *testing.T) {
+		t.Parallel()
+
+		var gotBody postmarkPayload
+		ts := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			gotBody = postmarkPayload{}
+			must.NoError(t, json.NewDecoder(req.Body).Decode(&gotBody))
+			must.NoError(t, json.NewEncoder(res).Encode(&emailResponse{Message: "OK", MessageID: t.Name(), SubmittedAt: "2010-11-26T12:01:05-05:00"}))
+		}))
+
+		c, _ := newRecordingEmailer(t, &Config{ServerToken: t.Name(), BaseURL: ts.URL}, ts.Client())
+
+		details := &email.OutboundEmailMessage{
+			ToAddress:      "recipient@example.com",
+			FromAddress:    "sender@example.com",
+			ReplyToAddress: "owner@example.com",
+			ReplyToName:    "Owner, Studio",
+			Subject:        "the subject line",
+			HTMLContent:    "<p>the html body</p>",
+		}
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		must.NotNil(t, gotBody.ReplyTo)
+		test.EqOp(t, `"Owner, Studio" <owner@example.com>`, *gotBody.ReplyTo)
+
+		details.ReplyToAddress, details.ReplyToName = "", ""
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		test.Nil(t, gotBody.ReplyTo)
 	})
 
 	T.Run("with nil message", func(t *testing.T) {

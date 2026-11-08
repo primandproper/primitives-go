@@ -116,6 +116,7 @@ func (e *Emailer) SendEmail(ctx context.Context, details *email.OutboundEmailMes
 		To:       email.FormatAddress(details.ToName, details.ToAddress),
 		Subject:  details.Subject,
 		HtmlBody: details.HTMLContent,
+		ReplyTo:  details.ReplyTo(),
 	}
 
 	resp, err := e.client.SendEmail(pmEmail)

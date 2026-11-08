@@ -177,6 +177,34 @@ func TestMailjetEmailer_SendEmail(T *testing.T) {
 		test.EqOp(t, details.HTMLContent, msg.HTMLPart)
 	})
 
+	T.Run("sets Reply-To only when the message names one", func(t *testing.T) {
+		t.Parallel()
+
+		c, err := NewMailjetEmailer(&Config{SecretKey: t.Name(), APIKey: t.Name()}, &http.Client{}, cbnoop.NewCircuitBreaker())
+		must.NoError(t, err)
+
+		fake := &recordingMailjetClient{result: &mailjet.ResultsV31{}}
+		c.client = fake
+
+		details := &email.OutboundEmailMessage{
+			ToAddress:      "recipient@example.com",
+			FromAddress:    "sender@example.com",
+			ReplyToAddress: "owner@example.com",
+			ReplyToName:    "Owner",
+			Subject:        "the subject line",
+			HTMLContent:    "<p>the html body</p>",
+		}
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		must.SliceLen(t, 1, fake.got.Info)
+		must.NotNil(t, fake.got.Info[0].ReplyTo)
+		test.EqOp(t, "owner@example.com", fake.got.Info[0].ReplyTo.Email)
+		test.EqOp(t, "Owner", fake.got.Info[0].ReplyTo.Name)
+
+		details.ReplyToAddress, details.ReplyToName = "", ""
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		test.Nil(t, fake.got.Info[0].ReplyTo)
+	})
+
 	T.Run("with error executing request", func(t *testing.T) {
 		t.Parallel()
 

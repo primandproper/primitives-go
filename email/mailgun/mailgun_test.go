@@ -152,6 +152,29 @@ func TestMailgunEmailer_SendEmail(T *testing.T) {
 		})
 	})
 
+	T.Run("sets Reply-To only when the message names one", func(t *testing.T) {
+		t.Parallel()
+
+		var gotForm url.Values
+		ts := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			must.NoError(t, req.ParseMultipartForm(1<<20))
+			gotForm = req.Form
+			must.NoError(t, json.NewEncoder(res).Encode(sendMessageResponse{Message: "Queued. Thank you.", Id: t.Name()}))
+		}))
+
+		cfg := &Config{Domain: exampleDomain, PrivateAPIKey: t.Name(), BaseURL: ts.URL + "/v4"}
+		c, _ := newRecordingEmailer(t, cfg, ts.Client())
+
+		details := testEmailMessage(t)
+		details.ReplyToAddress = "owner@example.com"
+		details.ReplyToName = "Owner, Studio"
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		test.EqOp(t, `"Owner, Studio" <owner@example.com>`, gotForm.Get("h:Reply-To"))
+
+		must.NoError(t, c.SendEmail(t.Context(), testEmailMessage(t)))
+		test.SliceEmpty(t, gotForm["h:Reply-To"])
+	})
+
 	T.Run("honors the configured API base", func(t *testing.T) {
 		t.Parallel()
 

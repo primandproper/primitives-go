@@ -130,6 +130,13 @@ func (e *Emailer) SendEmail(ctx context.Context, details *email.OutboundEmailMes
 		},
 	}
 
+	if details.ReplyToAddress != "" {
+		messagesInfo[0].ReplyTo = &mailjet.RecipientV31{
+			Email: details.ReplyToAddress,
+			Name:  details.ReplyToName,
+		}
+	}
+
 	if _, err := e.client.SendMailV31(&mailjet.MessagesV31{Info: messagesInfo}, mailjet.WithContext(ctx)); err != nil {
 		e.circuitBreaker.Failed()
 		e.errorCounter.Add(ctx, 1)

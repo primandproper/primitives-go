@@ -24,6 +24,7 @@ type sendEmailResponse struct {
 // resendPayload mirrors the JSON body Resend's SDK posts to /emails, enough to
 // assert the outbound request carried the fields SendEmail was told to send.
 type resendPayload struct {
+	ReplyTo *string  `json:"reply_to"`
 	From    string   `json:"from"`
 	Subject string   `json:"subject"`
 	Html    string   `json:"html"`
@@ -153,6 +154,35 @@ func TestResendEmailer_SendEmail(T *testing.T) {
 		test.EqOp(t, email.FormatAddress(details.ToName, details.ToAddress), gotBody.To[0])
 		test.EqOp(t, details.Subject, gotBody.Subject)
 		test.EqOp(t, details.HTMLContent, gotBody.Html)
+	})
+
+	T.Run("sets Reply-To only when the message names one", func(t *testing.T) {
+		t.Parallel()
+
+		var gotBody resendPayload
+		ts := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			gotBody = resendPayload{}
+			must.NoError(t, json.NewDecoder(req.Body).Decode(&gotBody))
+			must.NoError(t, json.NewEncoder(res).Encode(sendEmailResponse{Id: t.Name()}))
+		}))
+
+		c, _ := newRecordingEmailer(t, &Config{APIToken: t.Name()}, ts.Client(), ts.URL)
+
+		details := &email.OutboundEmailMessage{
+			ToAddress:      "recipient@example.com",
+			FromAddress:    "sender@example.com",
+			ReplyToAddress: "owner@example.com",
+			ReplyToName:    "Owner, Studio",
+			Subject:        "the subject line",
+			HTMLContent:    "<p>the html body</p>",
+		}
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		must.NotNil(t, gotBody.ReplyTo)
+		test.EqOp(t, `"Owner, Studio" <owner@example.com>`, *gotBody.ReplyTo)
+
+		details.ReplyToAddress, details.ReplyToName = "", ""
+		must.NoError(t, c.SendEmail(t.Context(), details))
+		test.Nil(t, gotBody.ReplyTo)
 	})
 
 	T.Run("with error executing request", func(t *testing.T) {

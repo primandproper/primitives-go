@@ -147,6 +147,10 @@ func (e *Emailer) SendEmail(ctx context.Context, details *email.OutboundEmailMes
 		},
 	}
 
+	if replyTo := details.ReplyTo(); replyTo != "" {
+		input.ReplyToAddresses = []string{replyTo}
+	}
+
 	out, err := e.client.SendEmail(ctx, input)
 	if err != nil {
 		e.circuitBreaker.Failed()
